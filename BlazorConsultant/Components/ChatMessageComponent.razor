@@ -1,0 +1,96 @@
+@using BlazorConsultant.Models
+@using Markdig
+
+<div class="tb-message @(Message.Role == "user" ? "user" : "assistant")">
+    <div class="tb-message__meta">
+        <div class="tb-message__author">
+            <MudIcon Icon="@(Message.Role == "user" ? Icons.Material.Filled.Person : Icons.Material.Filled.LocalFlorist)" />
+            <span>@(Message.Role == "user" ? "You" : "TailorBlend AI")</span>
+        </div>
+        <span title="@Message.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")">@GetRelativeTime(Message.Timestamp)</span>
+    </div>
+
+    @if (Message.Attachments != null && Message.Attachments.Count > 0)
+    {
+        <div style="margin-top: 8px;">
+            <FilePreviewComponent Attachments="@Message.Attachments" ShowRemoveButton="false" />
+        </div>
+    }
+
+    <div class="tb-message__body">
+        @((MarkupString)FormatMessage(Message.Content))
+
+        @if (Message.IsStreaming)
+        {
+            <div class="tb-streaming">
+                <span class="tb-streaming__dot"></span>
+                <span class="tb-streaming__dot"></span>
+                <span class="tb-streaming__dot"></span>
+            </div>
+        }
+    </div>
+
+    @if (!Message.IsStreaming)
+    {
+        <div class="tb-message__actions">
+            <button class="tb-action-btn" title="Copy message" aria-label="Copy message" @onclick="CopyMessage">
+                <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+            </button>
+            @if (Message.Role == "assistant")
+            {
+                <button class="tb-action-btn" title="Regenerate response" aria-label="Regenerate response">
+                    <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
+                </button>
+            }
+            <button class="tb-action-btn" title="Share" aria-label="Share message">
+                <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
+            </button>
+        </div>
+    }
+</div>
+
+@inject IJSRuntime JS
+
+@code {
+    [Parameter]
+    public ChatMessage Message { get; set; } = new();
+
+    private string GetRelativeTime(DateTime timestamp)
+    {
+        var diff = DateTime.Now - timestamp;
+
+        if (diff.TotalSeconds < 30) return "Just now";
+        if (diff.TotalMinutes < 1) return $"{(int)diff.TotalSeconds}s ago";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
+
+        return timestamp.ToString("MMM d, HH:mm");
+    }
+
+    private async Task CopyMessage()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", Message.Content);
+        }
+        catch
+        {
+            // Silently handle copy failures
+        }
+    }
+
+    private string FormatMessage(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return string.Empty;
+
+        // Use Markdig to convert markdown to HTML
+        var pipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .Build();
+
+        var html = Markdown.ToHtml(content, pipeline);
+
+        return html;
+    }
+}

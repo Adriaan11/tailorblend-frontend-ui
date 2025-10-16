@@ -1,0 +1,153 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout Class="tb-app">
+    <div class="@($"tb-shell{(_sidebarCollapsed ? " collapsed" : string.Empty)}")">
+        <div class="tb-shell__sidebar @( _sidebarOpen ? "is-open" : string.Empty)" @onclick="CloseSidebar">
+            <div class="tb-sidebar__panel" @onclick:stopPropagation="true">
+                <div class="tb-sidebar__brand">
+                    <div class="tb-brand__icon">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" />
+                    </div>
+                    <div class="tb-brand__meta">
+                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">TailorBlend</MudText>
+                        <MudText Typo="Typo.caption" Class="tb-muted" Style="letter-spacing:0.08em; text-transform:uppercase;">
+                            AI Consultant
+                        </MudText>
+                    </div>
+                    <MudIconButton Icon="@(_sidebarCollapsed ? Icons.Material.Filled.ChevronRight : Icons.Material.Filled.ChevronLeft)"
+                                    Class="tb-icon-button tb-collapse-btn mud-hidden-sm-and-down"
+                                    OnClick="ToggleSidebarCollapse"
+                                    title="Toggle navigation width"
+                                    aria-label="Toggle navigation width" />
+                </div>
+
+                <nav class="tb-sidebar__nav">
+                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/" Match="NavLinkMatch.All" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.Home">
+                        Overview
+                    </MudNavLink>
+                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/chat" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.Chat">
+                        Consultation
+                    </MudNavLink>
+                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/practitioner-blend" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.MedicalServices">
+                        Practitioner Blend
+                    </MudNavLink>
+                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/multi-agent-blend" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.Psychology">
+                        Multi-Agent Formulation
+                    </MudNavLink>
+                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/configuration" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.Settings">
+                        Configuration
+                    </MudNavLink>
+                </nav>
+
+                <div class="tb-nav-footer">
+                    <MudText Typo="Typo.caption" Class="tb-muted">Personalized nutrition for practitioners and patients who care about precision.</MudText>
+                </div>
+            </div>
+        </div>
+
+        <div class="tb-shell__content">
+            <header class="tb-appbar">
+                <div class="tb-appbar__left">
+                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Default" OnClick="ToggleSidebar" Class="tb-icon-button mud-hidden-md-up" title="Toggle navigation" aria-label="Toggle navigation" />
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">TailorBlend Session</MudText>
+                        <MudText Typo="Typo.caption" Class="tb-muted">Your health, your blend.</MudText>
+                    </div>
+                </div>
+
+                <div class="tb-appbar__right">
+                    <div class="tb-badge">
+                        <span class="tb-dot"></span>
+                        <span>Session Active</span>
+                        @if (SessionService?.MessageCount > 0)
+                        {
+                            <span class="tb-chip" style="background: var(--tb-accent); color: white; font-weight:700;">
+                                @SessionService.MessageCount
+                            </span>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(SessionService?.SessionId))
+                    {
+                        <div class="tb-chip">
+                            <MudIcon Icon="@Icons.Material.Filled.Key" />
+                            <span>@SessionService.SessionId[..Math.Min(10, SessionService.SessionId.Length)]...</span>
+                        </div>
+                    }
+
+                    <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                                    Class="tb-icon-button"
+                                    OnClick="ToggleTheme"
+                                    title="Toggle theme"
+                                    aria-label="Toggle theme" />
+                </div>
+            </header>
+
+            <main class="tb-content">
+                @Body
+            </main>
+        </div>
+    </div>
+</MudLayout>
+
+@code {
+    [Inject] private ISessionService? SessionService { get; set; }
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    private bool _sidebarOpen;
+    private bool _sidebarCollapsed;
+    private bool _isDarkMode;
+    private bool _themeInitialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var theme = await JS.InvokeAsync<string>("tbTheme.init");
+                _isDarkMode = string.Equals(theme, "dark", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                _isDarkMode = false;
+            }
+            finally
+            {
+                _themeInitialized = true;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void ToggleSidebar()
+    {
+        _sidebarOpen = !_sidebarOpen;
+    }
+
+    private void CloseSidebar() => _sidebarOpen = false;
+
+    private void ToggleSidebarCollapse() => _sidebarCollapsed = !_sidebarCollapsed;
+
+    private async Task ToggleTheme()
+    {
+        if (!_themeInitialized)
+            return;
+
+        _isDarkMode = !_isDarkMode;
+        var theme = _isDarkMode ? "dark" : "light";
+        try
+        {
+            await JS.InvokeVoidAsync("tbTheme.setTheme", theme);
+        }
+        catch
+        {
+            // Ignore if the theme script is not yet available
+        }
+    }
+}

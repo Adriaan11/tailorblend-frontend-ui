@@ -1,0 +1,651 @@
+@page "/chat"
+@using BlazorConsultant.Models
+@using Microsoft.AspNetCore.Components.Forms
+@inject IChatService ChatService
+@inject IChatStateService ChatStateService
+@inject ISessionService SessionService
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>Chat - TailorBlend AI Consultant</PageTitle>
+
+<div class="tb-conversation">
+    <section class="tb-conversation__messages" id="messagesContainer" @ref="_messagesContainer">
+        <header class="tb-stack" style="gap: var(--tb-space-sm);">
+            <MudText Typo="Typo.overline" Class="tb-muted">Consultation</MudText>
+            <MudText Typo="Typo.h5" Style="font-weight:700;">Personalized supplement planning</MudText>
+            <MudText Typo="Typo.body2" Class="tb-muted">
+                Share your goals, lifestyle, and preferences. TailorBlend will respond with targeted guidance in real time.
+            </MudText>
+        </header>
+
+        <div class="tb-quick-actions">
+            @foreach (var example in examplePrompts)
+            {
+                <button type="button" class="tb-quick-action" @onclick="() => SendExampleMessage(example)">
+                    @example
+                </button>
+            }
+        </div>
+
+        @if (ChatStateService.Messages.Count == 0 && !ChatStateService.IsStreaming)
+        {
+            <div class="tb-card tb-card--flat tb-empty-state">
+                <div class="tb-empty-state__icon">
+                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Color="Color.Success" Style="font-size:4rem; opacity: 0.2;" />
+                </div>
+                <MudText Typo="Typo.h4" Style="font-weight:700; margin-top: 1rem;">
+                    Ready to create your perfect blend?
+                </MudText>
+                <MudText Typo="Typo.body1" Class="tb-muted" Style="max-width: 480px; margin: 0 auto;">
+                    Tell me about your health goals, lifestyle, and any dietary preferences.
+                    I'll guide you through a personalized consultation to design your ideal supplement stack.
+                </MudText>
+                <div class="tb-pill-list" style="justify-content: center;">
+                    <span class="tb-chip tb-chip--highlight">
+                        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" />
+                        Fitness & Performance
+                    </span>
+                    <span class="tb-chip tb-chip--highlight">
+                        <MudIcon Icon="@Icons.Material.Filled.SelfImprovement" Size="Size.Small" />
+                        Stress & Sleep
+                    </span>
+                    <span class="tb-chip tb-chip--highlight">
+                        <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Small" />
+                        Nutrition Gaps
+                    </span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="tb-stack" style="gap: var(--tb-space);">
+                @foreach (var msg in ChatStateService.Messages)
+                {
+                    <ChatMessageComponent Message="@msg" />
+                }
+
+                @if (ChatStateService.IsStreaming && ChatStateService.StreamingMessage != null)
+                {
+                    <ChatMessageComponent Message="@ChatStateService.StreamingMessage" />
+                }
+            </div>
+        }
+
+        <div class="tb-input-bar">
+            <!-- File Preview Component -->
+            @if (selectedFiles.Count > 0)
+            {
+                <FilePreviewComponent Attachments="@selectedFiles"
+                                     ShowRemoveButton="true"
+                                     OnRemoveClick="@RemoveFile" />
+            }
+
+            <div style="position: relative; display: flex; align-items: flex-end; gap: 0.5rem;">
+                <!-- MudBlazor file upload (hidden input) -->
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>"
+                               @ref="fileUpload"
+                               OnFilesChanged="OnFilesChanged"
+                               Hidden="true"
+                               MaximumFileCount="@MaxFiles"
+                               Accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx" />
+
+                <!-- Attach button -->
+                <button type="button"
+                        class="tb-attach-btn"
+                        @onclick="async () => await fileUpload.OpenFilePickerAsync()"
+                        disabled="@ChatStateService.IsStreaming"
+                        title="Attach files (max 10MB per file)">
+                    <MudIcon Icon="@Icons.Material.Filled.AttachFile" />
+                </button>
+
+                <div style="position: relative; flex: 1;">
+                    <textarea class="tb-input"
+                              @bind="userInput"
+                              @bind:event="oninput"
+                              placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+                              @onkeydown="HandleKeyPress"
+                              disabled="@ChatStateService.IsStreaming"></textarea>
+
+                    <button type="button"
+                            class="tb-send-btn"
+                            @onclick="SendMessage"
+                            disabled="@ChatStateService.IsStreaming">
+                        <MudIcon Icon="@Icons.Material.Filled.Send" />
+                    </button>
+                </div>
+            </div>
+
+            @if (ChatStateService.IsStreaming && showTypingIndicator)
+            {
+                <div class="tb-typing-indicator" style="margin-top: 12px;">
+                    <div class="tb-typing-avatar">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" />
+                    </div>
+                    <div class="tb-typing-content">
+                        <div class="tb-typing-text">TailorBlend is thinking...</div>
+                        <div class="tb-typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (showScrollButton)
+        {
+            <button class="tb-scroll-fab" @onclick="ScrollToBottom" aria-label="Scroll to bottom">
+                <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" />
+                @if (hasNewMessages)
+                {
+                    <span class="tb-scroll-badge">New</span>
+                }
+            </button>
+        }
+    </section>
+
+    <aside class="tb-stats-panel @(isStatsExpanded ? "expanded" : "")">
+        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space);">
+            <MudText Typo="Typo.overline" Class="tb-muted">AI Model</MudText>
+            <MudText Typo="Typo.h6" Style="font-weight:700; margin-bottom: var(--tb-space-sm);">Select Model</MudText>
+
+            <MudSelect T="string"
+                       Value="@selectedModel"
+                       ValueChanged="@OnModelChanged"
+                       Variant="Variant.Text"
+                       Dense="true"
+                       FullWidth="true"
+                       Class="tb-model-select">
+                @foreach (var model in availableModels)
+                {
+                    <MudSelectItem T="string" Value="@model.ModelId">
+                        <div>
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@model.DisplayName</MudText>
+                            @if (!string.IsNullOrEmpty(model.Description))
+                            {
+                                <MudText Typo="Typo.caption" Class="tb-muted">@model.Description</MudText>
+                            }
+                        </div>
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <div class="tb-card tb-card--flat">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" @onclick="ToggleStatsPanel">
+                <div>
+                    <MudText Typo="Typo.overline" Class="tb-muted">Session snapshot</MudText>
+                    <MudText Typo="Typo.h6" Style="font-weight:700;">Usage overview</MudText>
+                </div>
+                <MudIconButton Icon="@(isStatsExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                               Color="Color.Default"
+                               Size="Size.Small" />
+            </div>
+
+            @if (isStatsExpanded)
+            {
+                <div class="tb-divider"></div>
+
+                <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
+
+                <div class="tb-divider"></div>
+                <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
+                    <button type="button"
+                            class="tb-button tb-button--secondary"
+                            @onclick="RefreshStats"
+                            @onclick:stopPropagation="true"
+                            disabled="@isRefreshing">
+                        @if (isRefreshing)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="color: var(--tb-gray-600);" />
+                            <span>Refreshing</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Refresh" />
+                            <span>Refresh</span>
+                        }
+                    </button>
+
+                    <button type="button"
+                            class="tb-button tb-button--primary"
+                            @onclick="ResetConversation"
+                            @onclick:stopPropagation="true"
+                            disabled="@isResetting">
+                        @if (isResetting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="color: white;" />
+                            <span>Resetting</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.RestartAlt" />
+                            <span>Reset session</span>
+                        }
+                    </button>
+                </div>
+
+                <div class="tb-divider"></div>
+
+                <div class="tb-stack">
+                    <MudText Typo="Typo.overline" Class="tb-muted">Export conversation</MudText>
+                    <div class="tb-stack tb-stack--row" style="gap: 0.5rem;">
+                        <button type="button"
+                                class="tb-button tb-button--secondary"
+                                @onclick="ExportAsMarkdown"
+                                @onclick:stopPropagation="true"
+                                style="flex: 1;"
+                                disabled="@(ChatStateService.Messages.Count == 0)">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                            <span>Markdown</span>
+                        </button>
+                        <button type="button"
+                                class="tb-button tb-button--secondary"
+                                @onclick="ExportAsJson"
+                                @onclick:stopPropagation="true"
+                                style="flex: 1;"
+                                disabled="@(ChatStateService.Messages.Count == 0)">
+                            <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" />
+                            <span>JSON</span>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </aside>
+</div>
+
+@code {
+    private string userInput = string.Empty;
+    private bool isRefreshing;
+    private bool isResetting;
+    private bool isStatsExpanded = false;
+    private SessionStatsComponent? sessionStatsRef;
+    private ElementReference _messagesContainer;
+    private string selectedModel = "gpt-4.1-mini-2025-04-14";
+    private bool _previousIsStreaming = false;
+    private bool showTypingIndicator = true;
+    private bool showScrollButton = false;
+    private bool hasNewMessages = false;
+    private int _previousMessageCount = 0;
+
+    // File attachment support
+    private MudFileUpload<IReadOnlyList<IBrowserFile>>? fileUpload;
+    private List<FileAttachment> selectedFiles = new();
+    private const int MaxFileSizeMB = 10;
+    private const int MaxFiles = 5;
+
+    private readonly string[] examplePrompts = new[]
+    {
+        "Help me build a daily blend for focus and sustained energy.",
+        "I'm training for a half marathon and need recovery support.",
+        "Create a vegan-friendly stack that improves sleep quality.",
+    };
+
+    private readonly List<ModelOption> availableModels = new()
+    {
+        new ModelOption
+        {
+            Id = "gpt-4.1-mini",
+            DisplayName = "GPT-4.1 Mini",
+            ModelId = "gpt-4.1-mini-2025-04-14",
+            Description = "Fast and cost-effective (default)"
+        },
+        new ModelOption
+        {
+            Id = "gpt-5-mini",
+            DisplayName = "GPT-5 Mini",
+            ModelId = "gpt-5-mini-2025-08-07",
+            Description = "Latest mini model"
+        },
+        new ModelOption
+        {
+            Id = "gpt-5-nano",
+            DisplayName = "GPT-5 Nano",
+            ModelId = "gpt-5-nano-2025-08-07",
+            Description = "Ultra-fast responses"
+        }
+    };
+
+    protected override void OnInitialized()
+    {
+        ChatStateService.OnStateChanged += HandleStateChanged;
+    }
+
+    private void HandleStateChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(async () =>
+        {
+            // Detect when streaming completes (was streaming, now not streaming)
+            bool streamingJustCompleted = _previousIsStreaming && !ChatStateService.IsStreaming;
+
+            // Detect new messages
+            if (ChatStateService.Messages.Count > _previousMessageCount)
+            {
+                hasNewMessages = true;
+                showScrollButton = true;
+                _previousMessageCount = ChatStateService.Messages.Count;
+            }
+
+            if (streamingJustCompleted)
+            {
+                Console.WriteLine($"🎯 [Chat] Streaming completed, triggering auto-refresh");
+            }
+
+            StateHasChanged();
+            await ScrollToBottomAsync();
+
+            // Auto-refresh stats after message exchange completes
+            if (streamingJustCompleted && sessionStatsRef != null)
+            {
+                Console.WriteLine($"🔄 [Chat] Calling sessionStatsRef.RefreshStats()");
+                await sessionStatsRef.RefreshStats();
+            }
+            else if (streamingJustCompleted && sessionStatsRef == null)
+            {
+                Console.WriteLine($"⚠️ [Chat] Streaming completed but sessionStatsRef is null!");
+            }
+
+            // Update previous state for next check
+            _previousIsStreaming = ChatStateService.IsStreaming;
+        });
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(userInput) || ChatStateService.IsStreaming)
+            return;
+
+        var message = userInput.Trim();
+        userInput = string.Empty;
+
+        // Send message with attachments (if any)
+        var attachments = selectedFiles.Count > 0 ? new List<FileAttachment>(selectedFiles) : null;
+
+        Console.WriteLine($"📤 [CHAT] SendMessage called");
+        Console.WriteLine($"    - Message: {message.Substring(0, Math.Min(50, message.Length))}...");
+        Console.WriteLine($"    - Attachments: {attachments?.Count ?? 0}");
+
+        if (attachments != null)
+        {
+            foreach (var att in attachments)
+            {
+                Console.WriteLine($"    - File: {att.FileName} ({att.FileSize} bytes, base64: {att.Base64Data?.Length ?? 0} chars)");
+            }
+        }
+
+        await ChatStateService.SendMessageAsync(message, attachments);
+
+        // Clear attachments after sending
+        selectedFiles.Clear();
+        if (fileUpload != null)
+            await fileUpload.ClearAsync();
+
+        await ScrollToBottomAsync();
+    }
+
+    private async Task OnFilesChanged(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            Console.WriteLine($"📂 [CHAT] OnFilesChanged called with {e.FileCount} file(s)");
+
+            // Check if we've reached max files
+            if (selectedFiles.Count >= MaxFiles)
+            {
+                Console.WriteLine($"⚠️ [CHAT] Maximum {MaxFiles} files allowed");
+                return;
+            }
+
+            // Process each file
+            foreach (var browserFile in e.GetMultipleFiles(MaxFiles))
+            {
+                if (selectedFiles.Count >= MaxFiles)
+                {
+                    Console.WriteLine($"⚠️ [CHAT] Reached maximum {MaxFiles} files, skipping remaining");
+                    break;
+                }
+
+                // Check file size
+                if (browserFile.Size > MaxFileSizeMB * 1024 * 1024)
+                {
+                    Console.WriteLine($"⚠️ [CHAT] File {browserFile.Name} exceeds {MaxFileSizeMB}MB limit");
+                    continue;
+                }
+
+                Console.WriteLine($"📎 [CHAT] Reading file: {browserFile.Name} ({browserFile.Size} bytes)");
+
+                // Read file to base64
+                using var stream = browserFile.OpenReadStream(MaxFileSizeMB * 1024 * 1024);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var base64Data = Convert.ToBase64String(ms.ToArray());
+
+                var fileAttachment = new FileAttachment
+                {
+                    FileName = browserFile.Name,
+                    Base64Data = base64Data,
+                    MimeType = browserFile.ContentType,
+                    FileSize = (int)browserFile.Size
+                };
+
+                Console.WriteLine($"📎 [CHAT] Added file: {fileAttachment.FileName} ({fileAttachment.FormattedSize})");
+                Console.WriteLine($"    - MIME: {fileAttachment.MimeType}");
+                Console.WriteLine($"    - Base64 length: {base64Data.Length} chars");
+
+                selectedFiles.Add(fileAttachment);
+            }
+
+            Console.WriteLine($"✅ [CHAT] Total files selected: {selectedFiles.Count}");
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [CHAT] File selection error: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"    Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    private async Task RemoveFile(FileAttachment file)
+    {
+        selectedFiles.Remove(file);
+        Console.WriteLine($"🗑️ [CHAT] Removed file: {file.FileName}");
+
+        // Clear MudFileUpload if no files left
+        if (selectedFiles.Count == 0 && fileUpload != null)
+        {
+            await fileUpload.ClearAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SendExampleMessage(string example)
+    {
+        userInput = example;
+        await SendMessage();
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task RefreshStats()
+    {
+        if (sessionStatsRef == null || isRefreshing)
+            return;
+
+        isRefreshing = true;
+        try
+        {
+            await sessionStatsRef.RefreshStats();
+        }
+        finally
+        {
+            isRefreshing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ResetConversation()
+    {
+        if (isResetting)
+            return;
+
+        isResetting = true;
+        try
+        {
+            ChatStateService.Clear();
+            SessionService.Reset();
+            await ChatService.ResetSessionAsync();
+            await RefreshStats();
+        }
+        finally
+        {
+            isResetting = false;
+            await ScrollToBottomAsync();
+        }
+    }
+
+    private void ToggleStatsPanel()
+    {
+        isStatsExpanded = !isStatsExpanded;
+    }
+
+    private async Task OnModelChanged(string newModel)
+    {
+        if (selectedModel == newModel)
+            return;
+
+        selectedModel = newModel;
+        SessionService.SetModel(newModel);
+
+        // Reset session to apply new model
+        await ResetConversation();
+    }
+
+    private async Task ScrollToBottom()
+    {
+        hasNewMessages = false;
+        showScrollButton = false;
+        await ScrollToBottomAsync();
+    }
+
+    private async Task ScrollToBottomAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+        }
+        catch
+        {
+            // silently ignore
+        }
+    }
+
+    private async Task ExportAsMarkdown()
+    {
+        var markdown = "# TailorBlend Consultation\n\n";
+        markdown += $"**Session ID:** {SessionService.SessionId}\n";
+        markdown += $"**Date:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n";
+        markdown += $"**Model:** {selectedModel}\n\n";
+        markdown += "---\n\n";
+
+        foreach (var message in ChatStateService.Messages)
+        {
+            var role = message.Role == "user" ? "You" : "TailorBlend AI";
+            markdown += $"### {role} ({message.Timestamp:HH:mm})\n\n";
+            markdown += $"{message.Content}\n\n";
+        }
+
+        await DownloadFile("tailorblend-consultation.md", markdown, "text/markdown");
+    }
+
+    private async Task ExportAsJson()
+    {
+        var export = new
+        {
+            SessionId = SessionService.SessionId,
+            ExportDate = DateTime.Now,
+            Model = selectedModel,
+            Messages = ChatStateService.Messages.Select(m => new
+            {
+                m.Role,
+                m.Content,
+                m.Timestamp
+            })
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(export, new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        await DownloadFile("tailorblend-consultation.json", json, "application/json");
+    }
+
+    private async Task DownloadFile(string filename, string content, string contentType)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        var base64 = Convert.ToBase64String(bytes);
+        await JS.InvokeVoidAsync("downloadFile", filename, base64, contentType);
+    }
+
+    public void Dispose()
+    {
+        ChatStateService.OnStateChanged -= HandleStateChanged;
+    }
+}
+
+<script>
+    function copyCode(elementId) {
+        const codeElement = document.getElementById(elementId);
+        if (!codeElement) return;
+
+        const code = codeElement.textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            // Find the copy button and update its state
+            const codeBlock = codeElement.closest('.tb-code-block');
+            const copyBtn = codeBlock?.querySelector('.tb-code-copy');
+            if (copyBtn) {
+                const originalText = copyBtn.innerHTML;
+                copyBtn.classList.add('copied');
+                copyBtn.innerHTML = `<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'>
+                    <polyline points='20 6 9 17 4 12'></polyline>
+                </svg>Copied!`;
+
+                setTimeout(() => {
+                    copyBtn.classList.remove('copied');
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy code:', err);
+        });
+    }
+
+    function downloadFile(filename, base64Content, contentType) {
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+</script>

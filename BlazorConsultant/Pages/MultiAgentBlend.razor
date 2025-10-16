@@ -1,0 +1,353 @@
+@page "/multi-agent-blend"
+@using BlazorConsultant.Services
+@using BlazorConsultant.Models
+@using System.Text.Json
+@inject IMultiAgentService MultiAgentService
+@inject ISessionService SessionService
+
+<PageTitle>Multi-Agent Formulation | TailorBlend</PageTitle>
+
+<div class="tb-page">
+    <div class="tb-page__header">
+        <MudText Typo="Typo.h4" Style="font-weight:700;">Multi-Agent Formulation</MudText>
+        <MudText Typo="Typo.body1" Class="tb-muted">
+            Powered by specialized AI agents working together
+        </MudText>
+    </div>
+
+    <div class="tb-page__content">
+        @if (!isGenerating && string.IsNullOrEmpty(errorMessage))
+        {
+            <!-- Input Form -->
+            <div class="tb-card" style="margin-bottom: 2rem;">
+                <div class="tb-card__header">
+                    <MudText Typo="Typo.h6">Patient Profile</MudText>
+                    <MudText Typo="Typo.caption" Class="tb-muted">
+                        Enter health information to generate a personalized blend
+                    </MudText>
+                </div>
+
+                <div class="tb-card__content">
+                    <div class="tb-form-grid">
+                        <!-- Basic Info -->
+                        <div class="tb-form-col-6">
+                            <div class="tb-form-group">
+                                <label class="tb-form-label">Patient Name</label>
+                                <input type="text"
+                                       class="tb-form-input"
+                                       @bind="request.PatientName"
+                                       placeholder="Enter patient name" />
+                            </div>
+                        </div>
+
+                        <div class="tb-form-col-3">
+                            <div class="tb-form-group">
+                                <label class="tb-form-label">Age</label>
+                                <input type="number"
+                                       class="tb-form-input"
+                                       @bind="request.Age"
+                                       min="1"
+                                       max="120"
+                                       placeholder="Age" />
+                            </div>
+                        </div>
+
+                        <div class="tb-form-col-3">
+                            <div class="tb-form-group">
+                                <label class="tb-form-label">Sex</label>
+                                <select class="tb-form-select" @bind="request.Sex">
+                                    <option value="">Select...</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Weight -->
+                        <div class="tb-form-col-4">
+                            <div class="tb-form-group">
+                                <label class="tb-form-label">Weight (kg)</label>
+                                <input type="number"
+                                       class="tb-form-input"
+                                       @bind="request.Weight"
+                                       min="1"
+                                       max="300"
+                                       step="0.1"
+                                       placeholder="Weight" />
+                            </div>
+                        </div>
+
+                        <!-- Dietary Preferences -->
+                        <div class="tb-form-col-4">
+                            <div class="tb-form-group">
+                                <label class="tb-form-label">Dietary Preferences</label>
+                                <input type="text"
+                                       class="tb-form-input"
+                                       @bind="request.DietaryPreferences"
+                                       placeholder="e.g., vegan, vegetarian, keto..." />
+                            </div>
+                        </div>
+
+                        <!-- Medical Conditions -->
+                        <div class="tb-form-col-4">
+                            <div class="tb-form-group">
+                                <label class="tb-form-label">Medical Conditions</label>
+                                <input type="text"
+                                       class="tb-form-input"
+                                       @bind="request.MedicalConditions"
+                                       placeholder="e.g., diabetes, hypertension..." />
+                            </div>
+                        </div>
+
+                        <!-- Health Goals (Required) - Full Width -->
+                        <div class="tb-form-col-12">
+                            <div class="tb-form-group">
+                                <label class="tb-form-label">Health Goals *</label>
+                                <textarea class="tb-form-textarea"
+                                          @bind="request.HealthGoals"
+                                          placeholder="e.g., Better sleep, more energy, reduce stress, improve focus..."
+                                          rows="3"></textarea>
+                                <div class="tb-form-helper">Describe your health goals - the more detail, the better!</div>
+                            </div>
+                        </div>
+
+                        <!-- Medications -->
+                        <div class="tb-form-col-6">
+                            <div class="tb-form-group">
+                                <label class="tb-form-label">Current Medications</label>
+                                <textarea class="tb-form-textarea"
+                                          @bind="request.Medications"
+                                          placeholder="e.g., Metformin 500mg, Aspirin 75mg..."
+                                          rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Additional Info -->
+                        <div class="tb-form-col-6">
+                            <div class="tb-form-group">
+                                <label class="tb-form-label">Additional Information</label>
+                                <textarea class="tb-form-textarea"
+                                          @bind="request.AdditionalInfo"
+                                          placeholder="Allergies, lifestyle, exercise habits..."
+                                          rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <div style="margin-top: 1.5rem; text-align: right;">
+                        <button type="button"
+                                class="tb-button tb-button--primary"
+                                @onclick="GenerateBlend"
+                                disabled="@(string.IsNullOrWhiteSpace(request.HealthGoals))">
+                            <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" />
+                            <span>Generate Multi-Agent Formulation</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (isGenerating)
+        {
+            <!-- Agent Progress Display -->
+            <div class="tb-card">
+                <div class="tb-card__header">
+                    <MudText Typo="Typo.h6">Agent Workflow</MudText>
+                    <MudText Typo="Typo.caption" Class="tb-muted">
+                        Watching specialized agents work together...
+                    </MudText>
+                </div>
+
+                <div class="tb-card__content">
+                    @foreach (var step in agentSteps)
+                    {
+                        <div class="agent-step @GetStepClass(step.StepType)" style="margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                @if (step.StepType == "thinking")
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                                }
+                                else if (step.StepType == "result")
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                                }
+                                else if (step.StepType == "error")
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" />
+                                }
+
+                                <div style="flex: 1;">
+                                    <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@step.AgentName</MudText>
+                                    <MudText Typo="Typo.body2">@step.Content</MudText>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(finalResult) && !isGenerating)
+        {
+            <!-- Final Results -->
+            <div class="tb-card">
+                <div class="tb-card__header">
+                    <MudText Typo="Typo.h6">Formulation Complete!</MudText>
+                    <MudText Typo="Typo.caption" Class="tb-muted">
+                        Your personalized blend has been created
+                    </MudText>
+                </div>
+
+                <div class="tb-card__content">
+                    <div style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace; font-size: 0.875rem; background: var(--mud-palette-surface); padding: 1.5rem; border-radius: 8px;">
+                        @((MarkupString)finalResult)
+                    </div>
+
+                    <div style="margin-top: 1.5rem; text-align: right;">
+                        <button type="button"
+                                class="tb-button tb-button--secondary"
+                                @onclick="Reset">
+                            <MudIcon Icon="@Icons.Material.Filled.Refresh" />
+                            <span>Create Another Blend</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <!-- Error Display -->
+            <div class="tb-card" style="background: rgba(var(--mud-palette-error-rgb), 0.1); border-left: 4px solid var(--mud-palette-error);">
+                <div class="tb-card__content">
+                    <MudText Typo="Typo.subtitle2" Style="font-weight:600; color: var(--mud-palette-error);">Error</MudText>
+                    <MudText Typo="Typo.body2" Style="margin-top: 0.5rem;">@errorMessage</MudText>
+                    <div style="margin-top: 1rem;">
+                        <button type="button"
+                                class="tb-button tb-button--secondary"
+                                @onclick="Reset">
+                            <span>Try Again</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .agent-step {
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid var(--mud-palette-primary);
+    }
+
+    .agent-step.thinking {
+        background: rgba(var(--mud-palette-primary-rgb), 0.08);
+    }
+
+    .agent-step.result {
+        background: rgba(var(--mud-palette-success-rgb), 0.08);
+        border-left-color: var(--mud-palette-success);
+    }
+
+    .agent-step.error {
+        background: rgba(var(--mud-palette-error-rgb), 0.08);
+        border-left-color: var(--mud-palette-error);
+    }
+</style>
+
+@code {
+    private MultiAgentRequest request = new()
+    {
+        SessionId = Guid.NewGuid().ToString()
+    };
+
+    private List<AgentStepResponse> agentSteps = new();
+    private bool isGenerating = false;
+    private string finalResult = string.Empty;
+    private string errorMessage = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Set session ID from session service
+        request.SessionId = SessionService.SessionId;
+    }
+
+    private async Task GenerateBlend()
+    {
+        if (string.IsNullOrWhiteSpace(request.HealthGoals))
+        {
+            errorMessage = "Health goals are required.";
+            return;
+        }
+
+        isGenerating = true;
+        errorMessage = string.Empty;
+        finalResult = string.Empty;
+        agentSteps.Clear();
+
+        try
+        {
+            await foreach (var step in MultiAgentService.StreamFormulationAsync(request))
+            {
+                agentSteps.Add(step);
+                StateHasChanged();
+
+                // Check if this is the final result
+                if (step.AgentName == "Multi-Agent System" && step.StepType == "result")
+                {
+                    // Format the final result for display
+                    if (step.Data != null)
+                    {
+                        finalResult = FormatFinalResult(step.Data);
+                    }
+                }
+                else if (step.StepType == "error")
+                {
+                    errorMessage = step.Content;
+                    isGenerating = false;
+                    StateHasChanged();
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isGenerating = false;
+            StateHasChanged();
+        }
+    }
+
+    private string FormatFinalResult(Dictionary<string, object> data)
+    {
+        // Pretty-print the JSON result
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true
+        };
+        return JsonSerializer.Serialize(data, options);
+    }
+
+    private string GetStepClass(string stepType)
+    {
+        return stepType.ToLower();
+    }
+
+    private void Reset()
+    {
+        request = new MultiAgentRequest
+        {
+            SessionId = SessionService.SessionId
+        };
+        agentSteps.Clear();
+        finalResult = string.Empty;
+        errorMessage = string.Empty;
+        isGenerating = false;
+    }
+}

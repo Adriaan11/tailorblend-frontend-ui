@@ -1,0 +1,394 @@
+@page "/configuration"
+@using BlazorConsultant.Models
+@inject IInstructionService InstructionService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Configuration - TailorBlend AI Consultant</PageTitle>
+
+<section class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-lg);">
+    <div class="tb-stack" style="gap: var(--tb-space);">
+        <MudText Typo="Typo.overline" Class="tb-muted">Agent configuration</MudText>
+        <MudText Typo="Typo.h5" Style="font-weight:700;">Fine-tune how TailorBlend consults</MudText>
+        <MudText Typo="Typo.body2" Class="tb-muted">
+            Update the system instructions that guide tone, safety checks, and recommendation frameworks. Changes apply to the very next conversation.
+        </MudText>
+
+        <div class="tb-divider" style="margin: var(--tb-space-sm) 0;"></div>
+
+        <div class="tb-stack" style="gap: var(--tb-space-sm);">
+            <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Editing Mode</MudText>
+            <MudRadioGroup T="string" Value="@editMode" ValueChanged="@OnModeChanged">
+                <div class="tb-stack tb-stack--row" style="gap: var(--tb-space-lg);">
+                    <MudRadio Value="@("granular")" Color="Color.Success">
+                        <MudText Typo="Typo.body2">
+                            <strong>Granular Sections</strong> - Edit structured sections separately
+                        </MudText>
+                    </MudRadio>
+                    <MudRadio Value="@("raw")" Color="Color.Success">
+                        <MudText Typo="Typo.body2">
+                            <strong>Raw Instructions</strong> - Paste your own complete system prompt
+                        </MudText>
+                    </MudRadio>
+                </div>
+            </MudRadioGroup>
+        </div>
+    </div>
+</section>
+
+@if (isLoading)
+{
+    <div class="tb-stack" style="align-items:center; gap: var(--tb-space); padding: var(--tb-space-lg);">
+        <MudProgressCircular Color="Color.Success" Indeterminate="true" Size="Size.Large" />
+        <MudText Typo="Typo.body1" Class="tb-muted">Loading instruction sections...</MudText>
+    </div>
+}
+else if (sections.Count == 0)
+{
+    <div class="tb-empty-state">
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">No instruction sections available</MudText>
+        <MudText Typo="Typo.body2" Class="tb-muted">Refresh the page or reset to defaults to restore the standard TailorBlend playbook.</MudText>
+        <button class="tb-button tb-button--primary" @onclick="ResetToDefaults">Restore defaults</button>
+    </div>
+}
+else
+{
+    if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <MudAlert Severity="@(statusClass == "success" ? Severity.Success : Severity.Error)"
+                  Variant="Variant.Filled"
+                  Elevation="0"
+                  Class="mb-4">
+            @statusMessage
+        </MudAlert>
+    }
+
+    @if (editMode == "raw")
+    {
+        <!-- Raw Instructions Mode -->
+        <div class="tb-card tb-card--flat">
+            <div class="tb-stack" style="gap: var(--tb-space);">
+                <div class="tb-stack" style="gap: var(--tb-space-sm);">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Raw System Instructions</MudText>
+                    <MudText Typo="Typo.caption" Class="tb-muted">
+                        Paste your complete system prompt here. This will replace all granular sections.
+                    </MudText>
+                </div>
+
+                <textarea class="tb-textarea"
+                          @bind="rawInstructions"
+                          @bind:event="oninput"
+                          placeholder="Paste your complete system instructions here..."
+                          style="min-height: 500px; font-family: var(--tb-font-mono); font-size: 0.9rem;"></textarea>
+
+                <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
+                    <MudText Typo="Typo.caption" Class="tb-muted">Character count: @(rawInstructions?.Length.ToString("N0") ?? "0")</MudText>
+                    <MudText Typo="Typo.caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</MudText>
+                </div>
+
+                <div class="tb-divider"></div>
+
+                <div class="tb-stack tb-stack--row" style="justify-content:flex-end;">
+                    <button class="tb-button tb-button--secondary"
+                            @onclick="ResetToDefaults"
+                            disabled="@isSaving">
+                        <MudIcon Icon="@Icons.Material.Filled.Restore" />
+                        Reset to defaults
+                    </button>
+                    <button class="tb-button tb-button--primary"
+                            @onclick="ApplyRawChanges"
+                            disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="color:white;" />
+                            <span>Saving</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+                            <span>Apply changes</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Granular Sections Mode -->
+        <div class="tb-editor-shell">
+        <nav class="tb-editor-nav">
+            @foreach (var section in sections)
+            {
+                var isActive = activeSection == section;
+                <button type="button" class="@(isActive ? "active" : null)" @onclick="() => SelectSection(section)">
+                    <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@(section.Name)</MudText>
+                    <MudText Typo="Typo.caption" Class="tb-muted">@(section.LineCount) lines</MudText>
+                </button>
+            }
+        </nav>
+
+        <div class="tb-editor-panel">
+            <div class="tb-stack" style="gap: var(--tb-space-sm);">
+                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@activeSection?.Name</MudText>
+                <MudText Typo="Typo.caption" Class="tb-muted">
+                    Edit instructions to steer the AI's approach for this step of the consultation.
+                </MudText>
+            </div>
+
+            <textarea class="tb-textarea"
+                      @bind="activeSection!.Content"
+                      @bind:event="oninput"
+                      placeholder="Compose refined instructions that reflect your operating procedures."></textarea>
+
+            <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
+                <MudText Typo="Typo.caption" Class="tb-muted">Character count: @((activeSection?.Content?.Length ?? 0).ToString("N0"))</MudText>
+                <MudText Typo="Typo.caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</MudText>
+            </div>
+
+            <div class="tb-divider"></div>
+
+            <div class="tb-stack tb-stack--row" style="justify-content:flex-end;">
+                <button class="tb-button tb-button--secondary"
+                        @onclick="ResetToDefaults"
+                        disabled="@isSaving">
+                    <MudIcon Icon="@Icons.Material.Filled.Restore" />
+                    Reset to defaults
+                </button>
+                <button class="tb-button tb-button--primary"
+                        @onclick="ApplyChanges"
+                        disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="color:white;" />
+                        <span>Saving</span>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
+                        <span>Apply changes</span>
+                    }
+                </button>
+            </div>
+        </div>
+        </div>
+    }
+}
+
+@code {
+    private List<InstructionSection> sections = new();
+    private InstructionSection? activeSection;
+    private bool isLoading = true;
+    private bool isSaving;
+    private string statusMessage = string.Empty;
+    private string statusClass = string.Empty;
+    private string editMode = "granular"; // "granular" or "raw"
+    private string rawInstructions = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load saved editing mode from localStorage
+        try
+        {
+            var savedMode = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "tb_editMode");
+            if (!string.IsNullOrEmpty(savedMode) && (savedMode == "granular" || savedMode == "raw"))
+            {
+                editMode = savedMode;
+                Console.WriteLine($"✅ [CONFIG] Loaded editing mode from localStorage: {editMode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ [CONFIG] Failed to load editing mode: {ex.Message}");
+        }
+
+        await LoadSections();
+
+        // Load raw instructions if in raw mode
+        if (editMode == "raw")
+        {
+            try
+            {
+                rawInstructions = await InstructionService.GetFullTextAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ [CONFIG] Failed to load raw instructions: {ex.Message}");
+            }
+        }
+    }
+
+    private async void OnModeChanged(string newMode)
+    {
+        editMode = newMode;
+
+        // Save to localStorage
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "tb_editMode", newMode);
+            Console.WriteLine($"✅ [CONFIG] Saved editing mode to localStorage: {newMode}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ [CONFIG] Failed to save editing mode: {ex.Message}");
+        }
+
+        // Convert between modes
+        if (newMode == "raw")
+        {
+            if (sections.Any())
+            {
+                // Convert sections to raw text
+                rawInstructions = string.Join("\n\n", sections.Select(s => $"{s.Name}\n{s.Content}"));
+            }
+            else if (string.IsNullOrEmpty(rawInstructions))
+            {
+                // Load from API if we don't have anything yet
+                try
+                {
+                    rawInstructions = await InstructionService.GetFullTextAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ [CONFIG] Failed to load raw instructions: {ex.Message}");
+                }
+            }
+        }
+        else if (newMode == "granular" && !string.IsNullOrEmpty(rawInstructions))
+        {
+            // User switched back to granular - keep existing sections
+            // (they can always reset to defaults if needed)
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadSections()
+    {
+        isLoading = true;
+        try
+        {
+            sections = await InstructionService.GetSectionsAsync();
+            activeSection = sections.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to load sections: {ex.Message}");
+            statusMessage = "Failed to load instructions";
+            statusClass = "error";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectSection(InstructionSection section)
+    {
+        activeSection = section;
+    }
+
+    private async Task ApplyChanges()
+    {
+        if (isSaving)
+            return;
+
+        isSaving = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            var success = await InstructionService.UpdateSectionsAsync(sections);
+            if (success)
+            {
+                statusMessage = "Changes applied. The next chat will follow your updated playbook.";
+                statusClass = "success";
+            }
+            else
+            {
+                statusMessage = "Failed to apply changes. Please try again.";
+                statusClass = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to update sections: {ex.Message}");
+            statusMessage = $"Error: {ex.Message}";
+            statusClass = "error";
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ApplyRawChanges()
+    {
+        if (isSaving)
+            return;
+
+        isSaving = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            // For raw mode, we send the entire instructions as-is
+            // The backend will use this as custom_instructions parameter
+            var success = await InstructionService.UpdateRawInstructionsAsync(rawInstructions);
+            if (success)
+            {
+                statusMessage = "Raw instructions applied. The next chat will use your custom prompt.";
+                statusClass = "success";
+            }
+            else
+            {
+                statusMessage = "Failed to apply changes. Please try again.";
+                statusClass = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to update raw instructions: {ex.Message}");
+            statusMessage = $"Error: {ex.Message}";
+            statusClass = "error";
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ResetToDefaults()
+    {
+        if (isSaving)
+            return;
+
+        isSaving = true;
+        statusMessage = string.Empty;
+
+        try
+        {
+            sections = await InstructionService.GetDefaultSectionsAsync();
+            activeSection = sections.FirstOrDefault();
+
+            // Also reset raw instructions to default
+            rawInstructions = string.Join("\n\n", sections.Select(s => $"{s.Name}\n{s.Content}"));
+
+            statusMessage = "Reset to TailorBlend defaults.";
+            statusClass = "success";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to reset: {ex.Message}");
+            statusMessage = $"Error: {ex.Message}";
+            statusClass = "error";
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+}

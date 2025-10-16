@@ -1,0 +1,60 @@
+@page
+@using Microsoft.AspNetCore.Components.Web
+@namespace BlazorConsultant.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="~/" />
+    <title>TailorBlend AI Consultant</title>
+
+    <script>
+        (function () {
+            try {
+                var stored = window.localStorage ? localStorage.getItem('tb-theme') : null;
+                if (stored !== 'light' && stored !== 'dark') {
+                    stored = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.setAttribute('data-theme', stored || 'light');
+            } catch (err) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+
+    <!-- MudBlazor CSS and Roboto Font -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <!-- Custom CSS with cache busting -->
+    <link href="~/css/tailorblend.css" asp-append-version="true" rel="stylesheet" />
+</head>
+<body>
+    <component type="typeof(App)" render-mode="Server" />
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <!-- MudBlazor JavaScript - MUST load before Blazor framework -->
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+
+    <!-- Blazor framework -->
+    <script src="_framework/blazor.server.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script src="js/theme.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/file-utils.js"></script>
+</body>
+</html>

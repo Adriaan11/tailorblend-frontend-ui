@@ -1,0 +1,112 @@
+@using BlazorConsultant.Models
+@inject IChatService ChatService
+@inject ISessionService SessionService
+
+@if (stats == null)
+{
+    <div class="tb-stack" style="align-items:center; padding: var(--tb-space);">
+        <MudProgressCircular Color="Color.Success" Indeterminate="true" />
+        <MudText Typo="Typo.caption" Class="tb-muted">Loading session analytics...</MudText>
+    </div>
+}
+else
+{
+    @* Use SessionService.CurrentModel when no messages sent yet *@
+    var displayModel = stats.MessageCount == 0 ? SessionService.CurrentModel : stats.Model;
+    <div class="tb-stack">
+        <div class="tb-stat-card">
+            <h3>AI Model</h3>
+            <strong>@GetModelDisplayName(displayModel)</strong>
+            <p class="tb-muted">@GetModelPricing(displayModel)</p>
+        </div>
+
+        <div class="tb-stat-card">
+            <h3>Messages</h3>
+            <strong>@stats.MessageCount</strong>
+            <p class="tb-muted">Across this active session</p>
+        </div>
+
+        <div class="tb-stat-card">
+            <h3>Total Tokens</h3>
+            <strong>@FormatNumber(stats.TotalTokens)</strong>
+            <p class="tb-muted">Input and output combined</p>
+
+            <div class="tb-progress" style="margin-top: var(--tb-space-sm);">
+                <div class="tb-progress__bar" style="width: @GetPercentageBar(stats.TotalInputTokens, stats.TotalTokens)%;"></div>
+            </div>
+            <div class="tb-stack tb-stack--row" style="justify-content: space-between; margin-top: 10px;">
+                <span class="tb-muted">Input: <strong>@FormatNumber(stats.TotalInputTokens)</strong></span>
+                <span class="tb-muted">Output: <strong>@FormatNumber(stats.TotalOutputTokens)</strong></span>
+            </div>
+        </div>
+
+        <div class="tb-stat-card tb-stat-card--hero">
+            <h3>Session Cost</h3>
+            <strong>@stats.CostFormatted</strong>
+            <p class="tb-muted">Calculated directly from OpenAI usage (ZAR)</p>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string SessionId { get; set; } = string.Empty;
+
+    private SessionStats? stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshStats();
+    }
+
+    public async Task RefreshStats()
+    {
+        Console.WriteLine($"🔄 [SessionStats] Refreshing stats for session: {SessionId}");
+        try
+        {
+            var newStats = await ChatService.GetSessionStatsAsync();
+            Console.WriteLine($"✅ [SessionStats] Received stats - Model: {newStats.Model}, Messages: {newStats.MessageCount}, Cost: {newStats.CostFormatted}");
+
+            stats = newStats;
+            StateHasChanged();
+
+            Console.WriteLine($"✅ [SessionStats] Stats updated and UI refreshed");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [SessionStats] Failed to fetch stats: {ex.Message}");
+            Console.WriteLine($"❌ [SessionStats] Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    private static string FormatNumber(int number) => number.ToString("N0");
+
+    private static string GetPercentageBar(int value, int total)
+    {
+        if (total <= 0)
+        {
+            return "0";
+        }
+
+        var percent = Math.Clamp(value * 100.0 / total, 0, 100);
+        return percent.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string GetModelDisplayName(string modelId) => modelId switch
+    {
+        "gpt-4.1-mini-2025-04-14" => "GPT-4.1 Mini",
+        "gpt-5-mini-2025-08-07" => "GPT-5 Mini",
+        "gpt-5-nano-2025-08-07" => "GPT-5 Nano",
+        "gpt-5-chat-latest" => "GPT-5 Chat",
+        _ => "Unknown Model"
+    };
+
+    private static string GetModelPricing(string modelId) => modelId switch
+    {
+        "gpt-4.1-mini-2025-04-14" => "R7.00 / R28.00 per M tokens",
+        "gpt-5-mini-2025-08-07" => "R4.38 / R35.00 per M tokens",
+        "gpt-5-nano-2025-08-07" => "R0.88 / R7.00 per M tokens",
+        "gpt-5-chat-latest" => "R21.88 / R175.00 per M tokens",
+        _ => "Pricing unavailable"
+    };
+}

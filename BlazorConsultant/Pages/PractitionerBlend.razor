@@ -1,0 +1,534 @@
+@page "/practitioner-blend"
+@using BlazorConsultant.Models
+@using Microsoft.AspNetCore.Components.Forms
+@inject IChatService ChatService
+@inject IChatStateService ChatStateService
+@inject ISessionService SessionService
+@inject IJSRuntime JS
+
+<PageTitle>Practitioner Blend Creator - TailorBlend AI</PageTitle>
+
+<div class="tb-conversation">
+    <section class="tb-conversation__messages" id="blendMessagesContainer" @ref="_messagesContainer">
+        <header class="tb-stack" style="gap: var(--tb-space-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div>
+                    <MudText Typo="Typo.overline" Class="tb-muted">Practitioner Mode</MudText>
+                    <MudText Typo="Typo.h5" Style="font-weight:700;">Evidence-based supplement formulation</MudText>
+                </div>
+                @if (blendGenerated)
+                {
+                    <MudButton OnClick="ResetForm" StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Text" Color="Color.Primary">
+                        New Patient
+                    </MudButton>
+                }
+            </div>
+            <MudText Typo="Typo.body2" Class="tb-muted">
+                Create personalized supplement protocols with comprehensive clinical rationale and drug interaction analysis.
+            </MudText>
+        </header>
+
+        @if (!blendGenerated)
+        {
+            <div class="tb-card tb-card--flat tb-empty-state">
+                <MudText Typo="Typo.h6" Style="margin-bottom: 1.5rem; font-weight: 600;">Patient Information</MudText>
+
+                <div class="tb-form-grid">
+                    <!-- Row 1: Basic Info -->
+                    <div class="tb-form-col-6">
+                        <div class="tb-form-group">
+                            <label class="tb-form-label">Patient Name *</label>
+                            <input type="text"
+                                   class="tb-form-input"
+                                   @bind="request.PatientName"
+                                   placeholder="Enter patient name" />
+                        </div>
+                    </div>
+                    <div class="tb-form-col-6">
+                        <div class="tb-form-group">
+                            <label class="tb-form-label">Your Email (Practitioner) *</label>
+                            <input type="email"
+                                   class="tb-form-input"
+                                   @bind="request.PractitionerEmail"
+                                   placeholder="practitioner@example.com" />
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Demographics -->
+                    <div class="tb-form-col-4">
+                        <div class="tb-form-group">
+                            <label class="tb-form-label">Age (years) *</label>
+                            <input type="number"
+                                   class="tb-form-input"
+                                   @bind="request.Age"
+                                   min="1"
+                                   max="120"
+                                   placeholder="Age" />
+                        </div>
+                    </div>
+                    <div class="tb-form-col-4">
+                        <div class="tb-form-group">
+                            <label class="tb-form-label">Sex *</label>
+                            <select class="tb-form-select" @bind="request.Sex">
+                                <option value="">Select...</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="tb-form-col-4">
+                        <div class="tb-form-group">
+                            <label class="tb-form-label">Weight (kg) *</label>
+                            <input type="number"
+                                   class="tb-form-input"
+                                   @bind="request.Weight"
+                                   min="1"
+                                   max="300"
+                                   step="0.1"
+                                   placeholder="Weight" />
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Medical History -->
+                    <div class="tb-form-col-6">
+                        <div class="tb-form-group">
+                            <label class="tb-form-label">Chronic Conditions</label>
+                            <textarea class="tb-form-textarea"
+                                      @bind="request.ChronicConditions"
+                                      placeholder="e.g., Type 2 Diabetes, Hypertension, Hypothyroidism"
+                                      rows="3"></textarea>
+                            <div class="tb-form-helper">List all chronic conditions (optional)</div>
+                        </div>
+                    </div>
+                    <div class="tb-form-col-6">
+                        <div class="tb-form-group">
+                            <label class="tb-form-label">Current Medications</label>
+                            <textarea class="tb-form-textarea"
+                                      @bind="request.ChronicMedications"
+                                      placeholder="e.g., Metformin 500mg BD, Levothyroxine 75mcg OD"
+                                      rows="3"></textarea>
+                            <div class="tb-form-helper">Include dosages if known (optional)</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Additional Context -->
+                    <div class="tb-form-col-12">
+                        <div class="tb-form-group">
+                            <label class="tb-form-label">Additional Information & Health Goals</label>
+                            <textarea class="tb-form-textarea"
+                                      @bind="request.AdditionalInformation"
+                                      placeholder="Health goals, lifestyle, diet, allergies, sleep patterns, stress levels, activity level, specific concerns..."
+                                      rows="5"></textarea>
+                            <div class="tb-form-helper">Provide context about patient's goals, lifestyle, diet, allergies, etc. The more detail, the better the formulation.</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: File Attachments -->
+                    <div class="tb-form-col-12">
+                        <div class="tb-form-group">
+                            <label class="tb-form-label">Attachments (Optional)</label>
+                            <MudFileUpload T="IReadOnlyList<IBrowserFile>"
+                                          @ref="fileUpload"
+                                          OnFilesChanged="OnFilesChanged"
+                                          Hidden="true"
+                                          MaximumFileCount="5"
+                                          Accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.xlsx,.docx" />
+                            <button type="button"
+                                    class="tb-button tb-button--secondary"
+                                    @onclick="async () => await fileUpload.OpenFilePickerAsync()">
+                                <MudIcon Icon="@Icons.Material.Filled.AttachFile" />
+                                <span>Attach Lab Results / DNA Reports / Files</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- File Preview -->
+                    @if (selectedFiles.Count > 0)
+                    {
+                        <div class="tb-form-col-12">
+                            <FilePreviewComponent Attachments="@selectedFiles"
+                                                 ShowRemoveButton="true"
+                                                 OnRemoveClick="@RemoveFile" />
+                        </div>
+                    }
+
+                    <!-- Generate Button -->
+                    <div class="tb-form-col-12" style="display: flex; justify-content: center; margin-top: var(--tb-space);">
+                        <button type="button"
+                                class="tb-button tb-button--primary"
+                                @onclick="GenerateBlend"
+                                disabled="@isGenerating"
+                                style="padding: 1rem 3rem;">
+                            @if (isGenerating)
+                            {
+                                <span class="tb-spinner"></span>
+                                <span>Analyzing & Formulating...</span>
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Science" />
+                                <span>Generate Evidence-Based Blend</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="tb-stack" style="gap: var(--tb-space);">
+                @foreach (var msg in messages)
+                {
+                    <ChatMessageComponent Message="@msg" />
+                }
+
+                @if (isStreaming && streamingMessage != null)
+                {
+                    <ChatMessageComponent Message="@streamingMessage" />
+                }
+            </div>
+        }
+
+        <div class="tb-input-bar">
+            <div style="position: relative; display: flex; align-items: flex-end; gap: 0.5rem;">
+                <div style="position: relative; flex: 1;">
+                    <textarea class="tb-input"
+                              @bind="refinementMessage"
+                              @bind:event="oninput"
+                              placeholder="@GetInputPlaceholder()"
+                              @onkeydown="HandleKeyDown"
+                              disabled="@GetInputDisabled()"
+                              rows="1"></textarea>
+
+                    <button type="button"
+                            class="tb-send-btn"
+                            @onclick="@GetSendAction()"
+                            disabled="@GetSendButtonDisabled()">
+                        <MudIcon Icon="@Icons.Material.Filled.Send" />
+                    </button>
+                </div>
+            </div>
+
+            @if (isStreaming)
+            {
+                <div class="tb-typing-indicator" style="margin-top: 12px;">
+                    <div class="tb-typing-avatar">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" />
+                    </div>
+                    <div class="tb-typing-content">
+                        <div class="tb-typing-text">TailorBlend is formulating...</div>
+                        <div class="tb-typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+@code {
+    private ElementReference _messagesContainer;
+    private MudFileUpload<IReadOnlyList<IBrowserFile>>? fileUpload;
+    private PractitionerBlendRequest request = new();
+    private List<FileAttachment> selectedFiles = new();
+    private List<ChatMessage> messages = new();
+    private ChatMessage? streamingMessage;
+    private string refinementMessage = string.Empty;
+    private bool isGenerating;
+    private bool isStreaming;
+    private bool blendGenerated;
+
+    private const int MaxFileSizeMB = 10;
+    private const int MaxFiles = 5;
+
+    // Helper methods for input bar
+    private string GetInputPlaceholder()
+    {
+        if (!blendGenerated)
+            return "Enter patient details or use form above... (Enter to generate)";
+        return "Refine blend, adjust dosages, or ask about interactions... (Enter to send)";
+    }
+
+    private bool GetInputDisabled()
+    {
+        return isStreaming;
+    }
+
+    private bool GetSendButtonDisabled()
+    {
+        if (!blendGenerated)
+        {
+            // Can generate if form is valid OR message is provided
+            bool hasFormData = !string.IsNullOrWhiteSpace(request.PatientName) &&
+                              !string.IsNullOrWhiteSpace(request.PractitionerEmail);
+            bool hasMessage = !string.IsNullOrWhiteSpace(refinementMessage);
+            return isGenerating || !(hasFormData || hasMessage);
+        }
+        return isStreaming || string.IsNullOrWhiteSpace(refinementMessage);
+    }
+
+    private Func<Task> GetSendAction()
+    {
+        return blendGenerated ? SendRefinement : GenerateBlend;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey && !isStreaming)
+        {
+            if (!string.IsNullOrWhiteSpace(refinementMessage) || !blendGenerated)
+            {
+                await GetSendAction().Invoke();
+            }
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("scrollToBottom", "blendMessagesContainer");
+        }
+        catch
+        {
+            // Ignore scroll errors
+        }
+    }
+
+    private async Task OnFilesChanged(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            Console.WriteLine($"📂 [PRACTITIONER] OnFilesChanged called with {e.FileCount} file(s)");
+
+            if (selectedFiles.Count >= MaxFiles)
+            {
+                Console.WriteLine($"⚠️ [PRACTITIONER] Maximum {MaxFiles} files allowed");
+                return;
+            }
+
+            foreach (var browserFile in e.GetMultipleFiles(MaxFiles))
+            {
+                if (selectedFiles.Count >= MaxFiles)
+                {
+                    Console.WriteLine($"⚠️ [PRACTITIONER] Reached maximum {MaxFiles} files");
+                    break;
+                }
+
+                if (browserFile.Size > MaxFileSizeMB * 1024 * 1024)
+                {
+                    Console.WriteLine($"⚠️ [PRACTITIONER] File {browserFile.Name} exceeds {MaxFileSizeMB}MB limit");
+                    continue;
+                }
+
+                Console.WriteLine($"📎 [PRACTITIONER] Reading file: {browserFile.Name} ({browserFile.Size} bytes)");
+
+                using var stream = browserFile.OpenReadStream(MaxFileSizeMB * 1024 * 1024);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var base64Data = Convert.ToBase64String(ms.ToArray());
+
+                var fileAttachment = new FileAttachment
+                {
+                    FileName = browserFile.Name,
+                    Base64Data = base64Data,
+                    MimeType = browserFile.ContentType,
+                    FileSize = (int)browserFile.Size
+                };
+
+                Console.WriteLine($"📎 [PRACTITIONER] Added file: {fileAttachment.FileName} ({fileAttachment.FormattedSize})");
+                selectedFiles.Add(fileAttachment);
+            }
+
+            Console.WriteLine($"✅ [PRACTITIONER] Total files selected: {selectedFiles.Count}");
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [PRACTITIONER] File selection error: {ex.Message}");
+        }
+    }
+
+    private async Task RemoveFile(FileAttachment file)
+    {
+        selectedFiles.Remove(file);
+        Console.WriteLine($"🗑️ [PRACTITIONER] Removed file: {file.FileName}");
+
+        if (selectedFiles.Count == 0 && fileUpload != null)
+        {
+            await fileUpload.ClearAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task GenerateBlend()
+    {
+        // VALIDATION DISABLED FOR TESTING
+        // if (string.IsNullOrWhiteSpace(request.PatientName) ||
+        //     string.IsNullOrWhiteSpace(request.PractitionerEmail) ||
+        //     request.Age == 0 ||
+        //     string.IsNullOrWhiteSpace(request.Sex) ||
+        //     request.Weight == 0)
+        // {
+        //     Console.WriteLine("❌ [PRACTITIONER] Validation failed - required fields missing");
+        //     return;
+        // }
+
+        isGenerating = true;
+        isStreaming = true;
+        StateHasChanged();
+
+        try
+        {
+            Console.WriteLine($"🩺 [PRACTITIONER] Generating blend for: {request.PatientName}");
+
+            // Add user message to chat
+            var userMessage = new ChatMessage
+            {
+                Role = "user",
+                Content = request.ToFormattedMessage(),
+                Timestamp = DateTime.Now,
+                Attachments = new List<FileAttachment>(selectedFiles)
+            };
+            messages.Add(userMessage);
+
+            // Prepare streaming message
+            streamingMessage = new ChatMessage
+            {
+                Role = "assistant",
+                Content = "",
+                Timestamp = DateTime.Now,
+                IsStreaming = true
+            };
+
+            // Attach selected files to request
+            request.Attachments = new List<FileAttachment>(selectedFiles);
+
+            // Stream response with practitioner mode enabled
+            await foreach (var token in ChatService.StreamChatAsync(
+                request.ToFormattedMessage(),
+                customInstructions: null,
+                model: null,
+                attachments: request.Attachments,
+                practitionerMode: true))
+            {
+                if (token == "[DONE]")
+                {
+                    break;
+                }
+
+                streamingMessage.Content += token;
+                await InvokeAsync(StateHasChanged);
+            }
+
+            // Finalize message
+            streamingMessage.IsStreaming = false;
+            messages.Add(streamingMessage);
+            streamingMessage = null;
+
+            blendGenerated = true;
+            await ScrollToBottom();
+            Console.WriteLine("✅ [PRACTITIONER] Blend generation complete");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [PRACTITIONER] Error generating blend: {ex.Message}");
+            streamingMessage = null;
+        }
+        finally
+        {
+            isGenerating = false;
+            isStreaming = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SendRefinement()
+    {
+        if (string.IsNullOrWhiteSpace(refinementMessage))
+        {
+            return;
+        }
+
+        isStreaming = true;
+        var messageToSend = refinementMessage;
+        refinementMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            Console.WriteLine($"🔧 [PRACTITIONER] Sending refinement: {messageToSend}");
+
+            // Add user message
+            var userMessage = new ChatMessage
+            {
+                Role = "user",
+                Content = messageToSend,
+                Timestamp = DateTime.Now
+            };
+            messages.Add(userMessage);
+
+            // Prepare streaming message
+            streamingMessage = new ChatMessage
+            {
+                Role = "assistant",
+                Content = "",
+                Timestamp = DateTime.Now,
+                IsStreaming = true
+            };
+
+            // Stream response with practitioner mode
+            await foreach (var token in ChatService.StreamChatAsync(
+                messageToSend,
+                customInstructions: null,
+                model: null,
+                attachments: null,
+                practitionerMode: true))
+            {
+                if (token == "[DONE]")
+                {
+                    break;
+                }
+
+                streamingMessage.Content += token;
+                await InvokeAsync(StateHasChanged);
+            }
+
+            // Finalize message
+            streamingMessage.IsStreaming = false;
+            messages.Add(streamingMessage);
+            streamingMessage = null;
+
+            await ScrollToBottom();
+            Console.WriteLine("✅ [PRACTITIONER] Refinement complete");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [PRACTITIONER] Error refining blend: {ex.Message}");
+            streamingMessage = null;
+        }
+        finally
+        {
+            isStreaming = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetForm()
+    {
+        request = new();
+        selectedFiles.Clear();
+        messages.Clear();
+        streamingMessage = null;
+        refinementMessage = string.Empty;
+        blendGenerated = false;
+        isGenerating = false;
+        isStreaming = false;
+        StateHasChanged();
+    }
+}

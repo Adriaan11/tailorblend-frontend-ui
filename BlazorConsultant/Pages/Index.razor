@@ -1,0 +1,119 @@
+@page "/"
+@page "/home"
+
+<PageTitle>TailorBlend – Personalized Supplement Intelligence</PageTitle>
+
+<section class="tb-hero">
+    <div class="tb-hero__headline">
+        <span class="tb-badge">
+            <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" />
+            Tailored AI Guidance
+        </span>
+        <h1>Design evidence-based supplement blends with a conversational expert.</h1>
+        <MudText Typo="Typo.body1" Class="tb-muted">
+            TailorBlend translates health goals, habits, and constraints into a precise formulation roadmap. Collaborate with an AI consultant that speaks the language of functional wellness.
+        </MudText>
+
+        <div class="tb-stack tb-stack--row" style="margin-top: var(--tb-space);">
+            <a class="tb-button tb-button--primary" href="/chat">
+                <MudIcon Icon="@Icons.Material.Filled.RocketLaunch" />
+                Start Consultation
+            </a>
+            <a class="tb-button tb-button--secondary" href="/configuration">
+                <MudIcon Icon="@Icons.Material.Filled.Tune" />
+                Configure Agent
+            </a>
+        </div>
+
+        <div class="tb-pill-list" style="margin-top: var(--tb-space);">
+            <span class="tb-chip">Adaptive assessments</span>
+            <span class="tb-chip">Ingredient intelligence</span>
+            <span class="tb-chip">Evidence-backed outputs</span>
+        </div>
+    </div>
+
+    <div class="tb-hero__highlight">
+        <div class="tb-stack" style="gap: var(--tb-space);">
+            <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Live session snapshot</MudText>
+            <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
+                <div>
+                    <MudText Typo="Typo.caption" Class="tb-muted">Avg. response time</MudText>
+                    <MudText Typo="Typo.h5" Style="font-weight:700;">2.4s</MudText>
+                </div>
+                <div>
+                    <MudText Typo="Typo.caption" Class="tb-muted">Blends generated</MudText>
+                    <MudText Typo="Typo.h5" Style="font-weight:700;">12,482</MudText>
+                </div>
+            </div>
+            <div class="tb-card tb-card--flat tb-card--frosted">
+                <MudText Typo="Typo.caption" Class="tb-muted">Next best step</MudText>
+                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Share your primary goal and current stack.</MudText>
+                <MudText Typo="Typo.body2" Class="tb-muted">TailorBlend maps the consultation journey and highlights nutrient gaps in minutes.</MudText>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="tb-feature-grid">
+    <article class="tb-feature-card">
+        <MudIcon Icon="@Icons.Material.Filled.Chat" Color="Color.Success" Style="font-size:2rem;" />
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Conversational intake</MudText>
+        <MudText Typo="Typo.body2" Class="tb-muted">
+            Guided discovery captures context the way a practitioner would—no rigid forms, just fluid dialog.
+        </MudText>
+    </article>
+    <article class="tb-feature-card">
+        <MudIcon Icon="@Icons.Material.Filled.Science" Color="Color.Info" Style="font-size:2rem;" />
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Ingredient intelligence</MudText>
+        <MudText Typo="Typo.body2" Class="tb-muted">
+            Recommendations draw on curated research, safe dosing ranges, and compatibility checks built for clinicians.
+        </MudText>
+    </article>
+    <article class="tb-feature-card">
+        <MudIcon Icon="@Icons.Material.Filled.Insights" Color="Color.Warning" Style="font-size:2rem;" />
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Transparent economics</MudText>
+        <MudText Typo="Typo.body2" Class="tb-muted">
+            Track tokens and cost in real time so every consult stays profitable without compromising care.
+        </MudText>
+    </article>
+</section>
+
+<section class="tb-card tb-card--flat" style="margin-top: var(--tb-space-xl);">
+    <MudText Typo="Typo.overline" Class="tb-muted">How it works</MudText>
+    <div class="tb-stack" style="gap: var(--tb-space-lg); margin-top: var(--tb-space);">
+        <div class="tb-stack tb-stack--row" style="gap: var(--tb-space); align-items:flex-start;">
+            <MudIcon Icon="@Icons.Material.Filled.QuestionAnswer" Color="Color.Success" Style="font-size:1.75rem;" />
+            <div>
+                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Consult</MudText>
+                <MudText Typo="Typo.body2" Class="tb-muted">Describe health objectives, training load, sleep patterns, stress, and dietary realities.</MudText>
+            </div>
+        </div>
+        <div class="tb-stack tb-stack--row" style="gap: var(--tb-space); align-items:flex-start;">
+            <MudIcon Icon="@Icons.Material.Filled.AutoGraph" Color="Color.Info" Style="font-size:1.75rem;" />
+            <div>
+                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Analyze</MudText>
+                <MudText Typo="Typo.body2" Class="tb-muted">TailorBlend synthesizes the conversation, checks constraints, and drafts a structured protocol.</MudText>
+            </div>
+        </div>
+        <div class="tb-stack tb-stack--row" style="gap: var(--tb-space); align-items:flex-start;">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Warning" Style="font-size:1.75rem;" />
+            <div>
+                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Deliver</MudText>
+                <MudText Typo="Typo.body2" Class="tb-muted">Receive dosage-ready formulas, sourcing suggestions, and talking points for your clients.</MudText>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section style="margin: var(--tb-space-xl) 0;">
+    <div class="tb-card tb-card--flat" style="display:flex; flex-direction:column; gap: var(--tb-space); align-items:center; text-align:center;">
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Ready to craft a smarter supplement strategy?</MudText>
+        <MudText Typo="Typo.body2" Class="tb-muted" Style="max-width:520px;">
+            Join practitioners and patients already using TailorBlend for personalized, evidence-based supplement recommendations.
+        </MudText>
+        <a class="tb-button tb-button--primary" href="/chat">
+            <MudIcon Icon="@Icons.Material.Filled.Bolt" />
+            Launch the consultant
+        </a>
+    </div>
+</section>
