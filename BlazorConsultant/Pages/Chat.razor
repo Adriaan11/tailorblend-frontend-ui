@@ -81,7 +81,7 @@
                                      OnRemoveClick="@RemoveFile" />
             }
 
-            <div style="position: relative; display: flex; align-items: flex-end; gap: 0.5rem;">
+            <div class="tb-composer">
                 <!-- MudBlazor file upload (hidden input) -->
                 <MudFileUpload T="IReadOnlyList<IBrowserFile>"
                                @ref="fileUpload"
@@ -95,11 +95,12 @@
                         class="tb-attach-btn"
                         @onclick="async () => await fileUpload.OpenFilePickerAsync()"
                         disabled="@ChatStateService.IsStreaming"
-                        title="Attach files (max 10MB per file)">
+                        title="Attach files (max 10MB per file)"
+                        aria-label="Attach files">
                     <MudIcon Icon="@Icons.Material.Filled.AttachFile" />
                 </button>
 
-                <div style="position: relative; flex: 1;">
+                <div class="tb-composer__input">
                     <textarea class="tb-input"
                               @bind="userInput"
                               @bind:event="oninput"
@@ -146,7 +147,9 @@
         }
     </section>
 
-    <aside class="tb-stats-panel @(isStatsExpanded ? "expanded" : "")">
+    <div class="tb-stats-backdrop @(isStatsExpanded ? "is-visible" : string.Empty)" @onclick="ToggleStatsPanel"></div>
+
+    <aside id="statsPanel" class="tb-stats-panel @(isStatsExpanded ? "expanded" : "")">
         <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space);">
             <MudText Typo="Typo.overline" Class="tb-muted">AI Model</MudText>
             <MudText Typo="Typo.h6" Style="font-weight:700; margin-bottom: var(--tb-space-sm);">Select Model</MudText>
@@ -174,7 +177,7 @@
         </div>
 
         <div class="tb-card tb-card--flat">
-            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" @onclick="ToggleStatsPanel">
+            <div class="tb-stack tb-stack--row tb-stack--row-sm-column tb-stack--space-between" style="cursor: pointer;" @onclick="ToggleStatsPanel">
                 <div>
                     <MudText Typo="Typo.overline" Class="tb-muted">Session snapshot</MudText>
                     <MudText Typo="Typo.h6" Style="font-weight:700;">Usage overview</MudText>
@@ -191,7 +194,7 @@
                 <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
 
                 <div class="tb-divider"></div>
-                <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
+                <div class="tb-stack tb-stack--row tb-stack--row-sm-column tb-stack--space-between">
                     <button type="button"
                             class="tb-button tb-button--secondary"
                             @onclick="RefreshStats"
@@ -255,6 +258,15 @@
             }
         </div>
     </aside>
+
+    <button type="button"
+            class="tb-stats-fab"
+            @onclick="ToggleStatsPanel"
+            aria-controls="statsPanel"
+            aria-expanded="@isStatsExpanded.ToString().ToLowerInvariant()">
+        <MudIcon Icon="@(isStatsExpanded ? Icons.Material.Filled.CloseFullscreen : Icons.Material.Filled.Insights)" />
+        <span>@(isStatsExpanded ? "Hide stats" : "Show stats")</span>
+    </button>
 </div>
 
 @code {

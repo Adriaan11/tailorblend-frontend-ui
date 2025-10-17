@@ -18,7 +18,7 @@
         <div class="tb-stack" style="gap: var(--tb-space-sm);">
             <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Editing Mode</MudText>
             <MudRadioGroup T="string" Value="@editMode" ValueChanged="@OnModeChanged">
-                <div class="tb-stack tb-stack--row" style="gap: var(--tb-space-lg);">
+                <div class="tb-stack tb-stack--row tb-stack--row-sm-column" style="gap: var(--tb-space-lg);">
                     <MudRadio Value="@("granular")" Color="Color.Success">
                         <MudText Typo="Typo.body2">
                             <strong>Granular Sections</strong> - Edit structured sections separately
@@ -80,14 +80,14 @@ else
                           placeholder="Paste your complete system instructions here..."
                           style="min-height: 500px; font-family: var(--tb-font-mono); font-size: 0.9rem;"></textarea>
 
-                <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
+                <div class="tb-stack tb-stack--row tb-stack--row-sm-column tb-stack--space-between">
                     <MudText Typo="Typo.caption" Class="tb-muted">Character count: @(rawInstructions?.Length.ToString("N0") ?? "0")</MudText>
                     <MudText Typo="Typo.caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</MudText>
                 </div>
 
                 <div class="tb-divider"></div>
 
-                <div class="tb-stack tb-stack--row" style="justify-content:flex-end;">
+                <div class="tb-stack tb-stack--row tb-stack--row-sm-column tb-stack--justify-end">
                     <button class="tb-button tb-button--secondary"
                             @onclick="ResetToDefaults"
                             disabled="@isSaving">
@@ -140,14 +140,14 @@ else
                       @bind:event="oninput"
                       placeholder="Compose refined instructions that reflect your operating procedures."></textarea>
 
-            <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
+            <div class="tb-stack tb-stack--row tb-stack--row-sm-column tb-stack--space-between">
                 <MudText Typo="Typo.caption" Class="tb-muted">Character count: @((activeSection?.Content?.Length ?? 0).ToString("N0"))</MudText>
                 <MudText Typo="Typo.caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</MudText>
             </div>
 
             <div class="tb-divider"></div>
 
-            <div class="tb-stack tb-stack--row" style="justify-content:flex-end;">
+            <div class="tb-stack tb-stack--row tb-stack--row-sm-column tb-stack--justify-end">
                 <button class="tb-button tb-button--secondary"
                         @onclick="ResetToDefaults"
                         disabled="@isSaving">
