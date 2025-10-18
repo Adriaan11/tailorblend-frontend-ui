@@ -12,10 +12,10 @@ public static class TailorBlendTheme
     {
         PaletteLight = new PaletteLight
         {
-            // Primary palette — TailorBlend emerald
-            Primary = "#10B981",
-            PrimaryDarken = "#059669",
-            PrimaryLighten = "#34D399",
+            // Primary palette — TailorBlend teal (brand color)
+            Primary = "#70D1C7",
+            PrimaryDarken = "#5BBFB5",
+            PrimaryLighten = "#8ADDD5",
 
             // Secondary palette — modern indigo accent
             Secondary = "#6366F1",
@@ -27,13 +27,13 @@ public static class TailorBlendTheme
             TertiaryLighten = "#2DD4BF",
 
             // Semantic colors aligned with refreshed UI
-            Success = "#10B981",
+            Success = "#70D1C7",
             Info = "#3B82F6",
             Warning = "#F59E0B",
             Error = "#EF4444",
 
             // Surface system
-            Background = "#F3F4F6",
+            Background = "#F5F5F5",
             Surface = "#FFFFFF",
             AppbarBackground = "#FFFFFF",
             AppbarText = "#111827",
@@ -55,16 +55,16 @@ public static class TailorBlendTheme
 
             TableLines = "rgba(17, 24, 39, 0.06)",
             TableStriped = "#F9FAFB",
-            TableHover = "rgba(16, 185, 129, 0.06)",
+            TableHover = "rgba(112, 209, 199, 0.06)",
 
             HoverOpacity = 0.1,
         },
 
         PaletteDark = new PaletteDark
         {
-            Primary = "#34D399",
-            PrimaryDarken = "#10B981",
-            PrimaryLighten = "#6EE7B7",
+            Primary = "#75D5CA",
+            PrimaryDarken = "#70D1C7",
+            PrimaryLighten = "#8ADDD5",
 
             Secondary = "#818CF8",
             SecondaryDarken = "#6366F1",
