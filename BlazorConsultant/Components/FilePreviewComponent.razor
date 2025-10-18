@@ -115,6 +115,23 @@
     .tb-attachment-remove:hover {
         color: var(--mud-palette-error);
     }
+
+    @media (max-width: 768px) {
+        .tb-attachments-preview {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .tb-attachments-preview::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tb-attachment-item {
+            flex: 0 0 220px;
+        }
+    }
 </style>
 
 @code {

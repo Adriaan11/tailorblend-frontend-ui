@@ -10,20 +10,27 @@
         <div class="tb-shell__sidebar @( _sidebarOpen ? "is-open" : string.Empty)" @onclick="CloseSidebar">
             <div class="tb-sidebar__panel" @onclick:stopPropagation="true">
                 <div class="tb-sidebar__brand">
-                    <div class="tb-brand__icon">
-                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" />
-                    </div>
-                    <div class="tb-brand__meta">
-                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">TailorBlend</MudText>
-                        <MudText Typo="Typo.caption" Class="tb-muted" Style="letter-spacing:0.08em; text-transform:uppercase;">
-                            AI Consultant
-                        </MudText>
+                    <div class="tb-brand__content">
+                        <div class="tb-brand__icon">
+                            <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" />
+                        </div>
+                        <div class="tb-brand__meta">
+                            <MudText Typo="Typo.subtitle1" Style="font-weight:600;">TailorBlend</MudText>
+                            <MudText Typo="Typo.caption" Class="tb-muted" Style="letter-spacing:0.08em; text-transform:uppercase;">
+                                AI Consultant
+                            </MudText>
+                        </div>
                     </div>
                     <MudIconButton Icon="@(_sidebarCollapsed ? Icons.Material.Filled.ChevronRight : Icons.Material.Filled.ChevronLeft)"
                                     Class="tb-icon-button tb-collapse-btn mud-hidden-sm-and-down"
                                     OnClick="ToggleSidebarCollapse"
                                     title="Toggle navigation width"
                                     aria-label="Toggle navigation width" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                    Class="tb-icon-button tb-sidebar__close mud-hidden-md-up"
+                                    OnClick="CloseSidebar"
+                                    title="Close navigation"
+                                    aria-label="Close navigation" />
                 </div>
 
                 <nav class="tb-sidebar__nav">
@@ -61,30 +68,61 @@
                 </div>
 
                 <div class="tb-appbar__right">
-                    <div class="tb-badge">
-                        <span class="tb-dot"></span>
-                        <span>Session Active</span>
-                        @if (SessionService?.MessageCount > 0)
-                        {
-                            <span class="tb-chip" style="background: var(--tb-accent); color: white; font-weight:700;">
-                                @SessionService.MessageCount
-                            </span>
-                        }
+                    <div class="tb-appbar__status">
+                        <div class="tb-badge">
+                            <span class="tb-dot"></span>
+                            <span><span class="tb-hide-sm">Session </span>Active</span>
+                            @if (SessionService?.MessageCount > 0)
+                            {
+                                <span class="tb-chip" style="background: var(--tb-accent); color: white; font-weight:700;">
+                                    @SessionService.MessageCount
+                                </span>
+                            }
+                        </div>
                     </div>
 
-                    @if (!string.IsNullOrEmpty(SessionService?.SessionId))
-                    {
-                        <div class="tb-chip">
-                            <MudIcon Icon="@Icons.Material.Filled.Key" />
-                            <span>@SessionService.SessionId[..Math.Min(10, SessionService.SessionId.Length)]...</span>
-                        </div>
-                    }
+                    <div class="tb-appbar__actions">
+                        @if (!string.IsNullOrEmpty(SessionService?.SessionId))
+                        {
+                            <div class="tb-chip tb-chip--session" title="Session ID">
+                                <MudIcon Icon="@Icons.Material.Filled.Key" />
+                                <span>@SessionService.SessionId[..Math.Min(10, SessionService.SessionId.Length)]...</span>
+                            </div>
 
-                    <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                                    Class="tb-icon-button"
-                                    OnClick="ToggleTheme"
-                                    title="Toggle theme"
-                                    aria-label="Toggle theme" />
+                            <MudMenu Class="tb-appbar__overflow"
+                                     CloseOnClick="true"
+                                     AnchorOrigin="Origin.TopRight"
+                                     TransformOrigin="Origin.TopRight">
+                                <ActivatorContent>
+                                    <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                                   Class="tb-icon-button tb-appbar__overflow"
+                                                   title="Session options"
+                                                   aria-label="Session options" />
+                                </ActivatorContent>
+                                <MudMenuItem Disabled="true">
+                                    <MudText Typo="Typo.caption" Style="font-weight:600; text-transform:uppercase; letter-spacing:0.08em;">
+                                        Session
+                                    </MudText>
+                                </MudMenuItem>
+                                <MudMenuItem Disabled="true">
+                                    <MudText Typo="Typo.caption" Style="max-width: 220px; white-space: normal;">
+                                        ID: @SessionService.SessionId
+                                    </MudText>
+                                </MudMenuItem>
+                                <MudMenuItem Disabled="true">
+                                    <MudText Typo="Typo.caption">
+                                        Messages: @(SessionService?.MessageCount ?? 0)
+                                    </MudText>
+                                </MudMenuItem>
+                            </MudMenu>
+                        }
+
+                        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                                        Class="tb-icon-button"
+                                        OnClick="ToggleTheme"
+                                        title="Toggle theme"
+                                        aria-label="Toggle theme" />
+                    </div>
                 </div>
             </header>
 
