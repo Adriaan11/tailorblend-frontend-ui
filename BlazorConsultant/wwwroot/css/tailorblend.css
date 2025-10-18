@@ -48,6 +48,11 @@
     --tb-space-xs: 0.25rem;
     --tb-space-sm: 0.5rem;
     --tb-space: 1rem;
+
+    /* Trace viewer colors */
+    --tb-trace-generation: #3b82f6;
+    --tb-trace-function: #10b981;
+    --tb-trace-agent: #8b5cf6;
     --tb-space-md: 1.5rem;
     --tb-space-lg: 2rem;
     --tb-space-xl: 3rem;
@@ -2048,3 +2053,124 @@ p {
    - .tb-input-bar (standard input styling)
    - Standard TB design system throughout
 */
+
+/* ========================================================================
+   TRACE VIEWER STYLING
+   Real-time observability component for agent execution traces
+   ======================================================================== */
+
+.tb-trace-viewer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tb-space);
+    padding: var(--tb-space);
+    background: var(--tb-surface);
+    border-radius: var(--tb-radius);
+    border: 1px solid var(--tb-border);
+}
+
+.tb-trace-status {
+    display: flex;
+    align-items: center;
+    gap: var(--tb-space-sm);
+    padding: var(--tb-space-sm) var(--tb-space);
+    border-radius: var(--tb-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.tb-trace-status--connected {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--tb-accent-strong);
+}
+
+.tb-trace-status--connecting {
+    background: var(--tb-gray-75);
+    color: var(--tb-gray-600);
+}
+
+.tb-trace-status--error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.tb-trace-empty {
+    padding: var(--tb-space-lg);
+    text-align: center;
+}
+
+.tb-trace-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--tb-space-xs);
+}
+
+.tb-trace-meta {
+    display: flex;
+    gap: var(--tb-space);
+    font-size: 0.8125rem;
+}
+
+.tb-badge {
+    padding: 2px 8px;
+    background: var(--tb-gray-100);
+    border-radius: var(--tb-radius-pill);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.tb-span {
+    padding: var(--tb-space);
+    border-left: 3px solid var(--tb-border-strong);
+    background: var(--tb-surface-muted);
+    border-radius: var(--tb-radius-sm);
+    margin-left: var(--tb-space);
+}
+
+.tb-span--generation {
+    border-left-color: var(--tb-trace-generation);
+}
+
+.tb-span--function {
+    border-left-color: var(--tb-trace-function);
+}
+
+.tb-span--agent {
+    border-left-color: var(--tb-trace-agent);
+}
+
+.tb-span-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--tb-space-xs);
+}
+
+.tb-span-name {
+    font-size: 0.9rem;
+    color: var(--tb-gray-700);
+    margin-bottom: var(--tb-space-sm);
+}
+
+.tb-span-tokens,
+.tb-span-model {
+    display: flex;
+    align-items: center;
+    gap: var(--tb-space-xs);
+    font-size: 0.8125rem;
+    color: var(--tb-gray-600);
+    margin-top: var(--tb-space-xs);
+}
+
+.tb-span-data {
+    font-family: var(--tb-font-mono);
+    font-size: 0.75rem;
+    background: var(--tb-gray-900);
+    color: #e5e7eb;
+    padding: var(--tb-space);
+    border-radius: var(--tb-radius-sm);
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+}

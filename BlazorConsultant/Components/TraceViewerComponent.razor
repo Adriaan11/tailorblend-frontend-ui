@@ -1,0 +1,270 @@
+@using BlazorConsultant.Models
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject IConfiguration Configuration
+@implements IAsyncDisposable
+
+<div class="tb-trace-viewer">
+    @if (_isConnected)
+    {
+        <div class="tb-trace-status tb-trace-status--connected">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" />
+            <span>Live Trace Updates</span>
+        </div>
+    }
+    else if (_connectionError)
+    {
+        <div class="tb-trace-status tb-trace-status--error">
+            <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Small" Color="Color.Error" />
+            <span>Connection Error</span>
+        </div>
+    }
+    else
+    {
+        <div class="tb-trace-status tb-trace-status--connecting">
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            <span>Connecting...</span>
+        </div>
+    }
+
+    @if (_traces.Count == 0)
+    {
+        <div class="tb-trace-empty">
+            <MudText Typo="Typo.body2" Class="tb-muted">No traces yet. Send a message to start tracing.</MudText>
+        </div>
+    }
+    else
+    {
+        <MudExpansionPanels MultiExpansion="true">
+            @foreach (var trace in _traces.AsEnumerable().Reverse())
+            {
+                <MudExpansionPanel>
+                    <TitleContent>
+                        <div class="tb-trace-title">
+                            <strong>@trace.Name</strong>
+                            <span class="tb-muted">@GetDurationDisplay(trace.DurationMs)</span>
+                        </div>
+                        <div class="tb-trace-meta">
+                            <span class="tb-muted">@GetTimestampDisplay(trace.StartedAt)</span>
+                            <span class="tb-badge">@trace.Spans.Count span(s)</span>
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <div class="tb-stack">
+                            @foreach (var span in trace.Spans)
+                            {
+                                <div class="tb-span @GetSpanClass(span.Type)">
+                                    <div class="tb-span-header">
+                                        <strong>@GetSpanTypeDisplay(span.Type)</strong>
+                                        <span class="tb-muted">@GetDurationDisplay(span.DurationMs)</span>
+                                    </div>
+                                    <div class="tb-span-name">@span.Name</div>
+
+                                    @if (span.Data.Usage != null)
+                                    {
+                                        <div class="tb-span-tokens">
+                                            <MudIcon Icon="@Icons.Material.Filled.Token" Size="Size.Small" />
+                                            <span>@span.Data.Usage.InputTokens in / @span.Data.Usage.OutputTokens out (@span.Data.Usage.TotalTokens total)</span>
+                                        </div>
+                                    }
+
+                                    @if (span.Data.Model != null)
+                                    {
+                                        <div class="tb-span-model">
+                                            <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                                            <span>@span.Data.Model</span>
+                                        </div>
+                                    }
+
+                                    @if (ShowDetails)
+                                    {
+                                        @if (span.Data.Input != null)
+                                        {
+                                            <MudExpansionPanel Text="Input" Dense="true">
+                                                <pre class="tb-span-data">@FormatSpanData(span.Data.Input)</pre>
+                                            </MudExpansionPanel>
+                                        }
+
+                                        @if (span.Data.Output != null)
+                                        {
+                                            <MudExpansionPanel Text="Output" Dense="true">
+                                                <pre class="tb-span-data">@FormatSpanData(span.Data.Output)</pre>
+                                            </MudExpansionPanel>
+                                        }
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </ChildContent>
+                </MudExpansionPanel>
+            }
+        </MudExpansionPanels>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string SessionId { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool ShowDetails { get; set; } = false;
+
+    private List<TraceInfo> _traces = new();
+    private bool _isConnected = false;
+    private bool _connectionError = false;
+    private DotNetObjectReference<TraceViewerComponent>? _dotNetHelper;
+    private string _apiBaseUrl = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _apiBaseUrl = Configuration["PythonApi:BaseUrl"] ?? "http://localhost:5000";
+        Console.WriteLine($"📊 [TraceViewer] Initializing for session: {SessionId}");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Create .NET reference for JS callbacks
+                _dotNetHelper = DotNetObjectReference.Create(this);
+
+                // Start SSE connection
+                await JS.InvokeVoidAsync("startTraceViewer", SessionId, _apiBaseUrl, _dotNetHelper);
+                Console.WriteLine($"📊 [TraceViewer] Started SSE connection");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ [TraceViewer] Failed to start: {ex.Message}");
+                _connectionError = true;
+                StateHasChanged();
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnTraceUpdate(TraceInfo trace)
+    {
+        Console.WriteLine($"📊 [TraceViewer] Received trace update: {trace.TraceId}");
+
+        // Update or add trace
+        var existingIndex = _traces.FindIndex(t => t.TraceId == trace.TraceId);
+        if (existingIndex >= 0)
+        {
+            _traces[existingIndex] = trace;
+        }
+        else
+        {
+            _traces.Add(trace);
+
+            // Keep only last 10 traces
+            if (_traces.Count > 10)
+            {
+                _traces.RemoveAt(0);
+            }
+        }
+
+        _isConnected = true;
+        _connectionError = false;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnConnectionError()
+    {
+        Console.WriteLine($"❌ [TraceViewer] Connection error");
+        _isConnected = false;
+        _connectionError = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string GetSpanClass(string type)
+    {
+        return type.ToLower() switch
+        {
+            "generation" => "tb-span--generation",
+            "function" => "tb-span--function",
+            "agent" => "tb-span--agent",
+            _ => "tb-span--unknown"
+        };
+    }
+
+    private string GetSpanTypeDisplay(string type)
+    {
+        return type.ToLower() switch
+        {
+            "generation" => "🤖 LLM Call",
+            "function" => "🔧 Tool Call",
+            "agent" => "👤 Agent",
+            _ => type
+        };
+    }
+
+    private string GetDurationDisplay(int? durationMs)
+    {
+        if (!durationMs.HasValue)
+            return "...";
+
+        if (durationMs.Value < 1000)
+            return $"{durationMs.Value}ms";
+
+        return $"{durationMs.Value / 1000.0:F2}s";
+    }
+
+    private string GetTimestampDisplay(string timestamp)
+    {
+        if (string.IsNullOrEmpty(timestamp))
+            return "Unknown time";
+
+        try
+        {
+            var dt = DateTime.Parse(timestamp);
+            return dt.ToString("HH:mm:ss");
+        }
+        catch
+        {
+            return timestamp;
+        }
+    }
+
+    private string FormatSpanData(object? data)
+    {
+        if (data == null)
+            return "null";
+
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(data, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            // Truncate if too long
+            if (json.Length > 5000)
+            {
+                return json.Substring(0, 5000) + "\n... (truncated)";
+            }
+
+            return json;
+        }
+        catch
+        {
+            return data.ToString() ?? "Unable to format";
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("stopTraceViewer");
+            _dotNetHelper?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [TraceViewer] Dispose error: {ex.Message}");
+        }
+    }
+}

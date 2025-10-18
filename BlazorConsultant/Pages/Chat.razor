@@ -1,5 +1,6 @@
 @page "/chat"
 @using BlazorConsultant.Models
+@using BlazorConsultant.Components
 @using Microsoft.AspNetCore.Components.Forms
 @inject IChatService ChatService
 @inject IChatStateService ChatStateService
@@ -211,6 +212,15 @@
                 <div class="tb-divider"></div>
 
                 <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
+
+                <div class="tb-divider"></div>
+
+                @* Live Trace Viewer *@
+                <div class="tb-stack">
+                    <MudText Typo="Typo.overline" Class="tb-muted">Agent Execution</MudText>
+                    <MudText Typo="Typo.h6" Style="font-weight:700; margin-bottom: var(--tb-space-sm);">Live Traces</MudText>
+                    <TraceViewerComponent SessionId="@SessionService.SessionId" ShowDetails="false" />
+                </div>
 
                 <div class="tb-divider"></div>
                 <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
