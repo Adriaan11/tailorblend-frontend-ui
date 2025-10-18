@@ -114,11 +114,41 @@
     private bool _connectionError = false;
     private DotNetObjectReference<TraceViewerComponent>? _dotNetHelper;
     private string _apiBaseUrl = string.Empty;
+    private string _currentSessionId = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         _apiBaseUrl = Configuration["PythonApi:BaseUrl"] ?? "http://localhost:5000";
+        _currentSessionId = SessionId;
         Console.WriteLine($"📊 [TraceViewer] Initializing for session: {SessionId}");
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Reconnect if session ID changes
+        if (!string.IsNullOrEmpty(_currentSessionId) && _currentSessionId != SessionId)
+        {
+            Console.WriteLine($"📊 [TraceViewer] Session changed: {_currentSessionId} → {SessionId}");
+            _currentSessionId = SessionId;
+            _traces.Clear();
+            _isConnected = false;
+            _connectionError = false;
+
+            // Reconnect with new session ID
+            try
+            {
+                await JS.InvokeVoidAsync("stopTraceViewer");
+                await JS.InvokeVoidAsync("startTraceViewer", SessionId, _apiBaseUrl, _dotNetHelper);
+                Console.WriteLine($"📊 [TraceViewer] Reconnected to new session");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ [TraceViewer] Failed to reconnect: {ex.Message}");
+                _connectionError = true;
+            }
+
+            StateHasChanged();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
