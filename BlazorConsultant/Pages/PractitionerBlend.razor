@@ -1,5 +1,6 @@
 @page "/practitioner-blend"
 @using BlazorConsultant.Models
+@using BlazorConsultant.Services
 @using Microsoft.AspNetCore.Components.Forms
 @inject IChatService ChatService
 @inject IChatStateService ChatStateService
@@ -409,21 +410,30 @@
             // Attach selected files to request
             request.Attachments = new List<FileAttachment>(selectedFiles);
 
-            // Stream response with practitioner mode enabled
-            await foreach (var token in ChatService.StreamChatAsync(
+            // Fetch complete response from backend
+            var response = await ChatService.SendChatAsync(
                 request.ToFormattedMessage(),
                 customInstructions: null,
                 model: null,
                 attachments: request.Attachments,
-                practitionerMode: true))
-            {
-                if (token == "[DONE]")
-                {
-                    break;
-                }
+                practitionerMode: true);
 
-                streamingMessage.Content += token;
-                await InvokeAsync(StateHasChanged);
+            Console.WriteLine($"✅ [PRACTITIONER] Received {response.Response.Length} chars, starting simulation");
+
+            // Simulate streaming with gradual reveal
+            using var simulator = new StreamSimulator();
+            simulator.OnTokenRevealed += () =>
+            {
+                streamingMessage.Content = simulator.CurrentText;
+                InvokeAsync(StateHasChanged);
+            };
+
+            simulator.StartSimulation(response.Response, intervalMs: 20);
+
+            // Wait for simulation to complete
+            while (!simulator.IsComplete)
+            {
+                await Task.Delay(100);
             }
 
             // Finalize message
@@ -482,21 +492,30 @@
                 IsStreaming = true
             };
 
-            // Stream response with practitioner mode
-            await foreach (var token in ChatService.StreamChatAsync(
+            // Fetch complete response from backend
+            var response = await ChatService.SendChatAsync(
                 messageToSend,
                 customInstructions: null,
                 model: null,
                 attachments: null,
-                practitionerMode: true))
-            {
-                if (token == "[DONE]")
-                {
-                    break;
-                }
+                practitionerMode: true);
 
-                streamingMessage.Content += token;
-                await InvokeAsync(StateHasChanged);
+            Console.WriteLine($"✅ [PRACTITIONER] Received {response.Response.Length} chars, starting simulation");
+
+            // Simulate streaming with gradual reveal
+            using var simulator = new StreamSimulator();
+            simulator.OnTokenRevealed += () =>
+            {
+                streamingMessage.Content = simulator.CurrentText;
+                InvokeAsync(StateHasChanged);
+            };
+
+            simulator.StartSimulation(response.Response, intervalMs: 20);
+
+            // Wait for simulation to complete
+            while (!simulator.IsComplete)
+            {
+                await Task.Delay(100);
             }
 
             // Finalize message

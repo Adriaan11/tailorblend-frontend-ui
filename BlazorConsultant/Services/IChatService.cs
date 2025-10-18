@@ -8,18 +8,17 @@ namespace BlazorConsultant.Services;
 public interface IChatService
 {
     /// <summary>
-    /// Stream chat response from Python API using SSE (HttpClient-based).
-    /// NOTE: This method is ONLY for POST scenarios (attachments, practitioner mode).
-    /// For text-only GET requests, use SseStreamManager instead.
+    /// Send chat message and receive complete response (non-streaming).
+    /// Frontend simulates streaming for better UX.
     /// </summary>
     /// <param name="message">User message</param>
     /// <param name="customInstructions">Optional custom instructions</param>
     /// <param name="model">OpenAI model to use</param>
-    /// <param name="attachments">File attachments (requires POST)</param>
-    /// <param name="practitionerMode">Use practitioner mode (requires POST)</param>
+    /// <param name="attachments">File attachments</param>
+    /// <param name="practitionerMode">Use practitioner mode</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Async enumerable of response tokens</returns>
-    IAsyncEnumerable<string> StreamChatAsync(
+    /// <returns>Complete chat response with tokens and cost</returns>
+    Task<ChatResponse> SendChatAsync(
         string message,
         string? customInstructions = null,
         string? model = null,

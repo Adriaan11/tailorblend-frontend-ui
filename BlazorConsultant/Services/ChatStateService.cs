@@ -11,9 +11,7 @@ namespace BlazorConsultant.Services;
 public class ChatStateService : IChatStateService
 {
     private readonly IChatService _chatService;
-    private readonly IServiceProvider _serviceProvider;
     private readonly ISessionService _sessionService;
-    private readonly IConfiguration _configuration;
     private readonly List<ChatMessage> _messages = new();
     private ChatMessage? _streamingMessage;
     private bool _isStreaming;
@@ -23,14 +21,10 @@ public class ChatStateService : IChatStateService
 
     public ChatStateService(
         IChatService chatService,
-        IServiceProvider serviceProvider,
-        ISessionService sessionService,
-        IConfiguration configuration)
+        ISessionService sessionService)
     {
         _chatService = chatService;
-        _serviceProvider = serviceProvider;
         _sessionService = sessionService;
-        _configuration = configuration;
     }
 
     public IReadOnlyList<ChatMessage> Messages => _messages.AsReadOnly();
@@ -112,61 +106,44 @@ public class ChatStateService : IChatStateService
 
         try
         {
-            var hasAttachments = attachments != null && attachments.Count > 0;
+            // Fetch FULL response from backend (unified code path - no more dual implementation!)
+            Console.WriteLine($"⏳ [ChatStateService] Fetching complete response...");
 
-            if (hasAttachments)
+            var response = await _chatService.SendChatAsync(
+                message,
+                customInstructions: null,
+                model: _sessionService.CurrentModel,
+                attachments: attachments,
+                practitionerMode: false,
+                cancellationToken: cancellationToken
+            );
+
+            Console.WriteLine($"✅ [ChatStateService] Received {response.Response.Length} chars, starting simulation");
+
+            // Simulate streaming with gradual reveal
+            using var simulator = new StreamSimulator();
+            simulator.OnTokenRevealed += () =>
             {
-                // File attachments require POST - use HttpClient fallback
-                Console.WriteLine($"📎 [ChatStateService] Using HttpClient for file attachments");
+                if (_disposed || _streamingMessage == null)
+                    return;
 
-                await foreach (var token in _chatService.StreamChatAsync(
-                    message,
-                    customInstructions: null,
-                    model: _sessionService.CurrentModel,
-                    attachments: attachments,
-                    practitionerMode: false,
-                    cancellationToken: cancellationToken))
-                {
-                    if (_disposed) break;
+                _streamingMessage.Content = simulator.CurrentText;
+                NotifyStateChanged();
+            };
 
-                    _streamingMessage.Content += token;
+            // Start simulation (20ms = ~50 chars/sec, feels natural)
+            simulator.StartSimulation(response.Response, intervalMs: 20);
 
-                    if (_disposed) return;
-                    NotifyStateChanged();
-                }
+            // Wait for simulation to complete or cancellation
+            while (!simulator.IsComplete && !cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(100, cancellationToken);
             }
-            else
+
+            if (cancellationToken.IsCancellationRequested)
             {
-                // Text-only messages use EventSource (GET)
-                var pythonApiUrl = _configuration["PythonApi:BaseUrl"] ?? "http://localhost:5000";
-
-                // Build GET request URL
-                var queryParams = new Dictionary<string, string>
-                {
-                    { "message", message },
-                    { "session_id", _sessionService.SessionId },
-                    { "model", _sessionService.CurrentModel }
-                };
-
-                var queryString = string.Join("&", queryParams.Select(kvp =>
-                    $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
-
-                var sseUrl = $"{pythonApiUrl}/api/chat/stream?{queryString}";
-
-                // Create SseStreamManager instance (scoped to this streaming operation)
-                // Use 'await using' to ensure proper disposal of DotNetObjectReference
-                await using var sseManager = _serviceProvider.GetRequiredService<SseStreamManager>();
-
-                // Stream response via EventSource
-                await foreach (var token in sseManager.StreamAsync(sseUrl, cancellationToken))
-                {
-                    if (_disposed) break;
-
-                    _streamingMessage.Content += token;
-
-                    if (_disposed) return;
-                    NotifyStateChanged();
-                }
+                // User cancelled during simulation - show all remaining text instantly
+                simulator.CompleteInstantly();
             }
 
             // Finalize message
@@ -176,30 +153,39 @@ public class ChatStateService : IChatStateService
 
             // Increment message counter
             _sessionService.IncrementMessageCount();
+
+            Console.WriteLine($"✅ [ChatStateService] Simulation complete");
         }
         catch (OperationCanceledException)
         {
-            // User cancelled - propagate upward
+            // User cancelled during HTTP request
+            Console.WriteLine($"⏹️ [ChatStateService] Request cancelled by user");
+
+            var cancelMessage = new ChatMessage
+            {
+                Role = "assistant",
+                Content = "⏹️ Generation stopped by user.",
+                Timestamp = DateTime.Now
+            };
+            _messages.Add(cancelMessage);
             _streamingMessage = null;
             throw;
         }
         catch (Exception ex) when (retryAttempt < 1 && !cancellationToken.IsCancellationRequested)
         {
-            // Auto-retry once for transient errors
-            Console.WriteLine($"⚠️ [ChatStateService] Stream failed (attempt {retryAttempt + 1}/2), retrying in 1 second: {ex.Message}");
+            // Auto-retry once for transient errors (much simpler now - retry entire request!)
+            Console.WriteLine($"⚠️ [ChatStateService] Request failed (attempt {retryAttempt + 1}/2), retrying: {ex.Message}");
 
             _streamingMessage = null;
+            await Task.Delay(1000, cancellationToken);
 
-            // Exponential backoff
-            await Task.Delay(1000 * (retryAttempt + 1), cancellationToken);
-
-            // Retry
+            // Retry entire request
             await StreamMessageInternalAsync(message, attachments, cancellationToken, retryAttempt + 1);
         }
         catch (Exception ex)
         {
-            // Final error - show to user
-            Console.WriteLine($"❌ [ChatStateService] Stream failed after retries: {ex.Message}");
+            // Final error after retries
+            Console.WriteLine($"❌ [ChatStateService] Request failed after retries: {ex.Message}");
 
             var errorMessage = new ChatMessage
             {
@@ -213,7 +199,6 @@ public class ChatStateService : IChatStateService
         finally
         {
             _isStreaming = false;
-            // NotifyStateChanged has its own disposal check
             NotifyStateChanged();
         }
     }
@@ -229,7 +214,12 @@ public class ChatStateService : IChatStateService
     public void CancelStreaming()
     {
         Console.WriteLine($"🛑 [ChatStateService] CancelStreaming called");
+
+        // Cancel HTTP request (if still fetching)
         _cancellationTokenSource?.Cancel();
+
+        // Note: If simulation already started, cancellation token
+        // will trigger CompleteInstantly() in StreamMessageInternalAsync
     }
 
     private void NotifyStateChanged()

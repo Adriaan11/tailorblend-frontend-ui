@@ -1,5 +1,5 @@
-# fly.toml - TailorBlend AI Consultant Frontend UI
-# Deployment configuration for fly.io
+# fly.toml - TailorBlend AI Consultant Blazor Frontend
+# Deployment configuration for fly.io with SignalR support
 
 app = "tailorblend-frontend-ui"
 primary_region = "jnb"  # Johannesburg, South Africa
@@ -9,45 +9,41 @@ primary_region = "jnb"  # Johannesburg, South Africa
 
 [env]
   ASPNETCORE_ENVIRONMENT = "Production"
-  ASPNETCORE_URLS = "http://0.0.0.0:8080"
+  ASPNETCORE_URLS = "http://+:8080"
+  # Backend API URL (for server-side calls)
+  PythonApi__BaseUrl = "https://tailorblend-backend-api.fly.dev"
 
 [http_service]
   internal_port = 8080
   force_https = true
   auto_stop_machines = "off"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 1  # Single machine for cost optimization
 
-  # HTTP options for proxying SSE streams from backend
+  # HTTP options for SignalR + SSE streaming support
   [http_service.http_options]
-    response.read_timeout = "5m"  # Allow long-running requests to backend
-    h2_backend = false  # Force HTTP/1.1 for compatibility
+    response.read_timeout = "10m"  # Long timeout for SignalR circuits + SSE streams
+    h2_backend = false  # Force HTTP/1.1 for SignalR compatibility
 
+  # Concurrency settings optimized for SignalR
   [http_service.concurrency]
     type = "connections"
-    hard_limit = 250
-    soft_limit = 200
+    hard_limit = 100  # Lower limit for SignalR persistent connections
+    soft_limit = 75
 
-  # Health check with increased tolerances
+  # Health check configuration
   [[http_service.checks]]
-    grace_period = "180s"  # Increased from 60s for Blazor Server startup
+    grace_period = "60s"
     interval = "30s"
     method = "GET"
-    timeout = "10s"  # Increased from 5s for more tolerance
-    path = "/health"
+    timeout = "5s"
+    path = "/"  # Blazor root page
 
-# VM configuration - Optimized for cost (cheapest always-on option)
-# shared-cpu-1x with 256MB = $2.02/month (was $3.32 with 512MB)
-# Blazor Server is lightweight enough for 256MB with swap
-# If you experience OOM errors, upgrade to 512MB
+# VM configuration - Optimized for cost
+# shared-cpu-1x with 512MB for Blazor Server (needs more RAM than API)
 [vm]
   size = "shared-cpu-1x"
-  memory = "256mb"
+  memory = "512mb"
 
-# Swap provides emergency buffer if 256MB RAM is insufficient
-# This prevents crashes during memory spikes
-swap_size_mb = 512
-
-# Environment variables for production
-# PythonApi__BaseUrl should be set via fly secrets:
-#   fly secrets set PythonApi__BaseUrl="https://tailorblend-backend-api.fly.dev"
+# Swap provides buffer for SignalR memory spikes
+swap_size_mb = 256
