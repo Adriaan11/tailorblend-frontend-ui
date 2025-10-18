@@ -6,7 +6,8 @@ namespace BlazorConsultant.Services;
 
 /// <summary>
 /// Chat service implementation - communicates with Python FastAPI backend.
-/// Handles SSE streaming for real-time chat responses.
+/// Provides HttpClient-based SSE streaming for POST scenarios (attachments, practitioner mode).
+/// For text-only GET requests, ChatStateService uses SseStreamManager instead.
 /// </summary>
 public class ChatService : IChatService
 {
@@ -24,106 +25,54 @@ public class ChatService : IChatService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Stream chat response using HttpClient (for POST scenarios only).
+    /// NOTE: This is a fallback for attachments and practitioner mode.
+    /// Regular text-only streaming uses EventSource via SseStreamManager.
+    /// </summary>
     public async IAsyncEnumerable<string> StreamChatAsync(
         string message,
         string? customInstructions = null,
         string? model = null,
         List<FileAttachment>? attachments = null,
-        bool practitionerMode = false)
+        bool practitionerMode = false,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient("PythonAPI");
+
+        // This method only handles POST requests (attachments or practitioner mode)
+        var requestBody = new
+        {
+            message = message,
+            session_id = _sessionService.SessionId,
+            custom_instructions = customInstructions,
+            model = model ?? "gpt-4.1-mini-2025-04-14",
+            attachments = attachments ?? new List<FileAttachment>(),
+            practitioner_mode = practitionerMode
+        };
+
+        _logger.LogInformation($"[CHAT] Sending POST request (practitioner: {practitionerMode}, attachments: {attachments?.Count ?? 0})");
 
         HttpResponseMessage? response = null;
         Stream? stream = null;
         StreamReader? reader = null;
 
-        // Determine if we have attachments or practitioner mode (both require POST)
-        bool hasAttachments = attachments != null && attachments.Count > 0;
-        bool requiresPost = hasAttachments || practitionerMode;
-
-        if (requiresPost)
-        {
-            // POST request with JSON body (for attachments and/or practitioner mode)
-            var requestBody = new
-            {
-                message = message,
-                session_id = _sessionService.SessionId,
-                custom_instructions = customInstructions,
-                model = model ?? "gpt-4.1-mini-2025-04-14",
-                attachments = attachments ?? new List<FileAttachment>(),
-                practitioner_mode = practitionerMode
-            };
-
-            if (practitionerMode)
-            {
-                _logger.LogInformation($"[CHAT] Sending POST request in practitioner mode with {attachments?.Count ?? 0} attachment(s)");
-            }
-            else
-            {
-                _logger.LogInformation($"[CHAT] Sending POST request with {attachments!.Count} attachment(s)");
-            }
-
-            // Log attachment details
-            foreach (var attachment in attachments)
-            {
-                _logger.LogInformation($"[CHAT]   - {attachment.FileName} ({attachment.MimeType}, {attachment.FileSize} bytes, base64 length: {attachment.Base64Data?.Length ?? 0})");
-            }
-
-            try
-            {
-                // Setup connection outside iterator
-                response = await client.PostAsJsonAsync("/api/chat/stream", requestBody, new JsonSerializerOptions
-                {
-                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-                });
-
-                _logger.LogInformation($"[CHAT] POST response status: {response.StatusCode}");
-                response.EnsureSuccessStatusCode();
-                stream = await response.Content.ReadAsStreamAsync();
-                reader = new StreamReader(stream);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"[CHAT] POST request failed: {ex.Message}");
-                throw;
-            }
-        }
-        else
-        {
-            // GET request with query parameters (backward compatible, text-only)
-            var queryParams = new Dictionary<string, string>
-            {
-                { "message", message },
-                { "session_id", _sessionService.SessionId }
-            };
-
-            if (!string.IsNullOrEmpty(customInstructions))
-            {
-                queryParams["custom_instructions"] = customInstructions;
-            }
-
-            if (!string.IsNullOrEmpty(model))
-            {
-                queryParams["model"] = model;
-            }
-
-            var queryString = string.Join("&", queryParams.Select(kvp =>
-                $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
-
-            var url = $"/api/chat/stream?{queryString}";
-
-            _logger.LogInformation($"[CHAT] Sending GET request (text-only)");
-
-            // Setup connection outside iterator
-            response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-            stream = await response.Content.ReadAsStreamAsync();
-            reader = new StreamReader(stream);
-        }
-
-        // Now we can use try-finally (which allows yield)
         try
         {
+            // Send POST request
+            response = await client.PostAsJsonAsync("/api/chat/stream", requestBody, new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+            }, cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+            stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            reader = new StreamReader(stream);
+
+            // Create timeout for token reading
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
             // Read SSE stream line by line
             while (!reader.EndOfStream)
             {
@@ -132,7 +81,7 @@ public class ChatService : IChatService
                 if (string.IsNullOrEmpty(line))
                     continue;
 
-                // SSE format: "data: {token}"
+                // SSE format: "data: {token}" or ": keepalive"
                 if (line.StartsWith("data: "))
                 {
                     var data = line.Substring(6); // Remove "data: " prefix
@@ -144,12 +93,20 @@ public class ChatService : IChatService
                         break;
                     }
 
-                    // Parse JSON token - no try-catch here since we're yielding
+                    // Parse JSON token
                     var token = TryDeserializeToken(data);
                     if (!string.IsNullOrEmpty(token))
                     {
                         yield return token;
+
+                        // Reset timeout after receiving token
+                        timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
                     }
+                }
+                else if (line.StartsWith(":"))
+                {
+                    // SSE keepalive - reset timeout
+                    timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
                 }
             }
         }

@@ -7,7 +7,7 @@ namespace BlazorConsultant.Services;
 /// Maintains conversation state that persists across navigation.
 /// Scoped per SignalR connection.
 /// </summary>
-public interface IChatStateService
+public interface IChatStateService : IAsyncDisposable
 {
     /// <summary>
     /// All messages in the current conversation.
@@ -41,4 +41,9 @@ public interface IChatStateService
     /// Clear all conversation history.
     /// </summary>
     void Clear();
+
+    /// <summary>
+    /// Cancel the current streaming operation.
+    /// </summary>
+    void CancelStreaming();
 }

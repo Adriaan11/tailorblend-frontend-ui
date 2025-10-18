@@ -31,12 +31,22 @@ builder.Services.AddServerSideBlazor(options =>
     options.MaxBufferedUnacknowledgedRenderBatches = 10;
 });
 
-// Add HttpClient for Python API communication
+// Add HttpClient for Python API communication with SSE streaming optimizations
 builder.Services.AddHttpClient("PythonAPI", client =>
 {
     var pythonApiUrl = builder.Configuration["PythonApi:BaseUrl"] ?? "http://localhost:5000";
     client.BaseAddress = new Uri(pythonApiUrl);
-    client.Timeout = TimeSpan.FromMinutes(5); // Long timeout for streaming
+
+    // Use infinite timeout - we'll control timeouts via CancellationToken in services
+    // This prevents the HttpClient from terminating long-running SSE streams
+    client.Timeout = Timeout.InfiniteTimeSpan;
+})
+.ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    // Connection pool settings optimized for SSE
+    PooledConnectionLifetime = TimeSpan.FromMinutes(2),  // Refresh connections periodically
+    ResponseDrainTimeout = TimeSpan.FromSeconds(30),      // Time to drain responses before closing
+    EnableMultipleHttp2Connections = false                // Disable HTTP/2 multiplexing for simpler streaming
 });
 
 // Add MudBlazor services
@@ -48,6 +58,7 @@ builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IInstructionService, InstructionService>();
 builder.Services.AddScoped<IChatStateService, ChatStateService>();
 builder.Services.AddScoped<IMultiAgentService, MultiAgentService>();
+builder.Services.AddScoped<SseStreamManager>(); // SSE streaming via JavaScript EventSource
 
 // ============================================================================
 // Application Pipeline

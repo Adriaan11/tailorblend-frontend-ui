@@ -5,7 +5,7 @@
 @inject IChatStateService ChatStateService
 @inject ISessionService SessionService
 @inject IJSRuntime JS
-@implements IDisposable
+@implements IAsyncDisposable
 
 <PageTitle>Chat - TailorBlend AI Consultant</PageTitle>
 
@@ -123,13 +123,35 @@
                         <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" />
                     </div>
                     <div class="tb-typing-content">
-                        <div class="tb-typing-text">TailorBlend is thinking...</div>
+                        @if (ChatStateService.StreamingMessage != null)
+                        {
+                            var tokenCount = ChatStateService.StreamingMessage.Content.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+                            var elapsed = (DateTime.Now - ChatStateService.StreamingMessage.Timestamp).TotalSeconds;
+                            var tokensPerSec = elapsed > 0 ? tokenCount / elapsed : 0;
+
+                            <div class="tb-typing-text">Streaming... @tokenCount tokens (@tokensPerSec.ToString("F1") tokens/sec)</div>
+                        }
+                        else
+                        {
+                            <div class="tb-typing-text">TailorBlend is thinking...</div>
+                        }
                         <div class="tb-typing-dots">
                             <span></span>
                             <span></span>
                             <span></span>
                         </div>
                     </div>
+                </div>
+
+                @* Stop Generating Button *@
+                <div style="margin-top: 8px; display: flex; justify-content: center;">
+                    <MudButton OnClick="StopGenerating"
+                               Color="Color.Error"
+                               Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.Stop"
+                               Size="Size.Small">
+                        Stop Generating
+                    </MudButton>
                 </div>
             }
         </div>
@@ -260,6 +282,7 @@
 @code {
     private string userInput = string.Empty;
     private bool isRefreshing;
+    private bool _disposed;
     private bool isResetting;
     private bool isStatsExpanded = false;
     private SessionStatsComponent? sessionStatsRef;
@@ -320,6 +343,8 @@
         {
             try
             {
+                if (_disposed) return; // Disposal check #1
+
                 // Detect when streaming completes (was streaming, now not streaming)
                 bool streamingJustCompleted = _previousIsStreaming && !ChatStateService.IsStreaming;
 
@@ -336,15 +361,20 @@
                     Console.WriteLine($"🎯 [Chat] Streaming completed, triggering auto-refresh");
                 }
 
+                if (_disposed) return; // Disposal check #2 (before StateHasChanged)
+
                 // Update UI - these are safe operations
                 StateHasChanged();
+
+                if (_disposed) return; // Disposal check #3 (before async operations)
+
                 await ScrollToBottomAsync();
 
                 // Fire-and-forget stats refresh to prevent blocking/crashing the circuit
                 // This isolates any HTTP errors from crashing the WebSocket connection
-                if (streamingJustCompleted && sessionStatsRef != null)
+                if (streamingJustCompleted)
                 {
-                    Console.WriteLine($"🔄 [Chat] Scheduling stats refresh (non-blocking)");
+                    Console.WriteLine($"🎯 [Chat] Streaming completed, triggering stats refresh");
 
                     // Run stats refresh in background task to prevent circuit crash
                     _ = Task.Run(async () =>
@@ -359,8 +389,17 @@
                             {
                                 try
                                 {
-                                    await sessionStatsRef.RefreshStats();
-                                    Console.WriteLine($"✅ [Chat] Stats refreshed successfully");
+                                    // Refresh stats component if it exists (panel expanded)
+                                    if (sessionStatsRef != null)
+                                    {
+                                        await sessionStatsRef.RefreshStats();
+                                        Console.WriteLine($"✅ [Chat] Stats refreshed successfully");
+                                    }
+                                    else
+                                    {
+                                        // Panel collapsed - no need to refresh (expected behavior)
+                                        Console.WriteLine($"📊 [Chat] Stats panel collapsed, skipping refresh");
+                                    }
                                 }
                                 catch (Exception ex)
                                 {
@@ -373,10 +412,6 @@
                             Console.WriteLine($"❌ [Chat] Background stats refresh task failed: {ex.Message}");
                         }
                     });
-                }
-                else if (streamingJustCompleted && sessionStatsRef == null)
-                {
-                    Console.WriteLine($"⚠️ [Chat] Streaming completed but sessionStatsRef is null!");
                 }
 
                 // Update previous state for next check
@@ -422,6 +457,12 @@
             await fileUpload.ClearAsync();
 
         await ScrollToBottomAsync();
+    }
+
+    private void StopGenerating()
+    {
+        Console.WriteLine($"🛑 [Chat] StopGenerating called");
+        ChatStateService.CancelStreaming();
     }
 
     private async Task OnFilesChanged(InputFileChangeEventArgs e)
@@ -477,7 +518,9 @@
             }
 
             Console.WriteLine($"✅ [CHAT] Total files selected: {selectedFiles.Count}");
-            StateHasChanged();
+
+            if (!_disposed)
+                StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -497,7 +540,8 @@
             await fileUpload.ClearAsync();
         }
 
-        StateHasChanged();
+        if (!_disposed)
+            StateHasChanged();
     }
 
     private async Task SendExampleMessage(string example)
@@ -635,9 +679,23 @@
         await JS.InvokeVoidAsync("downloadFile", filename, base64, contentType);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+
+        Console.WriteLine($"🗑️ [Chat] Disposing Chat component");
+
+        // Unsubscribe from events
         ChatStateService.OnStateChanged -= HandleStateChanged;
+
+        // Dispose ChatStateService if it implements IAsyncDisposable
+        if (ChatStateService is IAsyncDisposable asyncDisposable)
+        {
+            await asyncDisposable.DisposeAsync();
+        }
     }
 }
 
