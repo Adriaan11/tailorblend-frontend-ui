@@ -44,7 +44,5 @@ primary_region = "jnb"  # Johannesburg, South Africa
 swap_size_mb = 512
 
 # Environment variables for production
-[env.PythonApi__BaseUrl]
-  description = "Python backend API URL"
-  # Example: "https://api.tailorblend.com"
-  # This must be set for production - use 'fly secrets set' or 'fly deploy --env'
+# PythonApi__BaseUrl should be set via fly secrets:
+#   fly secrets set PythonApi__BaseUrl="https://tailorblend-backend-api.fly.dev"
