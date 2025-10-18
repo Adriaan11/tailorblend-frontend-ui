@@ -318,38 +318,76 @@
     {
         InvokeAsync(async () =>
         {
-            // Detect when streaming completes (was streaming, now not streaming)
-            bool streamingJustCompleted = _previousIsStreaming && !ChatStateService.IsStreaming;
-
-            // Detect new messages
-            if (ChatStateService.Messages.Count > _previousMessageCount)
+            try
             {
-                hasNewMessages = true;
-                showScrollButton = true;
-                _previousMessageCount = ChatStateService.Messages.Count;
-            }
+                // Detect when streaming completes (was streaming, now not streaming)
+                bool streamingJustCompleted = _previousIsStreaming && !ChatStateService.IsStreaming;
 
-            if (streamingJustCompleted)
+                // Detect new messages
+                if (ChatStateService.Messages.Count > _previousMessageCount)
+                {
+                    hasNewMessages = true;
+                    showScrollButton = true;
+                    _previousMessageCount = ChatStateService.Messages.Count;
+                }
+
+                if (streamingJustCompleted)
+                {
+                    Console.WriteLine($"🎯 [Chat] Streaming completed, triggering auto-refresh");
+                }
+
+                // Update UI - these are safe operations
+                StateHasChanged();
+                await ScrollToBottomAsync();
+
+                // Fire-and-forget stats refresh to prevent blocking/crashing the circuit
+                // This isolates any HTTP errors from crashing the WebSocket connection
+                if (streamingJustCompleted && sessionStatsRef != null)
+                {
+                    Console.WriteLine($"🔄 [Chat] Scheduling stats refresh (non-blocking)");
+
+                    // Run stats refresh in background task to prevent circuit crash
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            // Small delay to let the streaming HTTP connection fully close
+                            await Task.Delay(500);
+
+                            // Invoke on Blazor's sync context
+                            await InvokeAsync(async () =>
+                            {
+                                try
+                                {
+                                    await sessionStatsRef.RefreshStats();
+                                    Console.WriteLine($"✅ [Chat] Stats refreshed successfully");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"❌ [Chat] Stats refresh failed: {ex.Message}");
+                                }
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"❌ [Chat] Background stats refresh task failed: {ex.Message}");
+                        }
+                    });
+                }
+                else if (streamingJustCompleted && sessionStatsRef == null)
+                {
+                    Console.WriteLine($"⚠️ [Chat] Streaming completed but sessionStatsRef is null!");
+                }
+
+                // Update previous state for next check
+                _previousIsStreaming = ChatStateService.IsStreaming;
+            }
+            catch (Exception ex)
             {
-                Console.WriteLine($"🎯 [Chat] Streaming completed, triggering auto-refresh");
+                Console.WriteLine($"❌ [Chat] HandleStateChanged failed: {ex.Message}");
+                Console.WriteLine($"❌ [Chat] Stack trace: {ex.StackTrace}");
+                // Don't rethrow - we want the circuit to survive
             }
-
-            StateHasChanged();
-            await ScrollToBottomAsync();
-
-            // Auto-refresh stats after message exchange completes
-            if (streamingJustCompleted && sessionStatsRef != null)
-            {
-                Console.WriteLine($"🔄 [Chat] Calling sessionStatsRef.RefreshStats()");
-                await sessionStatsRef.RefreshStats();
-            }
-            else if (streamingJustCompleted && sessionStatsRef == null)
-            {
-                Console.WriteLine($"⚠️ [Chat] Streaming completed but sessionStatsRef is null!");
-            }
-
-            // Update previous state for next check
-            _previousIsStreaming = ChatStateService.IsStreaming;
         });
     }
 
