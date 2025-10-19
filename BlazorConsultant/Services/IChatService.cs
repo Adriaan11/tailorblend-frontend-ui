@@ -16,6 +16,7 @@ public interface IChatService
     /// <param name="model">OpenAI model to use</param>
     /// <param name="attachments">File attachments</param>
     /// <param name="practitionerMode">Use practitioner mode</param>
+    /// <param name="modelSettings">Optional model configuration settings</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Complete chat response with tokens and cost</returns>
     Task<ChatResponse> SendChatAsync(
@@ -24,6 +25,7 @@ public interface IChatService
         string? model = null,
         List<FileAttachment>? attachments = null,
         bool practitionerMode = false,
+        ModelSettings? modelSettings = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

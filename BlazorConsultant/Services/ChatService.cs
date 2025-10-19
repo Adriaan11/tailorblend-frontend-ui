@@ -34,6 +34,7 @@ public class ChatService : IChatService
         string? model = null,
         List<FileAttachment>? attachments = null,
         bool practitionerMode = false,
+        ModelSettings? modelSettings = null,
         CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient("PythonAPI");
@@ -45,7 +46,8 @@ public class ChatService : IChatService
             custom_instructions = customInstructions,
             model = model ?? "gpt-4.1-mini-2025-04-14",
             attachments = attachments ?? new List<FileAttachment>(),
-            practitioner_mode = practitionerMode
+            practitioner_mode = practitionerMode,
+            model_settings = modelSettings
         };
 
         _logger.LogInformation($"[CHAT] Sending non-streaming request (attachments: {attachments?.Count ?? 0})");

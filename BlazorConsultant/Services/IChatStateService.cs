@@ -30,7 +30,8 @@ public interface IChatStateService : IAsyncDisposable
     /// </summary>
     /// <param name="message">User's message</param>
     /// <param name="attachments">Optional file attachments</param>
-    Task SendMessageAsync(string message, List<FileAttachment>? attachments = null);
+    /// <param name="modelSettings">Optional model configuration settings</param>
+    Task SendMessageAsync(string message, List<FileAttachment>? attachments = null, ModelSettings? modelSettings = null);
 
     /// <summary>
     /// Clear all conversation history.

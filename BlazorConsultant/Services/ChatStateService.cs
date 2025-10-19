@@ -29,7 +29,7 @@ public class ChatStateService : IChatStateService
 
     public event EventHandler? OnStateChanged;
 
-    public async Task SendMessageAsync(string message, List<FileAttachment>? attachments = null)
+    public async Task SendMessageAsync(string message, List<FileAttachment>? attachments = null, ModelSettings? modelSettings = null)
     {
         if (string.IsNullOrWhiteSpace(message) || _isLoading)
             return;
@@ -56,7 +56,8 @@ public class ChatStateService : IChatStateService
                 customInstructions: null,
                 model: _sessionService.CurrentModel,
                 attachments: attachments,
-                practitionerMode: false
+                practitionerMode: false,
+                modelSettings: modelSettings
             );
 
             Console.WriteLine($"✅ [ChatStateService] Received {response.Response.Length} chars");
