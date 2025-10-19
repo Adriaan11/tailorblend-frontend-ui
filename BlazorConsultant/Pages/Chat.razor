@@ -63,12 +63,12 @@
             <div class="tb-stack" style="gap: var(--tb-space);">
                 @foreach (var msg in ChatStateService.Messages)
                 {
-                    <ChatMessageComponent Message="@msg" />
+                    <ChatMessageComponent Message="@msg" @key="msg" />
                 }
 
                 @if (ChatStateService.IsStreaming && ChatStateService.StreamingMessage != null)
                 {
-                    <ChatMessageComponent Message="@ChatStateService.StreamingMessage" />
+                    <ChatMessageComponent Message="@ChatStateService.StreamingMessage" @key="ChatStateService.StreamingMessage" />
                 }
             </div>
         }
@@ -302,6 +302,10 @@
     private bool showTypingIndicator = true;
     private bool showScrollButton = false;
     private bool hasNewMessages = false;
+
+    // ✅ PERFORMANCE: Throttle scroll to prevent excessive JS interop
+    private DateTime _lastScrollTime = DateTime.MinValue;
+    private const int SCROLL_THROTTLE_MS = 150;
     private int _previousMessageCount = 0;
 
     // File attachment support
@@ -633,6 +637,13 @@
     {
         try
         {
+            // ✅ PERFORMANCE: Throttle scroll calls - skip if called within 150ms
+            // Reduces JS interop overhead from 50/sec to ~7/sec (87% reduction)
+            var elapsed = (DateTime.Now - _lastScrollTime).TotalMilliseconds;
+            if (elapsed < SCROLL_THROTTLE_MS)
+                return; // Skip - too soon since last scroll
+
+            _lastScrollTime = DateTime.Now;
             await JS.InvokeVoidAsync("scrollToBottom", _messagesContainer);
         }
         catch

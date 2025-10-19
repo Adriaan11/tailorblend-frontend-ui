@@ -15,6 +15,8 @@ public class StreamSimulator : IDisposable
     private int _currentIndex = 0;
     private bool _disposed;
     private bool _isPaused;
+    // ✅ PERFORMANCE: Event batching counter to reduce SignalR overhead
+    private int _eventCounter = 0;
 
     /// <summary>
     /// Currently revealed text (grows over time)
@@ -45,6 +47,7 @@ public class StreamSimulator : IDisposable
         _currentIndex = 0;
         CurrentText = "";
         _isPaused = false;
+        _eventCounter = 0; // ✅ PERFORMANCE: Reset batch counter for new simulation
 
         _timer = new System.Timers.Timer(intervalMs);
         _timer.Elapsed += RevealNextChunk;
@@ -61,6 +64,8 @@ public class StreamSimulator : IDisposable
             if (_currentIndex >= _fullText.Length)
             {
                 _timer?.Stop();
+                // ✅ PERFORMANCE: Always notify on completion
+                OnTokenRevealed?.Invoke();
                 Console.WriteLine($"✅ [StreamSimulator] Simulation complete");
             }
             return;
@@ -75,9 +80,14 @@ public class StreamSimulator : IDisposable
 
         CurrentText += _fullText.Substring(_currentIndex, toReveal);
         _currentIndex += toReveal;
+        _eventCounter++;
 
-        // Notify listeners (ChatStateService → UI update)
-        OnTokenRevealed?.Invoke();
+        // ✅ PERFORMANCE: Batch events - only notify every 5 chunks (50/sec → 10/sec)
+        // This reduces SignalR circuit messages by 80% during streaming
+        if (_eventCounter % 5 == 0 || _currentIndex >= _fullText.Length)
+        {
+            OnTokenRevealed?.Invoke();
+        }
     }
 
     private int DetermineChunkSize()

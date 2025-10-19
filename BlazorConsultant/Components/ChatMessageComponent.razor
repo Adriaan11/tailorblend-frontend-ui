@@ -55,6 +55,33 @@
     [Parameter]
     public ChatMessage Message { get; set; } = new();
 
+    // ✅ PERFORMANCE: Static shared markdown pipeline (created once, reused by all instances)
+    // Previously: Pipeline was rebuilt on EVERY render (expensive regex compilation)
+    private static readonly MarkdownPipeline _sharedPipeline =
+        new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+
+    // ✅ PERFORMANCE: Cache fields to prevent redundant markdown parsing
+    private string? _lastContent;
+    private string? _cachedHtml;
+    private bool _previousIsStreaming = false;
+
+    // ✅ PERFORMANCE: Override ShouldRender to prevent unnecessary re-renders
+    // Only re-render when content or streaming state actually changes
+    protected override bool ShouldRender()
+    {
+        bool contentChanged = Message.Content != _lastContent;
+        bool streamingChanged = Message.IsStreaming != _previousIsStreaming;
+
+        if (contentChanged || streamingChanged)
+        {
+            _lastContent = Message.Content;
+            _previousIsStreaming = Message.IsStreaming;
+            return true;
+        }
+
+        return false; // Block unnecessary re-renders
+    }
+
     private string GetRelativeTime(DateTime timestamp)
     {
         var diff = DateTime.Now - timestamp;
@@ -79,18 +106,20 @@
         }
     }
 
+    // ✅ PERFORMANCE: Cached markdown parsing with shared pipeline
     private string FormatMessage(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
             return string.Empty;
 
-        // Use Markdig to convert markdown to HTML
-        var pipeline = new MarkdownPipelineBuilder()
-            .UseAdvancedExtensions()
-            .Build();
+        // Cache hit - reuse previously parsed HTML
+        if (content == _lastContent && _cachedHtml != null)
+            return _cachedHtml;
 
-        var html = Markdown.ToHtml(content, pipeline);
+        // Cache miss - parse markdown and cache result
+        _cachedHtml = Markdown.ToHtml(content, _sharedPipeline);
+        _lastContent = content;
 
-        return html;
+        return _cachedHtml;
     }
 }
