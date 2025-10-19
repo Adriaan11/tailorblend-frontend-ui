@@ -67,10 +67,6 @@
                 }
             </div>
         }
-
-        <!-- Model Settings Panel -->
-        <ModelSettingsPanel Settings="@currentModelSettings" />
-
         <div class="tb-input-bar">
             <!-- File Preview Component -->
             @if (selectedFiles.Count > 0)
@@ -276,8 +272,6 @@
     private string selectedModel = "gpt-4.1-mini-2025-04-14";
     private bool showScrollButton = false;
     private bool hasNewMessages = false;
-    private ModelSettings currentModelSettings = new(); // Model configuration settings
-
     // ✅ PERFORMANCE: Throttle scroll to prevent excessive JS interop
     private DateTime _lastScrollTime = DateTime.MinValue;
     private const int SCROLL_THROTTLE_MS = 150;
@@ -397,7 +391,7 @@
             }
         }
 
-        await ChatStateService.SendMessageAsync(message, attachments, currentModelSettings);
+        await ChatStateService.SendMessageAsync(message, attachments);
 
         // Clear attachments after sending
         selectedFiles.Clear();
