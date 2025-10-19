@@ -15,23 +15,18 @@ public interface IChatStateService : IAsyncDisposable
     IReadOnlyList<ChatMessage> Messages { get; }
 
     /// <summary>
-    /// Current message being streamed from the AI (null if not streaming).
+    /// Whether the service is currently loading a response.
     /// </summary>
-    ChatMessage? StreamingMessage { get; }
+    bool IsLoading { get; }
 
     /// <summary>
-    /// Whether the AI is currently streaming a response.
-    /// </summary>
-    bool IsStreaming { get; }
-
-    /// <summary>
-    /// Event raised when chat state changes (new message, streaming token, etc.).
+    /// Event raised when chat state changes (new message, loading state, etc.).
     /// Subscribe to this to update UI.
     /// </summary>
     event EventHandler? OnStateChanged;
 
     /// <summary>
-    /// Send a message and start streaming the AI response.
+    /// Send a message and receive the AI response.
     /// </summary>
     /// <param name="message">User's message</param>
     /// <param name="attachments">Optional file attachments</param>
@@ -41,9 +36,4 @@ public interface IChatStateService : IAsyncDisposable
     /// Clear all conversation history.
     /// </summary>
     void Clear();
-
-    /// <summary>
-    /// Cancel the current streaming operation.
-    /// </summary>
-    void CancelStreaming();
 }

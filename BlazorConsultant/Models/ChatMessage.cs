@@ -21,11 +21,6 @@ public class ChatMessage
     public DateTime Timestamp { get; set; } = DateTime.Now;
 
     /// <summary>
-    /// Is this message currently streaming?
-    /// </summary>
-    public bool IsStreaming { get; set; } = false;
-
-    /// <summary>
     /// File attachments associated with this message.
     /// Only applicable for user messages.
     /// </summary>

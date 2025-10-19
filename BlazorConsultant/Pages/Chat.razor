@@ -29,7 +29,7 @@
             }
         </div>
 
-        @if (ChatStateService.Messages.Count == 0 && !ChatStateService.IsStreaming)
+        @if (ChatStateService.Messages.Count == 0 && !ChatStateService.IsLoading)
         {
             <div class="tb-card tb-card--flat tb-empty-state">
                 <div class="tb-empty-state__icon">
@@ -65,11 +65,6 @@
                 {
                     <ChatMessageComponent Message="@msg" @key="msg" />
                 }
-
-                @if (ChatStateService.IsStreaming && ChatStateService.StreamingMessage != null)
-                {
-                    <ChatMessageComponent Message="@ChatStateService.StreamingMessage" @key="ChatStateService.StreamingMessage" />
-                }
             </div>
         }
 
@@ -95,7 +90,7 @@
                 <button type="button"
                         class="tb-attach-btn"
                         @onclick="async () => await fileUpload.OpenFilePickerAsync()"
-                        disabled="@ChatStateService.IsStreaming"
+                        disabled="@ChatStateService.IsLoading"
                         title="Attach files (max 10MB per file)">
                     <MudIcon Icon="@Icons.Material.Filled.AttachFile" />
                 </button>
@@ -106,53 +101,31 @@
                               @bind:event="oninput"
                               placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
                               @onkeydown="HandleKeyPress"
-                              disabled="@ChatStateService.IsStreaming"></textarea>
+                              disabled="@ChatStateService.IsLoading"></textarea>
 
                     <button type="button"
                             class="tb-send-btn"
                             @onclick="SendMessage"
-                            disabled="@ChatStateService.IsStreaming">
+                            disabled="@ChatStateService.IsLoading">
                         <MudIcon Icon="@Icons.Material.Filled.Send" />
                     </button>
                 </div>
             </div>
 
-            @if (ChatStateService.IsStreaming && showTypingIndicator)
+            @if (ChatStateService.IsLoading)
             {
                 <div class="tb-typing-indicator" style="margin-top: 12px;">
                     <div class="tb-typing-avatar">
                         <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" />
                     </div>
                     <div class="tb-typing-content">
-                        @if (ChatStateService.StreamingMessage != null)
-                        {
-                            var tokenCount = ChatStateService.StreamingMessage.Content.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
-                            var elapsed = (DateTime.Now - ChatStateService.StreamingMessage.Timestamp).TotalSeconds;
-                            var tokensPerSec = elapsed > 0 ? tokenCount / elapsed : 0;
-
-                            <div class="tb-typing-text">Streaming... @tokenCount tokens (@tokensPerSec.ToString("F1") tokens/sec)</div>
-                        }
-                        else
-                        {
-                            <div class="tb-typing-text">TailorBlend is thinking...</div>
-                        }
+                        <div class="tb-typing-text">TailorBlend is thinking...</div>
                         <div class="tb-typing-dots">
                             <span></span>
                             <span></span>
                             <span></span>
                         </div>
                     </div>
-                </div>
-
-                @* Stop Generating Button *@
-                <div style="margin-top: 8px; display: flex; justify-content: center;">
-                    <MudButton OnClick="StopGenerating"
-                               Color="Color.Error"
-                               Variant="Variant.Outlined"
-                               StartIcon="@Icons.Material.Filled.Stop"
-                               Size="Size.Small">
-                        Stop Generating
-                    </MudButton>
                 </div>
             }
         </div>
@@ -298,8 +271,6 @@
     private SessionStatsComponent? sessionStatsRef;
     private ElementReference _messagesContainer;
     private string selectedModel = "gpt-4.1-mini-2025-04-14";
-    private bool _previousIsStreaming = false;
-    private bool showTypingIndicator = true;
     private bool showScrollButton = false;
     private bool hasNewMessages = false;
 
@@ -357,10 +328,7 @@
         {
             try
             {
-                if (_disposed) return; // Disposal check #1
-
-                // Detect when streaming completes (was streaming, now not streaming)
-                bool streamingJustCompleted = _previousIsStreaming && !ChatStateService.IsStreaming;
+                if (_disposed) return;
 
                 // Detect new messages
                 if (ChatStateService.Messages.Count > _previousMessageCount)
@@ -368,81 +336,43 @@
                     hasNewMessages = true;
                     showScrollButton = true;
                     _previousMessageCount = ChatStateService.Messages.Count;
-                }
 
-                if (streamingJustCompleted)
-                {
-                    Console.WriteLine($"🎯 [Chat] Streaming completed, triggering auto-refresh");
-                }
-
-                if (_disposed) return; // Disposal check #2 (before StateHasChanged)
-
-                // Update UI - these are safe operations
-                StateHasChanged();
-
-                if (_disposed) return; // Disposal check #3 (before async operations)
-
-                await ScrollToBottomAsync();
-
-                // Fire-and-forget stats refresh to prevent blocking/crashing the circuit
-                // This isolates any HTTP errors from crashing the WebSocket connection
-                if (streamingJustCompleted)
-                {
-                    Console.WriteLine($"🎯 [Chat] Streaming completed, triggering stats refresh");
-
-                    // Run stats refresh in background task to prevent circuit crash
+                    // Refresh stats after new message
                     _ = Task.Run(async () =>
                     {
                         try
                         {
-                            // Small delay to let the streaming HTTP connection fully close
                             await Task.Delay(500);
-
-                            // Invoke on Blazor's sync context
                             await InvokeAsync(async () =>
                             {
-                                try
+                                if (sessionStatsRef != null)
                                 {
-                                    // Refresh stats component if it exists (panel expanded)
-                                    if (sessionStatsRef != null)
-                                    {
-                                        await sessionStatsRef.RefreshStats();
-                                        Console.WriteLine($"✅ [Chat] Stats refreshed successfully");
-                                    }
-                                    else
-                                    {
-                                        // Panel collapsed - no need to refresh (expected behavior)
-                                        Console.WriteLine($"📊 [Chat] Stats panel collapsed, skipping refresh");
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"❌ [Chat] Stats refresh failed: {ex.Message}");
+                                    await sessionStatsRef.RefreshStats();
                                 }
                             });
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"❌ [Chat] Background stats refresh task failed: {ex.Message}");
+                            Console.WriteLine($"❌ [Chat] Stats refresh failed: {ex.Message}");
                         }
                     });
                 }
 
-                // Update previous state for next check
-                _previousIsStreaming = ChatStateService.IsStreaming;
+                if (_disposed) return;
+
+                StateHasChanged();
+                await ScrollToBottomAsync();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ [Chat] HandleStateChanged failed: {ex.Message}");
-                Console.WriteLine($"❌ [Chat] Stack trace: {ex.StackTrace}");
-                // Don't rethrow - we want the circuit to survive
             }
         });
     }
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(userInput) || ChatStateService.IsStreaming)
+        if (string.IsNullOrWhiteSpace(userInput) || ChatStateService.IsLoading)
             return;
 
         var message = userInput.Trim();
@@ -471,12 +401,6 @@
             await fileUpload.ClearAsync();
 
         await ScrollToBottomAsync();
-    }
-
-    private void StopGenerating()
-    {
-        Console.WriteLine($"🛑 [Chat] StopGenerating called");
-        ChatStateService.CancelStreaming();
     }
 
     private async Task OnFilesChanged(InputFileChangeEventArgs e)

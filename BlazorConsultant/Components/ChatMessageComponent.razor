@@ -19,34 +19,22 @@
 
     <div class="tb-message__body">
         @((MarkupString)FormatMessage(Message.Content))
-
-        @if (Message.IsStreaming)
-        {
-            <div class="tb-streaming">
-                <span class="tb-streaming__dot"></span>
-                <span class="tb-streaming__dot"></span>
-                <span class="tb-streaming__dot"></span>
-            </div>
-        }
     </div>
 
-    @if (!Message.IsStreaming)
-    {
-        <div class="tb-message__actions">
-            <button class="tb-action-btn" title="Copy message" aria-label="Copy message" @onclick="CopyMessage">
-                <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+    <div class="tb-message__actions">
+        <button class="tb-action-btn" title="Copy message" aria-label="Copy message" @onclick="CopyMessage">
+            <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+        </button>
+        @if (Message.Role == "assistant")
+        {
+            <button class="tb-action-btn" title="Regenerate response" aria-label="Regenerate response">
+                <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
             </button>
-            @if (Message.Role == "assistant")
-            {
-                <button class="tb-action-btn" title="Regenerate response" aria-label="Regenerate response">
-                    <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
-                </button>
-            }
-            <button class="tb-action-btn" title="Share" aria-label="Share message">
-                <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
-            </button>
-        </div>
-    }
+        }
+        <button class="tb-action-btn" title="Share" aria-label="Share message">
+            <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
+        </button>
+    </div>
 </div>
 
 @inject IJSRuntime JS
@@ -63,19 +51,16 @@
     // ✅ PERFORMANCE: Cache fields to prevent redundant markdown parsing
     private string? _lastContent;
     private string? _cachedHtml;
-    private bool _previousIsStreaming = false;
 
     // ✅ PERFORMANCE: Override ShouldRender to prevent unnecessary re-renders
-    // Only re-render when content or streaming state actually changes
+    // Only re-render when content actually changes
     protected override bool ShouldRender()
     {
         bool contentChanged = Message.Content != _lastContent;
-        bool streamingChanged = Message.IsStreaming != _previousIsStreaming;
 
-        if (contentChanged || streamingChanged)
+        if (contentChanged)
         {
             _lastContent = Message.Content;
-            _previousIsStreaming = Message.IsStreaming;
             return true;
         }
 

@@ -183,11 +183,6 @@
                 {
                     <ChatMessageComponent Message="@msg" />
                 }
-
-                @if (isStreaming && streamingMessage != null)
-                {
-                    <ChatMessageComponent Message="@streamingMessage" />
-                }
             </div>
         }
 
@@ -211,7 +206,7 @@
                 </div>
             </div>
 
-            @if (isStreaming)
+            @if (isGenerating)
             {
                 <div class="tb-typing-indicator" style="margin-top: 12px;">
                     <div class="tb-typing-avatar">
@@ -237,10 +232,8 @@
     private PractitionerBlendRequest request = new();
     private List<FileAttachment> selectedFiles = new();
     private List<ChatMessage> messages = new();
-    private ChatMessage? streamingMessage;
     private string refinementMessage = string.Empty;
     private bool isGenerating;
-    private bool isStreaming;
     private bool blendGenerated;
 
     private const int MaxFileSizeMB = 10;
@@ -256,7 +249,7 @@
 
     private bool GetInputDisabled()
     {
-        return isStreaming;
+        return isGenerating;
     }
 
     private bool GetSendButtonDisabled()
@@ -269,7 +262,7 @@
             bool hasMessage = !string.IsNullOrWhiteSpace(refinementMessage);
             return isGenerating || !(hasFormData || hasMessage);
         }
-        return isStreaming || string.IsNullOrWhiteSpace(refinementMessage);
+        return isGenerating || string.IsNullOrWhiteSpace(refinementMessage);
     }
 
     private Func<Task> GetSendAction()
@@ -279,7 +272,7 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !e.ShiftKey && !isStreaming)
+        if (e.Key == "Enter" && !e.ShiftKey && !isGenerating)
         {
             if (!string.IsNullOrWhiteSpace(refinementMessage) || !blendGenerated)
             {
@@ -381,7 +374,6 @@
         // }
 
         isGenerating = true;
-        isStreaming = true;
         StateHasChanged();
 
         try
@@ -398,15 +390,6 @@
             };
             messages.Add(userMessage);
 
-            // Prepare streaming message
-            streamingMessage = new ChatMessage
-            {
-                Role = "assistant",
-                Content = "",
-                Timestamp = DateTime.Now,
-                IsStreaming = true
-            };
-
             // Attach selected files to request
             request.Attachments = new List<FileAttachment>(selectedFiles);
 
@@ -418,28 +401,16 @@
                 attachments: request.Attachments,
                 practitionerMode: true);
 
-            Console.WriteLine($"✅ [PRACTITIONER] Received {response.Response.Length} chars, starting simulation");
+            Console.WriteLine($"✅ [PRACTITIONER] Received {response.Response.Length} chars");
 
-            // Simulate streaming with gradual reveal
-            using var simulator = new StreamSimulator();
-            simulator.OnTokenRevealed += () =>
+            // Add assistant message immediately
+            var assistantMessage = new ChatMessage
             {
-                streamingMessage.Content = simulator.CurrentText;
-                InvokeAsync(StateHasChanged);
+                Role = "assistant",
+                Content = response.Response,
+                Timestamp = DateTime.Now
             };
-
-            simulator.StartSimulation(response.Response, intervalMs: 20);
-
-            // Wait for simulation to complete
-            while (!simulator.IsComplete)
-            {
-                await Task.Delay(100);
-            }
-
-            // Finalize message
-            streamingMessage.IsStreaming = false;
-            messages.Add(streamingMessage);
-            streamingMessage = null;
+            messages.Add(assistantMessage);
 
             blendGenerated = true;
             await ScrollToBottom();
@@ -448,12 +419,10 @@
         catch (Exception ex)
         {
             Console.WriteLine($"❌ [PRACTITIONER] Error generating blend: {ex.Message}");
-            streamingMessage = null;
         }
         finally
         {
             isGenerating = false;
-            isStreaming = false;
             StateHasChanged();
         }
     }
@@ -465,7 +434,7 @@
             return;
         }
 
-        isStreaming = true;
+        isGenerating = true;
         var messageToSend = refinementMessage;
         refinementMessage = string.Empty;
         StateHasChanged();
@@ -483,15 +452,6 @@
             };
             messages.Add(userMessage);
 
-            // Prepare streaming message
-            streamingMessage = new ChatMessage
-            {
-                Role = "assistant",
-                Content = "",
-                Timestamp = DateTime.Now,
-                IsStreaming = true
-            };
-
             // Fetch complete response from backend
             var response = await ChatService.SendChatAsync(
                 messageToSend,
@@ -500,28 +460,16 @@
                 attachments: null,
                 practitionerMode: true);
 
-            Console.WriteLine($"✅ [PRACTITIONER] Received {response.Response.Length} chars, starting simulation");
+            Console.WriteLine($"✅ [PRACTITIONER] Received {response.Response.Length} chars");
 
-            // Simulate streaming with gradual reveal
-            using var simulator = new StreamSimulator();
-            simulator.OnTokenRevealed += () =>
+            // Add assistant message immediately
+            var assistantMessage = new ChatMessage
             {
-                streamingMessage.Content = simulator.CurrentText;
-                InvokeAsync(StateHasChanged);
+                Role = "assistant",
+                Content = response.Response,
+                Timestamp = DateTime.Now
             };
-
-            simulator.StartSimulation(response.Response, intervalMs: 20);
-
-            // Wait for simulation to complete
-            while (!simulator.IsComplete)
-            {
-                await Task.Delay(100);
-            }
-
-            // Finalize message
-            streamingMessage.IsStreaming = false;
-            messages.Add(streamingMessage);
-            streamingMessage = null;
+            messages.Add(assistantMessage);
 
             await ScrollToBottom();
             Console.WriteLine("✅ [PRACTITIONER] Refinement complete");
@@ -529,11 +477,10 @@
         catch (Exception ex)
         {
             Console.WriteLine($"❌ [PRACTITIONER] Error refining blend: {ex.Message}");
-            streamingMessage = null;
         }
         finally
         {
-            isStreaming = false;
+            isGenerating = false;
             StateHasChanged();
         }
     }
@@ -543,11 +490,9 @@
         request = new();
         selectedFiles.Clear();
         messages.Clear();
-        streamingMessage = null;
         refinementMessage = string.Empty;
         blendGenerated = false;
         isGenerating = false;
-        isStreaming = false;
         StateHasChanged();
     }
 }
