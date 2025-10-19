@@ -131,13 +131,14 @@ public class ChatStateService : IChatStateService
                 NotifyStateChanged();
             };
 
-            // Start simulation (20ms = ~50 chars/sec, feels natural)
-            simulator.StartSimulation(response.Response, intervalMs: 20);
+            // Start simulation (10ms interval + 2-5 chars/tick = 100+ tokens/sec)
+            simulator.StartSimulation(response.Response, intervalMs: 10);
 
             // Wait for simulation to complete or cancellation
+            // Check more frequently (50ms) to detect completion faster
             while (!simulator.IsComplete && !cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(100, cancellationToken);
+                await Task.Delay(50, cancellationToken);
             }
 
             if (cancellationToken.IsCancellationRequested)
