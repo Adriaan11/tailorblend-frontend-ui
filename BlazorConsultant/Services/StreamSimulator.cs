@@ -37,8 +37,8 @@ public class StreamSimulator : IDisposable
     /// Start simulating streaming of the full text.
     /// </summary>
     /// <param name="fullText">Complete response to reveal gradually</param>
-    /// <param name="intervalMs">Milliseconds between reveals (default: 20ms = 50 chars/sec)</param>
-    public void StartSimulation(string fullText, double intervalMs = 20)
+    /// <param name="intervalMs">Milliseconds between reveals (default: 10ms = 100+ tokens/sec)</param>
+    public void StartSimulation(string fullText, double intervalMs = 10)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(StreamSimulator));
@@ -71,8 +71,8 @@ public class StreamSimulator : IDisposable
             return;
         }
 
-        // Reveal 1-3 characters for natural appearance
-        // Vary based on character type (pause on punctuation)
+        // Reveal 2-5 characters per tick for faster streaming (100+ tokens/sec)
+        // Still vary based on character type for natural appearance
         int chunkSize = DetermineChunkSize();
 
         int remaining = _fullText.Length - _currentIndex;
@@ -82,9 +82,9 @@ public class StreamSimulator : IDisposable
         _currentIndex += toReveal;
         _eventCounter++;
 
-        // ✅ PERFORMANCE: Batch events - only notify every 5 chunks (50/sec → 10/sec)
-        // This reduces SignalR circuit messages by 80% during streaming
-        if (_eventCounter % 5 == 0 || _currentIndex >= _fullText.Length)
+        // ✅ PERFORMANCE: Batch events - only notify every 3 chunks (100/sec → 33/sec)
+        // This reduces SignalR circuit messages while maintaining smooth appearance
+        if (_eventCounter % 3 == 0 || _currentIndex >= _fullText.Length)
         {
             OnTokenRevealed?.Invoke();
         }
@@ -97,16 +97,16 @@ public class StreamSimulator : IDisposable
 
         char currentChar = _fullText[_currentIndex];
 
-        // Pause on sentence boundaries (1 char = slower reveal)
+        // Slight pause on sentence boundaries (2 chars = brief pause)
         if (currentChar == '.' || currentChar == '!' || currentChar == '?')
-            return 1;
+            return 2;
 
-        // Faster on whitespace (2-4 chars)
+        // Fast on whitespace (3-6 chars)
         if (char.IsWhiteSpace(currentChar))
-            return Random.Shared.Next(2, 5);
+            return Random.Shared.Next(3, 7);
 
-        // Normal speed for letters/numbers (1-3 chars)
-        return Random.Shared.Next(1, 4);
+        // Normal speed for letters/numbers (2-5 chars for 100+ tokens/sec)
+        return Random.Shared.Next(2, 6);
     }
 
     /// <summary>
