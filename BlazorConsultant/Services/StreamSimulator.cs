@@ -15,8 +15,6 @@ public class StreamSimulator : IDisposable
     private int _currentIndex = 0;
     private bool _disposed;
     private bool _isPaused;
-    // ✅ PERFORMANCE: Event batching counter to reduce SignalR overhead
-    private int _eventCounter = 0;
 
     /// <summary>
     /// Currently revealed text (grows over time)
@@ -37,8 +35,8 @@ public class StreamSimulator : IDisposable
     /// Start simulating streaming of the full text.
     /// </summary>
     /// <param name="fullText">Complete response to reveal gradually</param>
-    /// <param name="intervalMs">Milliseconds between reveals (default: 10ms = 100+ tokens/sec)</param>
-    public void StartSimulation(string fullText, double intervalMs = 10)
+    /// <param name="intervalMs">Milliseconds between reveals (default: 20ms = 1 char every 20ms)</param>
+    public void StartSimulation(string fullText, double intervalMs = 20)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(StreamSimulator));
@@ -47,7 +45,6 @@ public class StreamSimulator : IDisposable
         _currentIndex = 0;
         CurrentText = "";
         _isPaused = false;
-        _eventCounter = 0; // ✅ PERFORMANCE: Reset batch counter for new simulation
 
         _timer = new System.Timers.Timer(intervalMs);
         _timer.Elapsed += RevealNextChunk;
@@ -64,49 +61,18 @@ public class StreamSimulator : IDisposable
             if (_currentIndex >= _fullText.Length)
             {
                 _timer?.Stop();
-                // ✅ PERFORMANCE: Always notify on completion
                 OnTokenRevealed?.Invoke();
                 Console.WriteLine($"✅ [StreamSimulator] Simulation complete");
             }
             return;
         }
 
-        // Reveal 2-5 characters per tick for faster streaming (100+ tokens/sec)
-        // Still vary based on character type for natural appearance
-        int chunkSize = DetermineChunkSize();
+        // Ultra-simple: Reveal exactly 1 character per tick
+        CurrentText += _fullText[_currentIndex];
+        _currentIndex++;
 
-        int remaining = _fullText.Length - _currentIndex;
-        int toReveal = Math.Min(chunkSize, remaining);
-
-        CurrentText += _fullText.Substring(_currentIndex, toReveal);
-        _currentIndex += toReveal;
-        _eventCounter++;
-
-        // ✅ PERFORMANCE: Batch events - only notify every 3 chunks (100/sec → 33/sec)
-        // This reduces SignalR circuit messages while maintaining smooth appearance
-        if (_eventCounter % 3 == 0 || _currentIndex >= _fullText.Length)
-        {
-            OnTokenRevealed?.Invoke();
-        }
-    }
-
-    private int DetermineChunkSize()
-    {
-        if (_currentIndex >= _fullText.Length)
-            return 1;
-
-        char currentChar = _fullText[_currentIndex];
-
-        // Slight pause on sentence boundaries (2 chars = brief pause)
-        if (currentChar == '.' || currentChar == '!' || currentChar == '?')
-            return 2;
-
-        // Fast on whitespace (3-6 chars)
-        if (char.IsWhiteSpace(currentChar))
-            return Random.Shared.Next(3, 7);
-
-        // Normal speed for letters/numbers (2-5 chars for 100+ tokens/sec)
-        return Random.Shared.Next(2, 6);
+        // Notify UI immediately on every character (no batching)
+        OnTokenRevealed?.Invoke();
     }
 
     /// <summary>
