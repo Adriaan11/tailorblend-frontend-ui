@@ -260,7 +260,8 @@ else
             // (they can always reset to defaults if needed)
         }
 
-        StateHasChanged();
+        // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadSections()
@@ -280,7 +281,8 @@ else
         finally
         {
             isLoading = false;
-            StateHasChanged();
+            // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -320,7 +322,8 @@ else
         finally
         {
             isSaving = false;
-            StateHasChanged();
+            // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -357,7 +360,8 @@ else
         finally
         {
             isSaving = false;
-            StateHasChanged();
+            // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -389,7 +393,8 @@ else
         finally
         {
             isSaving = false;
-            StateHasChanged();
+            // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
+            await InvokeAsync(StateHasChanged);
         }
     }
 }
