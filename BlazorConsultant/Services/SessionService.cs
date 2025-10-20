@@ -15,7 +15,7 @@ public class SessionService : ISessionService
         // Generate unique session ID on construction
         _sessionId = Guid.NewGuid();
         _messageCount = 0;
-        _currentModel = "gpt-4.1-mini-2025-04-14"; // Default model
+        _currentModel = "chatgpt-4o-latest"; // Default model
 
         Console.WriteLine($"✅ [SESSION] New session created: {_sessionId}");
     }
