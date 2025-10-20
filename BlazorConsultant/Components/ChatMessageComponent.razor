@@ -96,14 +96,21 @@
     {
         base.OnParametersSet();
 
+        // DEBUG: Log typewriter state
+        Console.WriteLine($"[ChatMessageComponent] TypewriterEnabled={TypewriterEnabled}, Role={Message.Role}, ContentLength={Message.Content?.Length ?? 0}");
+
         // Only apply typewriter to assistant messages when enabled
         if (!TypewriterEnabled || Message.Role != "assistant")
+        {
+            Console.WriteLine($"[ChatMessageComponent] Skipping typewriter (Enabled={TypewriterEnabled}, Role={Message.Role})");
             return;
+        }
 
         // Detect new content (not already seen)
         if (!string.IsNullOrEmpty(Message.Content) &&
             Message.Content != _fullContentSnapshot)
         {
+            Console.WriteLine($"[ChatMessageComponent] Starting typewriter for new content ({Message.Content.Length} chars)");
             _fullContentSnapshot = Message.Content;
             StartTypewriter();
         }
