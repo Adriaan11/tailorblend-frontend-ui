@@ -2204,3 +2204,139 @@ p {
 [data-theme="dark"] .tb-btn--secondary:active {
     background: rgba(255, 255, 255, 0.12);
 }
+
+/* ========================================================================
+   USER PROFILE SECTION
+   Collapsible pre-fillable fields for context enrichment.
+   When filled, profile data is appended to user messages to help AI
+   skip information-gathering questions.
+   ======================================================================== */
+
+.tb-profile-section {
+    margin: var(--tb-space) 0;
+}
+
+.tb-profile-section .mud-expand-panel {
+    background: var(--tb-surface);
+    border: 1px solid var(--tb-border);
+    border-radius: var(--tb-radius-sm);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.tb-profile-section .mud-expand-panel:hover {
+    border-color: var(--tb-accent);
+    box-shadow: 0 2px 8px rgba(112, 209, 199, 0.08);
+}
+
+.tb-profile-section .mud-expand-panel-header {
+    padding: var(--tb-space);
+    font-weight: 600;
+    color: var(--tb-gray-700);
+}
+
+.tb-profile-section .mud-expand-panel-content {
+    padding: var(--tb-space);
+    background: var(--tb-surface-muted);
+}
+
+/* Profile form field styling */
+.tb-profile-section .mud-input {
+    background: var(--tb-surface);
+    transition: background 0.15s ease;
+}
+
+.tb-profile-section .mud-input:focus-within {
+    background: var(--tb-surface);
+    box-shadow: 0 0 0 2px rgba(112, 209, 199, 0.1);
+}
+
+.tb-profile-section .mud-input-root {
+    background: var(--tb-surface);
+}
+
+/* Profile badge (indicator on messages with profile context) */
+.tb-profile-badge {
+    position: absolute;
+    top: -8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--tb-accent-soft);
+    border: 1px solid var(--tb-accent);
+    border-radius: var(--tb-radius-pill);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--tb-accent-strong);
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(112, 209, 199, 0.15);
+}
+
+.tb-profile-badge .mud-icon-root {
+    color: var(--tb-accent-strong);
+}
+
+/* Dark mode support for profile section */
+[data-theme="dark"] .tb-profile-section .mud-expand-panel {
+    background: var(--tb-surface) !important;
+    border-color: var(--tb-border) !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-expand-panel:hover {
+    border-color: var(--tb-accent) !important;
+    box-shadow: 0 2px 8px rgba(117, 213, 202, 0.12) !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-expand-panel-header {
+    color: var(--tb-gray-800) !important;
+    background: var(--tb-surface) !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-expand-panel-content {
+    background: var(--tb-surface-muted) !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-input,
+[data-theme="dark"] .tb-profile-section .mud-input-root {
+    background: var(--tb-surface) !important;
+    color: var(--tb-gray-900) !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-input-slot {
+    background: transparent !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-input-text,
+[data-theme="dark"] .tb-profile-section .mud-select-input {
+    color: var(--tb-gray-900) !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-input-label,
+[data-theme="dark"] .tb-profile-section .mud-input-helper-text {
+    color: var(--tb-gray-600) !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-input-outlined .mud-input-outlined-border {
+    border-color: var(--tb-border) !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-input-outlined:hover .mud-input-outlined-border {
+    border-color: var(--tb-gray-400) !important;
+}
+
+[data-theme="dark"] .tb-profile-section .mud-input-outlined.mud-input-focused .mud-input-outlined-border {
+    border-color: var(--tb-accent) !important;
+}
+
+[data-theme="dark"] .tb-profile-badge {
+    background: rgba(117, 213, 202, 0.18) !important;
+    border-color: var(--tb-accent) !important;
+    color: var(--tb-accent) !important;
+    box-shadow: 0 2px 4px rgba(117, 213, 202, 0.2) !important;
+}
+
+[data-theme="dark"] .tb-profile-badge .mud-icon-root {
+    color: var(--tb-accent) !important;
+}

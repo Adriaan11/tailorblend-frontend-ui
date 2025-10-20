@@ -29,6 +29,9 @@
             }
         </div>
 
+        <!-- ✅ USER PROFILE: Optional pre-fillable fields for context enrichment -->
+        <UserProfileComponent Profile="@userProfile" OnProfileChanged="HandleProfileChanged" />
+
         @if (ChatStateService.Messages.Count == 0 && !ChatStateService.IsLoading)
         {
             <div class="tb-card tb-card--flat tb-empty-state">
@@ -63,10 +66,20 @@
             <div class="tb-stack" style="gap: var(--tb-space);">
                 @foreach (var msg in ChatStateService.Messages)
                 {
-                    <ChatMessageComponent
-                        Message="@msg"
-                        TypewriterEnabled="@typewriterEnabled"
-                        @key="@($"{msg.Timestamp.Ticks}_{msg.Role}")" />
+                    <div style="position: relative;">
+                        @* ✅ PROFILE BADGE: Show indicator when message includes profile context *@
+                        @if (msg.Role == "user" && msg.Content.Contains("[Profile Context]"))
+                        {
+                            <div class="tb-profile-badge">
+                                <MudIcon Icon="@Icons.Material.Filled.Assignment" Size="Size.Small" />
+                                Profile included
+                            </div>
+                        }
+                        <ChatMessageComponent
+                            Message="@msg"
+                            TypewriterEnabled="@typewriterEnabled"
+                            @key="@($"{msg.Timestamp.Ticks}_{msg.Role}")" />
+                    </div>
                 }
             </div>
         }
@@ -325,6 +338,9 @@
 
     private bool _typewriterEnabled = true;
 
+    // ✅ USER PROFILE: Optional pre-fillable fields for context enrichment
+    private UserProfile userProfile = new();
+
     // File attachment support
     private MudFileUpload<IReadOnlyList<IBrowserFile>>? fileUpload;
     private List<FileAttachment> selectedFiles = new();
@@ -435,6 +451,13 @@
 
         var message = userInput.Trim();
         userInput = string.Empty;
+
+        // ✅ PROFILE ENRICHMENT: Append profile context if any fields are filled
+        if (userProfile.HasAnyData())
+        {
+            message = $"{message}{userProfile.ToContextString()}";
+            Console.WriteLine($"📋 [Chat] Appending profile context to message");
+        }
 
         // Send message with attachments (if any)
         var attachments = selectedFiles.Count > 0 ? new List<FileAttachment>(selectedFiles) : null;
@@ -594,6 +617,14 @@
             isResetting = false;
             await ScrollToBottomAsync();
         }
+    }
+
+    private async Task HandleProfileChanged(UserProfile profile)
+    {
+        userProfile = profile;
+        Console.WriteLine($"✅ [Chat] Profile updated: {profile.HasAnyData()}");
+        StateHasChanged();
+        await Task.CompletedTask;
     }
 
     private void ToggleStatsPanel()
