@@ -1848,14 +1848,49 @@ p {
     }
 
     .tb-input {
-        padding-right: 48px;
+        padding-right: 52px;
         font-size: 1rem;
-        min-height: 48px;
+        min-height: 52px;
     }
 
     .tb-message {
         max-width: 90%;
         padding: 0.75rem 1rem;
+    }
+
+    /* Make message action buttons always visible on mobile for better discoverability */
+    .tb-message__actions {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .tb-action-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+    }
+
+    /* Larger touch targets for icon buttons */
+    .tb-icon-button {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Larger send button for easier tapping */
+    .tb-send-btn {
+        width: 44px;
+        height: 44px;
+        right: 16px;
+    }
+
+    /* Larger attach button */
+    .tb-attach-btn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
     }
 
     .tb-quick-actions {
@@ -1865,6 +1900,7 @@ p {
     .tb-quick-action {
         font-size: 0.9rem;
         padding: 10px 16px;
+        min-height: 48px;
     }
 
     .tb-conversation__messages {
@@ -1881,6 +1917,312 @@ p {
 
     .tb-empty-state h4 {
         font-size: 1.5rem;
+    }
+
+    /* Improve appbar spacing */
+    .tb-appbar {
+        padding: 0 var(--tb-space-sm);
+        height: 64px;
+    }
+
+    .tb-appbar__left,
+    .tb-appbar__right {
+        gap: 0.5rem;
+    }
+
+    /* Better chip sizing on mobile */
+    .tb-chip {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.8125rem;
+    }
+
+    .tb-badge {
+        padding: 0.375rem 0.625rem;
+        font-size: 0.8125rem;
+    }
+
+    /* Stack profile badges for better mobile layout */
+    .tb-profile-badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    /* Configuration page - stack editor on mobile */
+    .tb-editor-shell {
+        grid-template-columns: 1fr;
+        gap: var(--tb-space);
+    }
+
+    .tb-editor-nav {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 0.5rem;
+        padding: var(--tb-space-sm);
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tb-editor-nav button {
+        flex-shrink: 0;
+        min-width: 140px;
+        padding: 0.75rem 1rem;
+        min-height: 48px;
+    }
+
+    .tb-editor-panel {
+        padding: var(--tb-space);
+    }
+
+    .tb-textarea {
+        min-height: 250px;
+        font-size: 0.9rem;
+    }
+
+    /* Improve button touch targets */
+    .tb-button {
+        min-height: 48px;
+        padding: 12px 20px;
+        font-size: 0.9375rem;
+    }
+
+    .tb-button--secondary {
+        min-height: 48px;
+    }
+
+    /* Better typography scaling */
+    .tb-stack h1,
+    .tb-hero h1 {
+        font-size: clamp(1.75rem, 5vw, 2.5rem);
+    }
+
+    .tb-stack h5,
+    .tb-card h5 {
+        font-size: clamp(1.125rem, 3vw, 1.5rem);
+    }
+}
+
+/* Extra small screens (phones in portrait, <480px) */
+@media (max-width: 480px) {
+    .tb-content {
+        padding: var(--tb-space-sm);
+    }
+
+    /* Even more compact spacing */
+    .tb-conversation__messages {
+        padding: var(--tb-space-sm);
+        padding-bottom: 80px;
+    }
+
+    .tb-message {
+        max-width: 95%;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.9375rem;
+    }
+
+    /* Optimize input bar for very small screens */
+    .tb-input-bar {
+        padding: 0.375rem 0.5rem;
+        border-radius: var(--tb-radius);
+    }
+
+    .tb-input {
+        font-size: 1rem;
+        padding: 0.625rem 0.75rem;
+        padding-right: 52px;
+        min-height: 52px;
+    }
+
+    /* Adjust send button position */
+    .tb-send-btn {
+        right: 12px;
+        width: 42px;
+        height: 42px;
+    }
+
+    .tb-attach-btn {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Stack appbar items more efficiently */
+    .tb-appbar {
+        padding: 0 0.5rem;
+        height: 60px;
+    }
+
+    .tb-appbar__left > div {
+        display: none; /* Hide subtitle on very small screens */
+    }
+
+    .tb-appbar__right {
+        gap: 0.25rem;
+    }
+
+    /* Hide session ID on very small screens */
+    .tb-appbar__right .tb-chip:has(.mud-icon-root) {
+        display: none;
+    }
+
+    /* Smaller scroll FAB */
+    .tb-scroll-fab {
+        width: 44px;
+        height: 44px;
+        bottom: 96px;
+        right: 12px;
+    }
+
+    /* More compact quick actions */
+    .tb-quick-actions {
+        gap: 6px;
+    }
+
+    .tb-quick-action {
+        font-size: 0.875rem;
+        padding: 8px 14px;
+        min-height: 44px;
+    }
+
+    /* Improve empty state on small screens */
+    .tb-empty-state {
+        padding: var(--tb-space);
+    }
+
+    .tb-empty-state h4 {
+        font-size: 1.25rem;
+    }
+
+    .tb-empty-state__icon .mud-icon-root {
+        font-size: 3rem !important;
+    }
+
+    /* Better pill list wrapping */
+    .tb-pill-list {
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .tb-chip {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.5rem;
+    }
+
+    /* Improve feature cards on small screens */
+    .tb-feature-card {
+        padding: var(--tb-space);
+    }
+
+    .tb-feature-grid {
+        gap: var(--tb-space);
+        grid-template-columns: 1fr;
+    }
+
+    /* Stack hero highlight properly */
+    .tb-hero__highlight {
+        padding: var(--tb-space-sm);
+    }
+
+    .tb-hero__headline h1 {
+        line-height: 1.2;
+    }
+
+    /* Make stats panel more compact */
+    .tb-stats-panel {
+        transform: translateY(calc(100% - 44px));
+    }
+
+    /* Optimize hero section */
+    .tb-hero {
+        padding: var(--tb-space) 0;
+    }
+
+    .tb-hero h1 {
+        font-size: 1.75rem;
+    }
+
+    /* Ensure touch targets remain accessible */
+    .tb-nav-item {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+
+    /* Buttons need proper touch targets on small screens */
+    .tb-button {
+        min-height: 48px;
+        padding: 10px 18px;
+        font-size: 0.9rem;
+    }
+
+    .tb-button--secondary {
+        min-height: 48px;
+        padding: 10px 18px;
+    }
+
+    /* More compact editor navigation */
+    .tb-editor-nav button {
+        min-width: 120px;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.875rem;
+    }
+
+    /* Radio buttons and form elements */
+    .tb-stack--row {
+        flex-direction: column;
+        gap: var(--tb-space-sm) !important;
+    }
+
+    /* MudBlazor components - improve touch targets on mobile */
+    .mud-icon-button {
+        min-width: 44px;
+        min-height: 44px;
+        width: 44px;
+        height: 44px;
+    }
+
+    .mud-button-root {
+        min-height: 48px;
+        padding: 12px 20px;
+    }
+
+    .mud-radio {
+        min-height: 44px;
+    }
+
+    .mud-expand-panel-header {
+        min-height: 56px;
+    }
+}
+
+/* Landscape mobile devices (height < 500px) */
+@media (max-height: 500px) and (orientation: landscape) {
+    .tb-appbar {
+        height: 56px;
+    }
+
+    .tb-conversation__messages {
+        padding-bottom: 60px;
+    }
+
+    .tb-input-bar {
+        margin-top: var(--tb-space);
+    }
+
+    .tb-hero {
+        padding: var(--tb-space-sm) 0;
+    }
+
+    .tb-empty-state {
+        padding: var(--tb-space-sm);
+    }
+
+    .tb-empty-state h4 {
+        font-size: 1.25rem;
+        margin-top: 0.5rem;
+    }
+
+    .tb-empty-state__icon .mud-icon-root {
+        font-size: 2.5rem !important;
     }
 }
 
