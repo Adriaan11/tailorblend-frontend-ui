@@ -95,8 +95,9 @@ else
     private static string GetModelDisplayName(string modelId) => modelId switch
     {
         "gpt-4.1-mini-2025-04-14" => "GPT-4.1 Mini",
-        "gpt-5-mini-2025-08-07" => "GPT-5 Mini",
-        "gpt-5-nano-2025-08-07" => "GPT-5 Nano",
+        "gpt-5" => "GPT-5",
+        "gpt-5-mini" => "GPT-5 Mini",
+        "gpt-5-nano" => "GPT-5 Nano",
         "gpt-5-chat-latest" => "GPT-5 Chat",
         _ => "Unknown Model"
     };
@@ -104,8 +105,9 @@ else
     private static string GetModelPricing(string modelId) => modelId switch
     {
         "gpt-4.1-mini-2025-04-14" => "R7.00 / R28.00 per M tokens",
-        "gpt-5-mini-2025-08-07" => "R4.38 / R35.00 per M tokens",
-        "gpt-5-nano-2025-08-07" => "R0.88 / R7.00 per M tokens",
+        "gpt-5" => "R43.75 / R175.00 per M tokens",
+        "gpt-5-mini" => "R4.38 / R35.00 per M tokens",
+        "gpt-5-nano" => "R0.88 / R7.00 per M tokens",
         "gpt-5-chat-latest" => "R21.88 / R175.00 per M tokens",
         _ => "Pricing unavailable"
     };
