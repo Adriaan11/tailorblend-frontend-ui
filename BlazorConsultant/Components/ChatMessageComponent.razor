@@ -73,9 +73,13 @@
     private string _fullContentSnapshot = "";    // Detect content changes
 
     // ✅ PERFORMANCE: Override ShouldRender to prevent unnecessary re-renders
-    // Only re-render when content actually changes
+    // Only re-render when content actually changes OR typewriter is animating
     protected override bool ShouldRender()
     {
+        // Always render during typewriter animation
+        if (_isTyping)
+            return true;
+
         bool contentChanged = Message.Content != _lastContent;
 
         if (contentChanged)
