@@ -1,5 +1,6 @@
 @using BlazorConsultant.Models
 @using Markdig
+@implements IDisposable
 
 <div class="tb-message @(Message.Role == "user" ? "user" : "assistant")">
     <div class="tb-message__meta">
@@ -18,7 +19,14 @@
     }
 
     <div class="tb-message__body">
-        @((MarkupString)FormatMessage(Message.Content))
+        @if (Message.Role == "assistant" && TypewriterEnabled && _isTyping)
+        {
+            @((MarkupString)_displayedHtml)
+        }
+        else
+        {
+            @((MarkupString)FormatMessage(Message.Content))
+        }
     </div>
 
     <div class="tb-message__actions">
@@ -43,6 +51,11 @@
     [Parameter]
     public ChatMessage Message { get; set; } = new();
 
+    // ✅ TYPEWRITER CONTROL: Controlled by parent component (Chat.razor) via parameter
+    // Defaults to enabled if parent doesn't specify
+    [Parameter]
+    public bool TypewriterEnabled { get; set; } = true;
+
     // ✅ PERFORMANCE: Static shared markdown pipeline (created once, reused by all instances)
     // Previously: Pipeline was rebuilt on EVERY render (expensive regex compilation)
     private static readonly MarkdownPipeline _sharedPipeline =
@@ -51,6 +64,13 @@
     // ✅ PERFORMANCE: Cache fields to prevent redundant markdown parsing
     private string? _lastContent;
     private string? _cachedHtml;
+
+    // ✅ TYPEWRITER: State management for character-by-character reveal
+    private bool _isTyping = false;              // Is typewriter currently active?
+    private string _displayedHtml = "";          // HTML revealed so far
+    private int _typewriterIndex = 0;            // Current character position
+    private Timer? _typewriterTimer;             // Interval timer for animation
+    private string _fullContentSnapshot = "";    // Detect content changes
 
     // ✅ PERFORMANCE: Override ShouldRender to prevent unnecessary re-renders
     // Only re-render when content actually changes
@@ -65,6 +85,24 @@
         }
 
         return false; // Block unnecessary re-renders
+    }
+
+    // ✅ TYPEWRITER: Detect new messages and trigger typewriter animation
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Only apply typewriter to assistant messages when enabled
+        if (!TypewriterEnabled || Message.Role != "assistant")
+            return;
+
+        // Detect new content (not already seen)
+        if (!string.IsNullOrEmpty(Message.Content) &&
+            Message.Content != _fullContentSnapshot)
+        {
+            _fullContentSnapshot = Message.Content;
+            StartTypewriter();
+        }
     }
 
     private string GetRelativeTime(DateTime timestamp)
@@ -91,6 +129,46 @@
         }
     }
 
+    // ✅ TYPEWRITER: Start character-by-character reveal animation
+    private void StartTypewriter()
+    {
+        // Stop any existing timer
+        _typewriterTimer?.Dispose();
+
+        // Parse markdown once (reuse cached result if available)
+        _cachedHtml = Markdown.ToHtml(Message.Content, _sharedPipeline);
+        _lastContent = Message.Content;
+
+        // Reset typewriter state
+        _displayedHtml = "";
+        _typewriterIndex = 0;
+        _isTyping = true;
+
+        // Start timer: 15ms intervals, 2 chars per tick = ~133 chars/sec (medium pace)
+        _typewriterTimer = new Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                if (_typewriterIndex >= _cachedHtml.Length)
+                {
+                    // Typing complete - show full message
+                    _displayedHtml = _cachedHtml;
+                    _isTyping = false;
+                    _typewriterTimer?.Dispose();
+                    StateHasChanged();
+                    return;
+                }
+
+                // Reveal next 2 characters
+                _typewriterIndex += 2;
+                _displayedHtml = _cachedHtml.Substring(0,
+                    Math.Min(_typewriterIndex, _cachedHtml.Length));
+
+                StateHasChanged();
+            });
+        }, null, 0, 15);  // 0ms initial delay, 15ms interval
+    }
+
     // ✅ PERFORMANCE: Cached markdown parsing with shared pipeline
     private string FormatMessage(string content)
     {
@@ -106,5 +184,11 @@
         _lastContent = content;
 
         return _cachedHtml;
+    }
+
+    // ✅ TYPEWRITER: Clean up timer on component disposal to prevent memory leaks
+    public void Dispose()
+    {
+        _typewriterTimer?.Dispose();
     }
 }
