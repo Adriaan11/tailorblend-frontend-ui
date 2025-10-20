@@ -33,11 +33,14 @@ public interface IChatService
     /// <summary>
     /// Get session statistics from Python API.
     /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Session statistics including tokens and cost</returns>
-    Task<SessionStats> GetSessionStatsAsync();
+    Task<SessionStats> GetSessionStatsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reset session conversation state.
     /// </summary>
-    Task ResetSessionAsync();
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if reset succeeded, false if backend call failed or timed out</returns>
+    Task<bool> ResetSessionAsync(CancellationToken cancellationToken = default);
 }

@@ -10,25 +10,32 @@ public interface IInstructionService
     /// <summary>
     /// Get instruction sections from Python API.
     /// </summary>
-    Task<List<InstructionSection>> GetSectionsAsync();
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<List<InstructionSection>> GetSectionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get default instruction sections.
     /// </summary>
-    Task<List<InstructionSection>> GetDefaultSectionsAsync();
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<List<InstructionSection>> GetDefaultSectionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Update instruction sections on Python API.
     /// </summary>
-    Task<bool> UpdateSectionsAsync(List<InstructionSection> sections);
+    /// <param name="sections">Instruction sections to update</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<bool> UpdateSectionsAsync(List<InstructionSection> sections, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Update raw instruction text (bypasses sections).
     /// </summary>
-    Task<bool> UpdateRawInstructionsAsync(string rawInstructions);
+    /// <param name="rawInstructions">Raw instruction text</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<bool> UpdateRawInstructionsAsync(string rawInstructions, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get full instruction text.
     /// </summary>
-    Task<string> GetFullTextAsync();
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<string> GetFullTextAsync(CancellationToken cancellationToken = default);
 }

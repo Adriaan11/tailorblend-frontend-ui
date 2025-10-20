@@ -1,4 +1,5 @@
 using BlazorConsultant.Models;
+using BlazorConsultant.Configuration;
 using System.Text.Json;
 using System.Runtime.CompilerServices;
 
@@ -52,45 +53,81 @@ public class ChatService : IChatService
             verbosity = verbosity ?? "medium"
         };
 
-        _logger.LogInformation($"[CHAT] Sending non-streaming request (attachments: {attachments?.Count ?? 0})");
+        _logger.LogInformation("Sending chat request for session {SessionId} with {AttachmentCount} attachments",
+            _sessionService.SessionId, attachments?.Count ?? 0);
 
-        var response = await client.PostAsJsonAsync("/api/chat", requestBody, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        // Add timeout guard for chat requests
+        using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
+            TimeoutPolicy.HttpRequestTimeout,
+            cancellationToken);
 
-        var chatResponse = await response.Content.ReadFromJsonAsync<ChatResponse>(cancellationToken);
+        try
+        {
+            var response = await client.PostAsJsonAsync("/api/chat", requestBody, timeoutCts.Token)
+                .ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
 
-        _logger.LogInformation($"[CHAT] Received response: {chatResponse?.Response.Length ?? 0} chars");
+            var chatResponse = await response.Content.ReadFromJsonAsync<ChatResponse>(timeoutCts.Token)
+                .ConfigureAwait(false);
 
-        return chatResponse ?? throw new Exception("Empty response from backend");
+            _logger.LogInformation("Received chat response for session {SessionId}: {ResponseLength} chars",
+                _sessionService.SessionId, chatResponse?.Response.Length ?? 0);
+
+            return chatResponse ?? throw new Exception("Empty response from backend");
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Timeout occurred (not parent cancellation)
+            _logger.LogWarning("Chat request timed out for session {SessionId} after {Timeout}s",
+                _sessionService.SessionId, TimeoutPolicy.HttpRequestTimeout.TotalSeconds);
+            throw new TimeoutException($"Chat request timed out after {TimeoutPolicy.HttpRequestTimeout.TotalSeconds} seconds");
+        }
     }
 
-    public async Task<SessionStats> GetSessionStatsAsync()
+    public async Task<SessionStats> GetSessionStatsAsync(CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient("PythonAPI");
 
         var url = $"/api/session/stats?session_id={_sessionService.SessionId}";
 
-        _logger.LogInformation($"[CHAT] Fetching session stats: {url}");
+        _logger.LogInformation("Fetching session stats for session {SessionId}", _sessionService.SessionId);
+
+        // Add timeout guard for stats (lower priority than chat)
+        using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
+            TimeoutPolicy.ComponentOperationTimeout,
+            cancellationToken);
 
         try
         {
-            var stats = await client.GetFromJsonAsync<SessionStats>(url);
+            var stats = await client.GetFromJsonAsync<SessionStats>(url, timeoutCts.Token)
+                .ConfigureAwait(false);
             return stats ?? new SessionStats { SessionId = _sessionService.SessionId };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Timeout occurred
+            _logger.LogWarning("Session stats request timed out for session {SessionId}", _sessionService.SessionId);
+            return new SessionStats { SessionId = _sessionService.SessionId };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[CHAT] Failed to fetch session stats");
+            _logger.LogError(ex, "Failed to fetch session stats for session {SessionId}", _sessionService.SessionId);
             return new SessionStats { SessionId = _sessionService.SessionId };
         }
     }
 
-    public async Task ResetSessionAsync()
+    public async Task<bool> ResetSessionAsync(CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient("PythonAPI");
 
         var url = "/api/session/reset";
 
-        _logger.LogInformation($"[CHAT] Resetting session: {_sessionService.SessionId}");
+        _logger.LogInformation("Resetting session {SessionId}", _sessionService.SessionId);
+
+        // Add timeout guard for session reset
+        using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
+            TimeoutPolicy.SessionOperationTimeout,
+            cancellationToken);
 
         try
         {
@@ -99,14 +136,33 @@ public class ChatService : IChatService
                 new KeyValuePair<string, string>("session_id", _sessionService.SessionId)
             });
 
-            await client.PostAsync(url, content);
+            var response = await client.PostAsync(url, content, timeoutCts.Token)
+                .ConfigureAwait(false);
 
-            // Also reset local session
+            // Check if backend reset succeeded
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Session reset failed with status {StatusCode} for session {SessionId}",
+                    response.StatusCode, _sessionService.SessionId);
+                return false;
+            }
+
+            // Backend succeeded - also reset local session
             _sessionService.Reset();
+
+            _logger.LogInformation("Session {SessionId} reset successfully", _sessionService.SessionId);
+            return true;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Timeout occurred
+            _logger.LogWarning("Session reset timed out for session {SessionId}", _sessionService.SessionId);
+            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[CHAT] Failed to reset session");
+            _logger.LogError(ex, "Failed to reset session {SessionId}", _sessionService.SessionId);
+            return false;
         }
     }
 }

@@ -1,4 +1,5 @@
 using BlazorConsultant.Models;
+using BlazorConsultant.Configuration;
 
 namespace BlazorConsultant.Services;
 
@@ -11,16 +12,19 @@ public class ChatStateService : IChatStateService
 {
     private readonly IChatService _chatService;
     private readonly ISessionService _sessionService;
+    private readonly ILogger<ChatStateService> _logger;
     private readonly List<ChatMessage> _messages = new();
     private bool _isLoading;
     private bool _disposed;
 
     public ChatStateService(
         IChatService chatService,
-        ISessionService sessionService)
+        ISessionService sessionService,
+        ILogger<ChatStateService> logger)
     {
         _chatService = chatService;
         _sessionService = sessionService;
+        _logger = logger;
     }
 
     public IReadOnlyList<ChatMessage> Messages => _messages.AsReadOnly();
@@ -33,7 +37,8 @@ public class ChatStateService : IChatStateService
         string message,
         List<FileAttachment>? attachments = null,
         string? reasoningEffort = null,
-        string? verbosity = null)
+        string? verbosity = null,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(message) || _isLoading)
             return;
@@ -53,7 +58,7 @@ public class ChatStateService : IChatStateService
 
         try
         {
-            Console.WriteLine($"⏳ [ChatStateService] Sending message...");
+            _logger.LogInformation("Sending chat message with {AttachmentCount} attachments", attachments?.Count ?? 0);
 
             var response = await _chatService.SendChatAsync(
                 message,
@@ -62,10 +67,11 @@ public class ChatStateService : IChatStateService
                 attachments: attachments,
                 practitionerMode: false,
                 reasoningEffort: reasoningEffort,
-                verbosity: verbosity
-            );
+                verbosity: verbosity,
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false);
 
-            Console.WriteLine($"✅ [ChatStateService] Received {response.Response.Length} chars");
+            _logger.LogInformation("Received chat response: {Length} chars", response.Response.Length);
 
             // Add assistant message immediately
             var assistantMessage = new ChatMessage
@@ -79,9 +85,26 @@ public class ChatStateService : IChatStateService
             // Increment message counter
             _sessionService.IncrementMessageCount();
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // User cancelled - log and don't add error message
+            _logger.LogInformation("Chat message cancelled by user");
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Chat message timed out");
+
+            var errorMessage = new ChatMessage
+            {
+                Role = "assistant",
+                Content = $"⚠️ Request timed out. The server is taking too long to respond. Please try again.",
+                Timestamp = DateTime.Now
+            };
+            _messages.Add(errorMessage);
+        }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ [ChatStateService] Request failed: {ex.Message}");
+            _logger.LogError(ex, "Chat request failed: {Message}", ex.Message);
 
             var errorMessage = new ChatMessage
             {
@@ -115,7 +138,7 @@ public class ChatStateService : IChatStateService
     public ValueTask DisposeAsync()
     {
         _disposed = true;
-        Console.WriteLine($"🗑️ [ChatStateService] Disposed");
+        _logger.LogInformation("ChatStateService disposed");
         return ValueTask.CompletedTask;
     }
 }

@@ -1,4 +1,5 @@
 using BlazorConsultant.Models;
+using BlazorConsultant.Configuration;
 using System.Text.Json;
 
 namespace BlazorConsultant.Services;
@@ -23,7 +24,7 @@ public class InstructionService : IInstructionService
         _logger = logger;
     }
 
-    public async Task<List<InstructionSection>> GetSectionsAsync()
+    public async Task<List<InstructionSection>> GetSectionsAsync(CancellationToken cancellationToken = default)
     {
         // Return cached if available
         if (_cachedSections != null)
@@ -31,11 +32,17 @@ public class InstructionService : IInstructionService
 
         var client = _httpClientFactory.CreateClient("PythonAPI");
 
-        _logger.LogInformation("[INSTRUCTIONS] Fetching instruction sections");
+        _logger.LogInformation("Fetching instruction sections");
+
+        // Add timeout guard for HTTP requests
+        using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
+            TimeoutPolicy.HttpRequestTimeout,
+            cancellationToken);
 
         try
         {
-            var response = await client.GetFromJsonAsync<InstructionResponse>("/api/instructions");
+            var response = await client.GetFromJsonAsync<InstructionResponse>("/api/instructions", timeoutCts.Token)
+                .ConfigureAwait(false);
 
             if (response?.Success == true && response.Sections != null)
             {
@@ -58,19 +65,28 @@ public class InstructionService : IInstructionService
                     })
                     .ToList();
 
+                _logger.LogInformation("Fetched {SectionCount} instruction sections", _cachedSections.Count);
                 return _cachedSections;
             }
 
+            _logger.LogWarning("Received unsuccessful response when fetching instruction sections");
+            return new List<InstructionSection>();
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Timeout occurred (not parent cancellation)
+            _logger.LogWarning("Instruction sections fetch timed out after {Timeout}s",
+                TimeoutPolicy.HttpRequestTimeout.TotalSeconds);
             return new List<InstructionSection>();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INSTRUCTIONS] Failed to fetch sections");
+            _logger.LogError(ex, "Failed to fetch instruction sections");
             return new List<InstructionSection>();
         }
     }
 
-    public async Task<List<InstructionSection>> GetDefaultSectionsAsync()
+    public async Task<List<InstructionSection>> GetDefaultSectionsAsync(CancellationToken cancellationToken = default)
     {
         // If defaults are cached, return them
         if (_defaultSections != null)
@@ -82,16 +98,21 @@ public class InstructionService : IInstructionService
             }).ToList();
 
         // Otherwise, fetch current (which will cache defaults)
-        await GetSectionsAsync();
+        await GetSectionsAsync(cancellationToken).ConfigureAwait(false);
 
         return _defaultSections ?? new List<InstructionSection>();
     }
 
-    public async Task<bool> UpdateSectionsAsync(List<InstructionSection> sections)
+    public async Task<bool> UpdateSectionsAsync(List<InstructionSection> sections, CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient("PythonAPI");
 
-        _logger.LogInformation("[INSTRUCTIONS] Updating instruction sections");
+        _logger.LogInformation("Updating {SectionCount} instruction sections", sections.Count);
+
+        // Add timeout guard for HTTP requests
+        using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
+            TimeoutPolicy.HttpRequestTimeout,
+            cancellationToken);
 
         try
         {
@@ -100,68 +121,106 @@ public class InstructionService : IInstructionService
             var response = await client.PostAsJsonAsync("/api/instructions", new
             {
                 sections = sectionsDict
-            });
+            }, timeoutCts.Token).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
                 // Update cache
                 _cachedSections = sections;
+                _logger.LogInformation("Successfully updated instruction sections");
                 return true;
             }
 
+            _logger.LogWarning("Failed to update instruction sections, status code: {StatusCode}", response.StatusCode);
+            return false;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Timeout occurred (not parent cancellation)
+            _logger.LogWarning("Instruction sections update timed out after {Timeout}s",
+                TimeoutPolicy.HttpRequestTimeout.TotalSeconds);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INSTRUCTIONS] Failed to update sections");
+            _logger.LogError(ex, "Failed to update instruction sections");
             return false;
         }
     }
 
-    public async Task<bool> UpdateRawInstructionsAsync(string rawInstructions)
+    public async Task<bool> UpdateRawInstructionsAsync(string rawInstructions, CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient("PythonAPI");
 
-        _logger.LogInformation("[INSTRUCTIONS] Updating raw instruction text");
+        _logger.LogInformation("Updating raw instruction text ({Length} chars)", rawInstructions.Length);
+
+        // Add timeout guard for HTTP requests
+        using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
+            TimeoutPolicy.HttpRequestTimeout,
+            cancellationToken);
 
         try
         {
             var response = await client.PostAsJsonAsync("/api/instructions", new
             {
                 raw_text = rawInstructions
-            });
+            }, timeoutCts.Token).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
                 // Clear cached sections since we're using raw mode
                 _cachedSections = null;
+                _logger.LogInformation("Successfully updated raw instruction text");
                 return true;
             }
 
+            _logger.LogWarning("Failed to update raw instruction text, status code: {StatusCode}", response.StatusCode);
+            return false;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Timeout occurred (not parent cancellation)
+            _logger.LogWarning("Raw instruction text update timed out after {Timeout}s",
+                TimeoutPolicy.HttpRequestTimeout.TotalSeconds);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INSTRUCTIONS] Failed to update raw instructions");
+            _logger.LogError(ex, "Failed to update raw instruction text");
             return false;
         }
     }
 
-    public async Task<string> GetFullTextAsync()
+    public async Task<string> GetFullTextAsync(CancellationToken cancellationToken = default)
     {
         var client = _httpClientFactory.CreateClient("PythonAPI");
 
-        _logger.LogInformation("[INSTRUCTIONS] Fetching full instruction text");
+        _logger.LogInformation("Fetching full instruction text");
+
+        // Add timeout guard for HTTP requests
+        using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
+            TimeoutPolicy.HttpRequestTimeout,
+            cancellationToken);
 
         try
         {
-            var response = await client.GetFromJsonAsync<InstructionResponse>("/api/instructions");
+            var response = await client.GetFromJsonAsync<InstructionResponse>("/api/instructions", timeoutCts.Token)
+                .ConfigureAwait(false);
 
-            return response?.FullText ?? string.Empty;
+            var fullText = response?.FullText ?? string.Empty;
+            _logger.LogInformation("Fetched full instruction text ({Length} chars)", fullText.Length);
+            return fullText;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Timeout occurred (not parent cancellation)
+            _logger.LogWarning("Full instruction text fetch timed out after {Timeout}s",
+                TimeoutPolicy.HttpRequestTimeout.TotalSeconds);
+            return string.Empty;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[INSTRUCTIONS] Failed to fetch full text");
+            _logger.LogError(ex, "Failed to fetch full instruction text");
             return string.Empty;
         }
     }

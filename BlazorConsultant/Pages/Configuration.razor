@@ -2,6 +2,7 @@
 @using BlazorConsultant.Models
 @inject IInstructionService InstructionService
 @inject IJSRuntime JSRuntime
+@inject ILogger<Configuration> Logger
 
 <PageTitle>Configuration - TailorBlend AI Consultant</PageTitle>
 
@@ -193,12 +194,12 @@ else
             if (!string.IsNullOrEmpty(savedMode) && (savedMode == "granular" || savedMode == "raw"))
             {
                 editMode = savedMode;
-                Console.WriteLine($"✅ [CONFIG] Loaded editing mode from localStorage: {editMode}");
+                Logger.LogInformation("Loaded editing mode from localStorage: {Mode}", editMode);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ [CONFIG] Failed to load editing mode: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to load editing mode from localStorage");
         }
 
         await LoadSections();
@@ -208,16 +209,16 @@ else
         {
             try
             {
-                rawInstructions = await InstructionService.GetFullTextAsync();
+                rawInstructions = await InstructionService.GetFullTextAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ [CONFIG] Failed to load raw instructions: {ex.Message}");
+                Logger.LogWarning(ex, "Failed to load raw instructions");
             }
         }
     }
 
-    private async void OnModeChanged(string newMode)
+    private async Task OnModeChanged(string newMode)
     {
         editMode = newMode;
 
@@ -225,11 +226,11 @@ else
         try
         {
             await JSRuntime.InvokeVoidAsync("localStorage.setItem", "tb_editMode", newMode);
-            Console.WriteLine($"✅ [CONFIG] Saved editing mode to localStorage: {newMode}");
+            Logger.LogInformation("Saved editing mode to localStorage: {Mode}", newMode);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ [CONFIG] Failed to save editing mode: {ex.Message}");
+            Logger.LogWarning(ex, "Failed to save editing mode to localStorage");
         }
 
         // Convert between modes
@@ -245,11 +246,11 @@ else
                 // Load from API if we don't have anything yet
                 try
                 {
-                    rawInstructions = await InstructionService.GetFullTextAsync();
+                    rawInstructions = await InstructionService.GetFullTextAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"⚠️ [CONFIG] Failed to load raw instructions: {ex.Message}");
+                    Logger.LogWarning(ex, "Failed to load raw instructions");
                 }
             }
         }
@@ -267,12 +268,12 @@ else
         isLoading = true;
         try
         {
-            sections = await InstructionService.GetSectionsAsync();
+            sections = await InstructionService.GetSectionsAsync().ConfigureAwait(false);
             activeSection = sections.FirstOrDefault();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Failed to load sections: {ex.Message}");
+            Logger.LogError(ex, "Failed to load instruction sections");
             statusMessage = "Failed to load instructions";
             statusClass = "error";
         }
@@ -298,7 +299,7 @@ else
 
         try
         {
-            var success = await InstructionService.UpdateSectionsAsync(sections);
+            var success = await InstructionService.UpdateSectionsAsync(sections).ConfigureAwait(false);
             if (success)
             {
                 statusMessage = "Changes applied. The next chat will follow your updated playbook.";
@@ -312,7 +313,7 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Failed to update sections: {ex.Message}");
+            Logger.LogError(ex, "Failed to update instruction sections");
             statusMessage = $"Error: {ex.Message}";
             statusClass = "error";
         }
@@ -335,7 +336,7 @@ else
         {
             // For raw mode, we send the entire instructions as-is
             // The backend will use this as custom_instructions parameter
-            var success = await InstructionService.UpdateRawInstructionsAsync(rawInstructions);
+            var success = await InstructionService.UpdateRawInstructionsAsync(rawInstructions).ConfigureAwait(false);
             if (success)
             {
                 statusMessage = "Raw instructions applied. The next chat will use your custom prompt.";
@@ -349,7 +350,7 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Failed to update raw instructions: {ex.Message}");
+            Logger.LogError(ex, "Failed to update raw instructions");
             statusMessage = $"Error: {ex.Message}";
             statusClass = "error";
         }
@@ -370,7 +371,7 @@ else
 
         try
         {
-            sections = await InstructionService.GetDefaultSectionsAsync();
+            sections = await InstructionService.GetDefaultSectionsAsync().ConfigureAwait(false);
             activeSection = sections.FirstOrDefault();
 
             // Also reset raw instructions to default
@@ -381,7 +382,7 @@ else
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Failed to reset: {ex.Message}");
+            Logger.LogError(ex, "Failed to reset instruction sections to defaults");
             statusMessage = $"Error: {ex.Message}";
             statusClass = "error";
         }

@@ -32,11 +32,13 @@ public interface IChatStateService : IAsyncDisposable
     /// <param name="attachments">Optional file attachments</param>
     /// <param name="reasoningEffort">GPT-5 reasoning effort (minimal/low/medium/high)</param>
     /// <param name="verbosity">GPT-5 response verbosity (low/medium/high)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     Task SendMessageAsync(
         string message,
         List<FileAttachment>? attachments = null,
         string? reasoningEffort = null,
-        string? verbosity = null);
+        string? verbosity = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Clear all conversation history.

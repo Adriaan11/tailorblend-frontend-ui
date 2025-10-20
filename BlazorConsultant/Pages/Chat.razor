@@ -1,11 +1,14 @@
 @page "/chat"
 @using BlazorConsultant.Models
 @using BlazorConsultant.Components
+@using BlazorConsultant.Helpers
 @using Microsoft.AspNetCore.Components.Forms
 @inject IChatService ChatService
 @inject IChatStateService ChatStateService
 @inject ISessionService SessionService
 @inject IJSRuntime JS
+@inject ILogger<Chat> Logger
+@inject MudBlazor.ISnackbar Snackbar
 @implements IAsyncDisposable
 
 <PageTitle>Chat - TailorBlend AI Consultant</PageTitle>
@@ -322,6 +325,11 @@
     private const int SCROLL_THROTTLE_MS = 150;
     private int _previousMessageCount = 0;
 
+    // ✅ ASYNC: Component-level cancellation and disposal tracking
+    private readonly CancellationTokenSource _componentCts = new();
+    private readonly DisposalGuard _disposalGuard = new();
+    private Task? _statsRefreshTask;
+
     // ✅ TYPEWRITER: User preference for typewriter effect (applies to new messages)
     private bool typewriterEnabled
     {
@@ -332,7 +340,7 @@
                 return;
 
             _typewriterEnabled = value;
-            Console.WriteLine($"[Chat] Typewriter toggle changed to: {value}");
+            Logger.LogInformation("Typewriter effect toggled: {Enabled}", value);
         }
     }
 
@@ -402,7 +410,7 @@
         {
             try
             {
-                if (_disposed) return;
+                if (_disposalGuard.IsDisposed) return;
 
                 // Detect new messages
                 if (ChatStateService.Messages.Count > _previousMessageCount)
@@ -411,35 +419,18 @@
                     showScrollButton = true;
                     _previousMessageCount = ChatStateService.Messages.Count;
 
-                    // Refresh stats after new message
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await Task.Delay(500);
-                            await InvokeAsync(async () =>
-                            {
-                                if (sessionStatsRef != null)
-                                {
-                                    await sessionStatsRef.RefreshStats();
-                                }
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"❌ [Chat] Stats refresh failed: {ex.Message}");
-                        }
-                    });
+                    // Refresh stats after new message (tracked and cancellable)
+                    _statsRefreshTask = RefreshStatsAfterDelayAsync();
                 }
 
-                if (_disposed) return;
+                if (_disposalGuard.IsDisposed) return;
 
                 StateHasChanged();
                 await ScrollToBottomAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ [Chat] HandleStateChanged failed: {ex.Message}");
+                Logger.LogError(ex, "HandleStateChanged failed");
             }
         });
     }
@@ -456,21 +447,22 @@
         if (userProfile.HasAnyData())
         {
             message = $"{message}{userProfile.ToContextString()}";
-            Console.WriteLine($"📋 [Chat] Appending profile context to message");
+            Logger.LogInformation("Appending profile context to message");
         }
 
         // Send message with attachments (if any)
         var attachments = selectedFiles.Count > 0 ? new List<FileAttachment>(selectedFiles) : null;
 
-        Console.WriteLine($"📤 [CHAT] SendMessage called");
-        Console.WriteLine($"    - Message: {message.Substring(0, Math.Min(50, message.Length))}...");
-        Console.WriteLine($"    - Attachments: {attachments?.Count ?? 0}");
+        Logger.LogInformation("Sending chat message: {MessagePreview}... with {AttachmentCount} attachments",
+            message.Substring(0, Math.Min(50, message.Length)),
+            attachments?.Count ?? 0);
 
-        if (attachments != null)
+        if (attachments != null && Logger.IsEnabled(LogLevel.Debug))
         {
             foreach (var att in attachments)
             {
-                Console.WriteLine($"    - File: {att.FileName} ({att.FileSize} bytes, base64: {att.Base64Data?.Length ?? 0} chars)");
+                Logger.LogDebug("Attachment: {FileName} ({FileSize} bytes, base64: {Base64Length} chars)",
+                    att.FileName, att.FileSize, att.Base64Data?.Length ?? 0);
             }
         }
 
@@ -493,12 +485,12 @@
     {
         try
         {
-            Console.WriteLine($"📂 [CHAT] OnFilesChanged called with {e.FileCount} file(s)");
+            Logger.LogInformation("File upload initiated with {FileCount} file(s)", e.FileCount);
 
             // Check if we've reached max files
             if (selectedFiles.Count >= MaxFiles)
             {
-                Console.WriteLine($"⚠️ [CHAT] Maximum {MaxFiles} files allowed");
+                Logger.LogWarning("Maximum {MaxFiles} files already selected", MaxFiles);
                 return;
             }
 
@@ -507,18 +499,18 @@
             {
                 if (selectedFiles.Count >= MaxFiles)
                 {
-                    Console.WriteLine($"⚠️ [CHAT] Reached maximum {MaxFiles} files, skipping remaining");
+                    Logger.LogWarning("Reached maximum {MaxFiles} files, skipping remaining uploads", MaxFiles);
                     break;
                 }
 
                 // Check file size
                 if (browserFile.Size > MaxFileSizeMB * 1024 * 1024)
                 {
-                    Console.WriteLine($"⚠️ [CHAT] File {browserFile.Name} exceeds {MaxFileSizeMB}MB limit");
+                    Logger.LogWarning("File {FileName} exceeds {MaxSize}MB limit", browserFile.Name, MaxFileSizeMB);
                     continue;
                 }
 
-                Console.WriteLine($"📎 [CHAT] Reading file: {browserFile.Name} ({browserFile.Size} bytes)");
+                Logger.LogInformation("Reading file: {FileName} ({FileSize} bytes)", browserFile.Name, browserFile.Size);
 
                 // Read file to base64
                 using var stream = browserFile.OpenReadStream(MaxFileSizeMB * 1024 * 1024);
@@ -534,29 +526,27 @@
                     FileSize = (int)browserFile.Size
                 };
 
-                Console.WriteLine($"📎 [CHAT] Added file: {fileAttachment.FileName} ({fileAttachment.FormattedSize})");
-                Console.WriteLine($"    - MIME: {fileAttachment.MimeType}");
-                Console.WriteLine($"    - Base64 length: {base64Data.Length} chars");
+                Logger.LogInformation("Added file: {FileName} ({FormattedSize}), MIME: {MimeType}, Base64 length: {Base64Length} chars",
+                    fileAttachment.FileName, fileAttachment.FormattedSize, fileAttachment.MimeType, base64Data.Length);
 
                 selectedFiles.Add(fileAttachment);
             }
 
-            Console.WriteLine($"✅ [CHAT] Total files selected: {selectedFiles.Count}");
+            Logger.LogInformation("Total files selected: {FileCount}", selectedFiles.Count);
 
             if (!_disposed)
                 StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ [CHAT] File selection error: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"    Stack trace: {ex.StackTrace}");
+            Logger.LogError(ex, "File selection error");
         }
     }
 
     private async Task RemoveFile(FileAttachment file)
     {
         selectedFiles.Remove(file);
-        Console.WriteLine($"🗑️ [CHAT] Removed file: {file.FileName}");
+        Logger.LogInformation("Removed file: {FileName}", file.FileName);
 
         // Clear MudFileUpload if no files left
         if (selectedFiles.Count == 0 && fileUpload != null)
@@ -609,7 +599,24 @@
         {
             ChatStateService.Clear();
             SessionService.Reset();
-            await ChatService.ResetSessionAsync();
+
+            // Attempt to reset backend session
+            var resetSucceeded = await ChatService.ResetSessionAsync();
+
+            if (!resetSucceeded)
+            {
+                // Backend reset failed - warn user but keep local state cleared
+                Logger.LogWarning("Backend session reset failed for session {SessionId}", SessionService.SessionId);
+                Snackbar.Add(
+                    "⚠️ Session reset partially failed. Local conversation cleared, but backend may still have history.",
+                    MudBlazor.Severity.Warning,
+                    config => config.VisibleStateDuration = 5000);
+            }
+            else
+            {
+                Logger.LogInformation("Session reset successful for session {SessionId}", SessionService.SessionId);
+            }
+
             await RefreshStats();
         }
         finally
@@ -622,7 +629,7 @@
     private async Task HandleProfileChanged(UserProfile profile)
     {
         userProfile = profile;
-        Console.WriteLine($"✅ [Chat] Profile updated: {profile.HasAnyData()}");
+        Logger.LogInformation("User profile updated: has data = {HasData}", profile.HasAnyData());
         StateHasChanged();
         await Task.CompletedTask;
     }
@@ -671,9 +678,25 @@
             _lastScrollTime = DateTime.Now;
             await JS.InvokeVoidAsync("scrollToBottom", _messagesContainer);
         }
-        catch
+        catch (JSDisconnectedException ex)
         {
-            // silently ignore
+            // SignalR circuit lost - this is critical for user experience
+            Logger.LogError(ex, "SignalR circuit disconnected during scroll. User has lost connection.");
+            // Circuit disconnection means user needs to refresh - this is a critical error
+        }
+        catch (JSException ex)
+        {
+            // JavaScript error - log for debugging but don't fail the component
+            Logger.LogWarning(ex, "JavaScript scroll function failed: {Message}", ex.Message);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Component disposed during scroll - expected during navigation, no logging needed
+        }
+        catch (Exception ex)
+        {
+            // Unexpected error - log it for diagnostics
+            Logger.LogWarning(ex, "Unexpected error during scroll operation");
         }
     }
 
@@ -725,6 +748,40 @@
         await JS.InvokeVoidAsync("downloadFile", filename, base64, contentType);
     }
 
+    /// <summary>
+    /// Tracked async task for stats refresh with proper cancellation support.
+    /// Replaces fire-and-forget Task.Run pattern.
+    /// </summary>
+    private async Task RefreshStatsAfterDelayAsync()
+    {
+        try
+        {
+            // Wait 500ms before refreshing (debounce rapid message updates)
+            await Task.Delay(500, _componentCts.Token);
+
+            // Execute stats refresh on UI thread with disposal guard
+            await _disposalGuard.ExecuteIfNotDisposedAsync(async () =>
+            {
+                await InvokeAsync(async () =>
+                {
+                    if (sessionStatsRef != null)
+                    {
+                        await sessionStatsRef.RefreshStats();
+                    }
+                });
+                return Task.CompletedTask;
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when component is disposed - no logging needed
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Stats refresh failed");
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_disposed)
@@ -732,10 +789,30 @@
 
         _disposed = true;
 
-        Console.WriteLine($"🗑️ [Chat] Disposing Chat component");
+        Logger.LogInformation("Disposing Chat component");
+
+        // Cancel any pending operations
+        _componentCts.Cancel();
+
+        // Wait for stats refresh task to complete (with timeout)
+        if (_statsRefreshTask != null && !_statsRefreshTask.IsCompleted)
+        {
+            try
+            {
+                await Task.WhenAny(_statsRefreshTask, Task.Delay(1000));
+            }
+            catch
+            {
+                // Ignore exceptions during cleanup
+            }
+        }
 
         // Unsubscribe from events
         ChatStateService.OnStateChanged -= HandleStateChanged;
+
+        // Dispose resources
+        await _disposalGuard.DisposeAsync();
+        _componentCts.Dispose();
 
         // Dispose ChatStateService if it implements IAsyncDisposable
         if (ChatStateService is IAsyncDisposable asyncDisposable)
