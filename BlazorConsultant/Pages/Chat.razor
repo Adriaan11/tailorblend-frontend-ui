@@ -66,7 +66,7 @@
                     <ChatMessageComponent
                         Message="@msg"
                         TypewriterEnabled="@typewriterEnabled"
-                        @key="msg" />
+                        @key="@($"{msg.Timestamp.Ticks}_{msg.Role}")" />
                 }
             </div>
         }
@@ -176,7 +176,8 @@
 
             <MudCheckBox
                 T="bool"
-                @bind-Checked="typewriterEnabled"
+                Checked="@typewriterEnabled"
+                CheckedChanged="@OnTypewriterToggled"
                 Label="Typewriter effect"
                 Color="Color.Primary"
                 Dense="true" />
@@ -311,6 +312,12 @@
 
     // ✅ TYPEWRITER: User preference for typewriter effect (applies to new messages)
     private bool typewriterEnabled = true;
+
+    private void OnTypewriterToggled(bool value)
+    {
+        typewriterEnabled = value;
+        Console.WriteLine($"[Chat] Typewriter toggle changed to: {value}");
+    }
 
     // File attachment support
     private MudFileUpload<IReadOnlyList<IBrowserFile>>? fileUpload;
