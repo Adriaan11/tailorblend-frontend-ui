@@ -16,6 +16,8 @@ public interface IChatService
     /// <param name="model">OpenAI model to use</param>
     /// <param name="attachments">File attachments</param>
     /// <param name="practitionerMode">Use practitioner mode</param>
+    /// <param name="reasoningEffort">GPT-5 reasoning effort (minimal/low/medium/high)</param>
+    /// <param name="verbosity">GPT-5 response verbosity (low/medium/high)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Complete chat response with tokens and cost</returns>
     Task<ChatResponse> SendChatAsync(
@@ -24,6 +26,8 @@ public interface IChatService
         string? model = null,
         List<FileAttachment>? attachments = null,
         bool practitionerMode = false,
+        string? reasoningEffort = null,
+        string? verbosity = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

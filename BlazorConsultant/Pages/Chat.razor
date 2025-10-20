@@ -168,6 +168,28 @@
             </MudSelect>
         </div>
 
+        @if (isGpt5Selected)
+        {
+            <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space);">
+                <MudText Typo="Typo.overline" Class="tb-muted">GPT-5 Settings</MudText>
+
+                <MudText Typo="Typo.body2" Style="margin-top: 0.5rem; font-weight: 600;">Reasoning Effort</MudText>
+                <MudRadioGroup T="string" @bind-Value="@reasoningEffort">
+                    <MudRadio T="string" Value="@("minimal")" Color="Color.Primary">Minimal (fastest)</MudRadio>
+                    <MudRadio T="string" Value="@("low")" Color="Color.Primary">Low</MudRadio>
+                    <MudRadio T="string" Value="@("medium")" Color="Color.Primary">Medium (balanced)</MudRadio>
+                    <MudRadio T="string" Value="@("high")" Color="Color.Primary">High (thorough)</MudRadio>
+                </MudRadioGroup>
+
+                <MudText Typo="Typo.body2" Style="margin-top: 1rem; font-weight: 600;">Response Style</MudText>
+                <MudSelect T="string" Value="@verbosity" ValueChanged="@((string val) => verbosity = val)" Variant="Variant.Outlined" Dense="true" Style="margin-top: 0.25rem;">
+                    <MudSelectItem T="string" Value="@("low")">Concise</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("medium")">Balanced</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("high")">Detailed</MudSelectItem>
+                </MudSelect>
+            </div>
+        }
+
         <div class="tb-card tb-card--flat">
             <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" @onclick="ToggleStatsPanel">
                 <div>
@@ -273,6 +295,11 @@
     private MudFileUpload<IReadOnlyList<IBrowserFile>>? fileUpload;
     private List<FileAttachment> selectedFiles = new();
     private const int MaxFileSizeMB = 10;
+
+    // GPT-5 specific settings
+    private string reasoningEffort = "minimal";
+    private string verbosity = "medium";
+    private bool isGpt5Selected => selectedModel?.StartsWith("gpt-5") ?? false;
     private const int MaxFiles = 5;
 
     private readonly string[] examplePrompts = new[]
@@ -295,21 +322,21 @@
         {
             Id = "gpt-5",
             DisplayName = "GPT-5",
-            ModelId = "gpt-5-2025-08-07",
-            Description = "Most capable model"
+            ModelId = "gpt-5",
+            Description = "Most capable reasoning model"
         },
         new ModelOption
         {
             Id = "gpt-5-mini",
             DisplayName = "GPT-5 Mini",
-            ModelId = "gpt-5-mini-2025-08-07",
-            Description = "Latest mini model"
+            ModelId = "gpt-5-mini",
+            Description = "Balanced reasoning & cost"
         },
         new ModelOption
         {
             Id = "gpt-5-nano",
             DisplayName = "GPT-5 Nano",
-            ModelId = "gpt-5-nano-2025-08-07",
+            ModelId = "gpt-5-nano",
             Description = "Ultra-fast responses"
         }
     };
@@ -390,7 +417,12 @@
             }
         }
 
-        await ChatStateService.SendMessageAsync(message, attachments);
+        await ChatStateService.SendMessageAsync(
+            message,
+            attachments,
+            reasoningEffort: isGpt5Selected ? reasoningEffort : null,
+            verbosity: isGpt5Selected ? verbosity : null
+        );
 
         // Clear attachments after sending
         selectedFiles.Clear();
@@ -542,6 +574,13 @@
 
         selectedModel = newModel;
         SessionService.SetModel(newModel);
+
+        // Reset GPT-5 settings to defaults when switching models
+        if (newModel?.StartsWith("gpt-5") == true)
+        {
+            reasoningEffort = "minimal";
+            verbosity = "medium";
+        }
 
         // Reset session to apply new model
         await ResetConversation();
