@@ -317,7 +317,7 @@
     private bool isStatsExpanded = false;
     private SessionStatsComponent? sessionStatsRef;
     private ElementReference _messagesContainer;
-    private string selectedModel = "gpt-4.1-mini-2025-04-14";
+    private string selectedModel = "gpt-5";
     private bool showScrollButton = false;
     private bool hasNewMessages = false;
     // ✅ PERFORMANCE: Throttle scroll to prevent excessive JS interop
@@ -371,24 +371,10 @@
     {
         new ModelOption
         {
-            Id = "gpt-4o",
-            DisplayName = "GPT-4o",
-            ModelId = "chatgpt-4o-latest",
-            Description = "Best Chat Model (default)"
-        },
-        new ModelOption
-        {
-            Id = "gpt-4.1-mini",
-            DisplayName = "GPT-4.1 Mini",
-            ModelId = "gpt-4.1-mini-2025-04-14",
-            Description = "Fast and cost-effective"
-        },
-        new ModelOption
-        {
             Id = "gpt-5",
             DisplayName = "GPT-5",
             ModelId = "gpt-5",
-            Description = "Most capable reasoning model"
+            Description = "Most capable reasoning model (default)"
         },
         new ModelOption
         {
