@@ -176,8 +176,7 @@
 
             <MudCheckBox
                 T="bool"
-                Checked="@typewriterEnabled"
-                CheckedChanged="@OnTypewriterToggled"
+                @bind-Checked="typewriterEnabled"
                 Label="Typewriter effect"
                 Color="Color.Primary"
                 Dense="true" />
@@ -311,13 +310,20 @@
     private int _previousMessageCount = 0;
 
     // ✅ TYPEWRITER: User preference for typewriter effect (applies to new messages)
-    private bool typewriterEnabled = true;
-
-    private void OnTypewriterToggled(bool value)
+    private bool typewriterEnabled
     {
-        typewriterEnabled = value;
-        Console.WriteLine($"[Chat] Typewriter toggle changed to: {value}");
+        get => _typewriterEnabled;
+        set
+        {
+            if (_typewriterEnabled == value)
+                return;
+
+            _typewriterEnabled = value;
+            Console.WriteLine($"[Chat] Typewriter toggle changed to: {value}");
+        }
     }
+
+    private bool _typewriterEnabled = true;
 
     // File attachment support
     private MudFileUpload<IReadOnlyList<IBrowserFile>>? fileUpload;
