@@ -1,0 +1,544 @@
+@page "/prompt-evaluation"
+@using BlazorConsultant.Models
+@inject IPromptEvaluationService EvaluationService
+@inject IInstructionService InstructionService
+@inject IJSRuntime JSRuntime
+@inject ILogger<PromptEvaluation> Logger
+
+<PageTitle>Prompt Evaluation - TailorBlend AI Consultant</PageTitle>
+
+<section class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-lg);">
+    <div class="tb-stack" style="gap: var(--tb-space);">
+        <MudText Typo="Typo.overline" Class="tb-muted">Prompt Engineering</MudText>
+        <MudText Typo="Typo.h5" Style="font-weight:700;">Evaluate & Improve Prompts</MudText>
+        <MudText Typo="Typo.body2" Class="tb-muted">
+            Test different prompt variations against scenarios to optimize the blend assistant's performance.
+            This helps create more accurate, helpful, and safe consultation experiences.
+        </MudText>
+    </div>
+</section>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <MudAlert Severity="@(isError ? Severity.Error : Severity.Success)"
+              Variant="Variant.Filled"
+              Elevation="0"
+              Class="mb-4">
+        @statusMessage
+    </MudAlert>
+}
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--tb-space-lg); margin-bottom: var(--tb-space-lg);">
+    <!-- Left Column: Prompt Editor -->
+    <div class="tb-card">
+        <div class="tb-stack" style="gap: var(--tb-space);">
+            <div class="tb-stack" style="gap: var(--tb-space-sm);">
+                <div class="tb-stack tb-stack--row" style="justify-content: space-between; align-items: center;">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Prompt Text</MudText>
+                    <button class="tb-button tb-button--secondary tb-button--small"
+                            @onclick="LoadCurrentPrompt"
+                            disabled="@isLoading">
+                        <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Small" />
+                        Load Current
+                    </button>
+                </div>
+                <MudText Typo="Typo.caption" Class="tb-muted">
+                    Enter or edit the system prompt to evaluate. You can load the current production prompt or start from scratch.
+                </MudText>
+            </div>
+
+            <textarea class="tb-textarea"
+                      @bind="promptText"
+                      @bind:event="oninput"
+                      placeholder="Enter the system prompt to evaluate..."
+                      style="min-height: 400px; font-family: var(--tb-font-mono); font-size: 0.9rem;"></textarea>
+
+            <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
+                <MudText Typo="Typo.caption" Class="tb-muted">
+                    @(promptText?.Length.ToString("N0") ?? "0") characters
+                </MudText>
+                <MudText Typo="Typo.caption" Class="tb-muted">
+                    Est. tokens: ~@((promptText?.Length ?? 0) / 4)
+                </MudText>
+            </div>
+
+            <div class="tb-divider"></div>
+
+            <div class="tb-stack" style="gap: var(--tb-space-sm);">
+                <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Model Selection</MudText>
+                <MudRadioGroup T="string" @bind-Value="selectedModel">
+                    <div class="tb-stack" style="gap: var(--tb-space-xs);">
+                        <MudRadio Value="@("gpt-5-mini-2025-01-24")" Color="Color.Success">GPT-5 Mini (Fast & Economical)</MudRadio>
+                        <MudRadio Value="@("chatgpt-4o-latest")" Color="Color.Success">GPT-4o (Balanced)</MudRadio>
+                        <MudRadio Value="@("o1-2024-12-17")" Color="Color.Success">GPT-5 (Most Capable)</MudRadio>
+                    </div>
+                </MudRadioGroup>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Test Cases -->
+    <div class="tb-card">
+        <div class="tb-stack" style="gap: var(--tb-space);">
+            <div class="tb-stack tb-stack--row" style="justify-content: space-between; align-items: center;">
+                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Test Cases (@testCases.Count)</MudText>
+                <div class="tb-stack tb-stack--row" style="gap: var(--tb-space-xs);">
+                    <button class="tb-button tb-button--secondary tb-button--small"
+                            @onclick="LoadDefaultTestCases"
+                            disabled="@isLoading">
+                        <MudIcon Icon="@Icons.Material.Filled.CloudDownload" Size="Size.Small" />
+                        Load Defaults
+                    </button>
+                    <button class="tb-button tb-button--primary tb-button--small"
+                            @onclick="AddTestCase">
+                        <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" />
+                        Add Test
+                    </button>
+                </div>
+            </div>
+
+            <MudText Typo="Typo.caption" Class="tb-muted">
+                Define scenarios to test the prompt against. Each test case evaluates how the AI responds.
+            </MudText>
+
+            <div style="max-height: 500px; overflow-y: auto;">
+                @if (!testCases.Any())
+                {
+                    <div class="tb-empty-state" style="padding: var(--tb-space-lg);">
+                        <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Large" Class="tb-muted" />
+                        <MudText Typo="Typo.body2" Class="tb-muted">No test cases yet</MudText>
+                        <MudText Typo="Typo.caption" Class="tb-muted">Add test cases or load defaults</MudText>
+                    </div>
+                }
+                else
+                {
+                    <div class="tb-stack" style="gap: var(--tb-space-sm);">
+                        @foreach (var testCase in testCases)
+                        {
+                            <div class="tb-card tb-card--nested" style="background: var(--tb-bg-subtle);">
+                                <div class="tb-stack" style="gap: var(--tb-space-xs);">
+                                    <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
+                                        <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@testCase.Name</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Size="Size.Small"
+                                                       Color="Color.Error"
+                                                       OnClick="@(() => RemoveTestCase(testCase))" />
+                                    </div>
+                                    <MudText Typo="Typo.caption" Class="tb-muted" Style="font-style: italic;">
+                                        "@testCase.UserMessage"
+                                    </MudText>
+                                    @if (testCase.ExpectedCharacteristics.Any())
+                                    {
+                                        <div class="tb-stack tb-stack--row" style="gap: var(--tb-space-xs); flex-wrap: wrap;">
+                                            @foreach (var characteristic in testCase.ExpectedCharacteristics.Take(3))
+                                            {
+                                                <span class="tb-badge tb-badge--success">@characteristic</span>
+                                            }
+                                            @if (testCase.ExpectedCharacteristics.Count > 3)
+                                            {
+                                                <span class="tb-badge">+@(testCase.ExpectedCharacteristics.Count - 3) more</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Evaluation Controls -->
+<div class="tb-card" style="margin-bottom: var(--tb-space-lg);">
+    <div class="tb-stack tb-stack--row" style="justify-content: space-between; align-items: center;">
+        <div class="tb-stack" style="gap: var(--tb-space-xs);">
+            <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Run Evaluation</MudText>
+            <MudText Typo="Typo.caption" Class="tb-muted">
+                @if (evaluationResponse != null)
+                {
+                    <span>Last run: @DateTime.Now.ToString("HH:mm:ss") | Score: @evaluationResponse.OverallScore.ToString("F1")/100 | Cost: R@evaluationResponse.CostZar.ToString("F2")</span>
+                }
+                else
+                {
+                    <span>No evaluation run yet</span>
+                }
+            </MudText>
+        </div>
+        <div class="tb-stack tb-stack--row" style="gap: var(--tb-space-sm);">
+            <button class="tb-button tb-button--secondary"
+                    @onclick="ClearResults"
+                    disabled="@(isEvaluating || evaluationResponse == null)">
+                <MudIcon Icon="@Icons.Material.Filled.Clear" />
+                Clear Results
+            </button>
+            <button class="tb-button tb-button--primary"
+                    @onclick="RunEvaluation"
+                    disabled="@(isEvaluating || string.IsNullOrWhiteSpace(promptText) || !testCases.Any())">
+                @if (isEvaluating)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="color:white;" />
+                    <span>Evaluating...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.PlayArrow" />
+                    <span>Run Evaluation</span>
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Evaluation Results -->
+@if (evaluationResponse != null)
+{
+    <div class="tb-card" style="margin-bottom: var(--tb-space-lg);">
+        <div class="tb-stack" style="gap: var(--tb-space);">
+            <div class="tb-stack tb-stack--row" style="justify-content: space-between; align-items: center;">
+                <MudText Typo="Typo.h6" Style="font-weight:700;">Evaluation Results</MudText>
+                <button class="tb-button tb-button--primary tb-button--small"
+                        @onclick="SaveCurrentVersion">
+                    <MudIcon Icon="@Icons.Material.Filled.Save" Size="Size.Small" />
+                    Save Version
+                </button>
+            </div>
+
+            <!-- Overall Score -->
+            <div class="tb-card tb-card--nested" style="background: linear-gradient(135deg, var(--tb-success-light) 0%, var(--tb-success) 100%); color: white;">
+                <div class="tb-stack tb-stack--row" style="justify-content: space-between; align-items: center;">
+                    <div>
+                        <MudText Typo="Typo.overline" Style="opacity: 0.9;">Overall Score</MudText>
+                        <MudText Typo="Typo.h3" Style="font-weight:700;">@evaluationResponse.OverallScore.ToString("F1")<span style="font-size: 0.5em; opacity: 0.8;">/100</span></MudText>
+                    </div>
+                    <div style="text-align: right;">
+                        <MudText Typo="Typo.caption" Style="opacity: 0.9;">@evaluationResponse.TestResults.Count test cases</MudText>
+                        <MudText Typo="Typo.caption" Style="opacity: 0.9;">@evaluationResponse.EvaluationTimeSeconds.ToString("F1")s</MudText>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="tb-stack" style="gap: var(--tb-space-sm);">
+                <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Summary</MudText>
+                <MudText Typo="Typo.body2">@evaluationResponse.Summary</MudText>
+            </div>
+
+            <!-- Recommendations -->
+            @if (evaluationResponse.Recommendations.Any())
+            {
+                <div class="tb-stack" style="gap: var(--tb-space-sm);">
+                    <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Recommendations</MudText>
+                    <ul style="margin: 0; padding-left: var(--tb-space-lg);">
+                        @foreach (var recommendation in evaluationResponse.Recommendations)
+                        {
+                            <li><MudText Typo="Typo.body2">@recommendation</MudText></li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <div class="tb-divider"></div>
+
+            <!-- Test Case Results -->
+            <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Test Case Results</MudText>
+            <div class="tb-stack" style="gap: var(--tb-space-sm);">
+                @foreach (var result in evaluationResponse.TestResults)
+                {
+                    var scoreColor = result.Score >= 80 ? "var(--tb-success)" : result.Score >= 60 ? "var(--tb-warning)" : "var(--tb-error)";
+                    <MudExpansionPanels>
+                        <MudExpansionPanel>
+                            <TitleContent>
+                                <div class="tb-stack tb-stack--row" style="justify-content: space-between; align-items: center; width: 100%;">
+                                    <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@result.TestCaseName</MudText>
+                                    <MudText Typo="Typo.h6" Style="@($"font-weight:700; color: {scoreColor};")">@result.Score.ToString("F0")</MudText>
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                <div class="tb-stack" style="gap: var(--tb-space);">
+                                    <!-- Response -->
+                                    <div class="tb-stack" style="gap: var(--tb-space-xs);">
+                                        <MudText Typo="Typo.caption" Style="font-weight:600; text-transform: uppercase;">AI Response</MudText>
+                                        <div class="tb-card tb-card--nested" style="background: var(--tb-bg-subtle); font-family: var(--tb-font-mono); font-size: 0.85rem;">
+                                            <MudText Typo="Typo.body2">@result.Response</MudText>
+                                        </div>
+                                    </div>
+
+                                    <!-- Feedback -->
+                                    <div class="tb-stack" style="gap: var(--tb-space-xs);">
+                                        <MudText Typo="Typo.caption" Style="font-weight:600; text-transform: uppercase;">Feedback</MudText>
+                                        <MudText Typo="Typo.body2">@result.Feedback</MudText>
+                                    </div>
+
+                                    <!-- Strengths & Weaknesses -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--tb-space);">
+                                        @if (result.Strengths.Any())
+                                        {
+                                            <div class="tb-stack" style="gap: var(--tb-space-xs);">
+                                                <MudText Typo="Typo.caption" Style="font-weight:600; text-transform: uppercase; color: var(--tb-success);">Strengths</MudText>
+                                                <ul style="margin: 0; padding-left: var(--tb-space);">
+                                                    @foreach (var strength in result.Strengths)
+                                                    {
+                                                        <li><MudText Typo="Typo.body2">@strength</MudText></li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        }
+                                        @if (result.Weaknesses.Any())
+                                        {
+                                            <div class="tb-stack" style="gap: var(--tb-space-xs);">
+                                                <MudText Typo="Typo.caption" Style="font-weight:600; text-transform: uppercase; color: var(--tb-error);">Weaknesses</MudText>
+                                                <ul style="margin: 0; padding-left: var(--tb-space);">
+                                                    @foreach (var weakness in result.Weaknesses)
+                                                    {
+                                                        <li><MudText Typo="Typo.body2">@weakness</MudText></li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Suggestions -->
+                                    @if (result.Suggestions.Any())
+                                    {
+                                        <div class="tb-stack" style="gap: var(--tb-space-xs);">
+                                            <MudText Typo="Typo.caption" Style="font-weight:600; text-transform: uppercase;">Suggestions</MudText>
+                                            <ul style="margin: 0; padding-left: var(--tb-space);">
+                                                @foreach (var suggestion in result.Suggestions)
+                                                {
+                                                    <li><MudText Typo="Typo.body2">@suggestion</MudText></li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    }
+
+                                    <!-- Token Stats -->
+                                    @if (result.Tokens != null)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="tb-muted">
+                                            Tokens: @result.Tokens.InputTokens in / @result.Tokens.OutputTokens out (@result.Tokens.TotalTokens total)
+                                        </MudText>
+                                    }
+                                </div>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Saved Versions -->
+@if (savedVersions.Any())
+{
+    <div class="tb-card">
+        <div class="tb-stack" style="gap: var(--tb-space);">
+            <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Saved Versions (@savedVersions.Count)</MudText>
+            <MudText Typo="Typo.caption" Class="tb-muted">
+                Compare different prompt versions and their performance over time.
+            </MudText>
+
+            <div class="tb-stack" style="gap: var(--tb-space-sm);">
+                @foreach (var version in savedVersions.Take(5))
+                {
+                    <div class="tb-card tb-card--nested" style="background: var(--tb-bg-subtle);">
+                        <div class="tb-stack tb-stack--row" style="justify-content: space-between; align-items: center;">
+                            <div class="tb-stack" style="gap: var(--tb-space-xs);">
+                                <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@version.Name</MudText>
+                                <MudText Typo="Typo.caption" Class="tb-muted">
+                                    @version.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                                    @if (version.Score.HasValue)
+                                    {
+                                        <span> | Score: @version.Score.Value.ToString("F1")/100</span>
+                                    }
+                                </MudText>
+                                @if (!string.IsNullOrEmpty(version.Notes))
+                                {
+                                    <MudText Typo="Typo.caption" Style="font-style: italic;">@version.Notes</MudText>
+                                }
+                            </div>
+                            <button class="tb-button tb-button--secondary tb-button--small"
+                                    @onclick="@(() => LoadVersion(version))">
+                                <MudIcon Icon="@Icons.Material.Filled.RestorePage" Size="Size.Small" />
+                                Load
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string promptText = "";
+    private string selectedModel = "gpt-5-mini-2025-01-24";
+    private List<EvaluationTestCase> testCases = new();
+    private PromptEvaluationResponse? evaluationResponse;
+    private List<PromptVersion> savedVersions = new();
+
+    private bool isLoading;
+    private bool isEvaluating;
+    private string statusMessage = "";
+    private bool isError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDefaultTestCases();
+        await LoadSavedVersions();
+    }
+
+    private async Task LoadCurrentPrompt()
+    {
+        isLoading = true;
+        try
+        {
+            promptText = await InstructionService.GetFullTextAsync();
+            ShowStatus("Current prompt loaded successfully", false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load current prompt");
+            ShowStatus($"Failed to load prompt: {ex.Message}", true);
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadDefaultTestCases()
+    {
+        isLoading = true;
+        try
+        {
+            testCases = await EvaluationService.GetDefaultTestCasesAsync();
+            ShowStatus($"Loaded {testCases.Count} default test cases", false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load default test cases");
+            ShowStatus($"Failed to load test cases: {ex.Message}", true);
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void AddTestCase()
+    {
+        var newTestCase = new EvaluationTestCase
+        {
+            Name = $"Test Case {testCases.Count + 1}",
+            UserMessage = "Enter user message here...",
+            ExpectedCharacteristics = new List<string> { "helpful", "safe", "accurate" },
+            AvoidCharacteristics = new List<string> { "pushy", "dismissive" }
+        };
+        testCases.Add(newTestCase);
+    }
+
+    private void RemoveTestCase(EvaluationTestCase testCase)
+    {
+        testCases.Remove(testCase);
+    }
+
+    private async Task RunEvaluation()
+    {
+        if (string.IsNullOrWhiteSpace(promptText) || !testCases.Any())
+        {
+            ShowStatus("Please provide both a prompt and test cases", true);
+            return;
+        }
+
+        isEvaluating = true;
+        statusMessage = "";
+
+        try
+        {
+            var request = new PromptEvaluationRequest
+            {
+                PromptText = promptText,
+                TestCases = testCases,
+                Model = selectedModel
+            };
+
+            evaluationResponse = await EvaluationService.EvaluatePromptAsync(request);
+            ShowStatus($"Evaluation completed! Overall score: {evaluationResponse.OverallScore:F1}/100", false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to run evaluation");
+            ShowStatus($"Evaluation failed: {ex.Message}", true);
+        }
+        finally
+        {
+            isEvaluating = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ClearResults()
+    {
+        evaluationResponse = null;
+        statusMessage = "";
+    }
+
+    private async Task SaveCurrentVersion()
+    {
+        if (evaluationResponse == null) return;
+
+        var versionName = await JSRuntime.InvokeAsync<string>("prompt", "Enter a name for this version:");
+        if (string.IsNullOrWhiteSpace(versionName)) return;
+
+        var notes = await JSRuntime.InvokeAsync<string>("prompt", "Add notes (optional):");
+
+        var version = new PromptVersion
+        {
+            Name = versionName,
+            PromptText = promptText,
+            Score = evaluationResponse.OverallScore,
+            Notes = notes
+        };
+
+        try
+        {
+            await EvaluationService.SavePromptVersionAsync(version);
+            await LoadSavedVersions();
+            ShowStatus($"Version '{versionName}' saved successfully", false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save version");
+            ShowStatus($"Failed to save version: {ex.Message}", true);
+        }
+    }
+
+    private async Task LoadSavedVersions()
+    {
+        try
+        {
+            savedVersions = await EvaluationService.GetSavedVersionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load saved versions");
+        }
+    }
+
+    private void LoadVersion(PromptVersion version)
+    {
+        promptText = version.PromptText;
+        ShowStatus($"Loaded version: {version.Name}", false);
+    }
+
+    private void ShowStatus(string message, bool error)
+    {
+        statusMessage = message;
+        isError = error;
+    }
+}
