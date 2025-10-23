@@ -24,8 +24,14 @@
         @if (ChatStateService.Messages.Count == 0 && !ChatStateService.IsLoading)
         {
             <div class="tb-empty-state">
+                <div class="tb-badge" style="margin: 0 auto var(--tb-space-12);">
+                    <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Small" />
+                    AI-Powered Consultation
+                </div>
                 <div class="tb-empty-state__icon">
-                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Color="Color.Success" />
+                    <div class="tb-icon-container tb-icon-container--accent" style="width: 64px; height: 64px; margin: 0 auto var(--tb-space-16);">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Color="Color.Success" Style="font-size: 1.75rem;" />
+                    </div>
                 </div>
                 <h2 class="tb-empty-state__title">Ready to create your perfect blend?</h2>
                 <p class="tb-empty-state__text">
@@ -33,15 +39,15 @@
                 </p>
                 <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); justify-content: center; margin-bottom: var(--tb-space-16);">
                     <span class="tb-chip">
-                        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" Style="color: var(--text-primary);" />
                         Fitness & Performance
                     </span>
                     <span class="tb-chip">
-                        <MudIcon Icon="@Icons.Material.Filled.SelfImprovement" Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.SelfImprovement" Size="Size.Small" Style="color: var(--text-primary);" />
                         Stress & Sleep
                     </span>
                     <span class="tb-chip">
-                        <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Small" Style="color: var(--text-primary);" />
                         Nutrition Gaps
                     </span>
                 </div>
@@ -77,7 +83,7 @@
         {
             <div class="tb-typing">
                 <div class="tb-typing__avatar">
-                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" />
+                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" Style="color: white;" />
                 </div>
                 <div class="tb-typing__dots">
                     <span class="tb-typing__dot"></span>
@@ -115,7 +121,7 @@
                     @onclick="async () => await fileUpload.OpenFilePickerAsync()"
                     disabled="@ChatStateService.IsLoading"
                     title="Attach files">
-                <MudIcon Icon="@Icons.Material.Filled.AttachFile" />
+                <MudIcon Icon="@Icons.Material.Filled.AttachFile" Style="color: inherit;" />
             </button>
 
             <!-- Text Input -->
@@ -132,7 +138,7 @@
                     class="tb-chat-send-btn"
                     @onclick="SendMessage"
                     disabled="@ChatStateService.IsLoading">
-                <MudIcon Icon="@Icons.Material.Filled.Send" />
+                <MudIcon Icon="@Icons.Material.Filled.Send" Style="color: inherit;" />
             </button>
         </div>
     </div>
@@ -140,7 +146,7 @@
 
 <!-- Floating Action Button (Settings) -->
 <button class="tb-fab" @onclick="ToggleSettings" title="Settings & Stats">
-    <MudIcon Icon="@(_showSettings ? Icons.Material.Filled.Close : Icons.Material.Filled.Tune)" />
+    <MudIcon Icon="@(_showSettings ? Icons.Material.Filled.Close : Icons.Material.Filled.Tune)" Style="color: inherit;" />
 </button>
 
 <!-- Bottom Sheet (Settings & Stats) -->
@@ -148,8 +154,13 @@
     <div class="tb-bottom-sheet__handle"></div>
     <div class="tb-bottom-sheet__content">
         <!-- Model Selection -->
-        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
-            <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: var(--tb-space-12); color: var(--tb-gray-900);">AI Model</h3>
+        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16); background: var(--tb-indigo-soft); border-left: 3px solid var(--tb-indigo);">
+            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
+                <div class="tb-icon-container tb-icon-container--info tb-icon-container--sm">
+                    <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" Style="color: var(--tb-indigo);" />
+                </div>
+                <h3 class="tb-heading-sm" style="margin: 0;">AI Model</h3>
+            </div>
             <MudSelect T="string"
                        Value="@selectedModel"
                        ValueChanged="@OnModelChanged"
@@ -163,7 +174,7 @@
                             <div style="font-weight: 600;">@model.DisplayName</div>
                             @if (!string.IsNullOrEmpty(model.Description))
                             {
-                                <div style="font-size: 0.75rem; color: var(--tb-gray-500);">@model.Description</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">@model.Description</div>
                             }
                         </div>
                     </MudSelectItem>
@@ -173,13 +184,18 @@
 
         <!-- Display Options -->
         <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
-            <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: var(--tb-space-12); color: var(--tb-gray-900);">Display Options</h3>
+            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
+                <div class="tb-icon-container tb-icon-container--accent tb-icon-container--sm">
+                    <MudIcon Icon="@Icons.Material.Filled.Brush" Size="Size.Small" Style="color: var(--tb-accent);" />
+                </div>
+                <h3 class="tb-heading-sm" style="margin: 0;">Display Options</h3>
+            </div>
             <MudCheckBox T="bool"
                          @bind-Checked="typewriterEnabled"
                          Label="Typewriter effect"
                          Color="Color.Primary"
                          Dense="true" />
-            <p style="font-size: 0.75rem; color: var(--tb-gray-500); margin-top: var(--tb-space-4);">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--tb-space-4);">
                 Gradually reveal AI responses
             </p>
         </div>
@@ -188,10 +204,10 @@
         @if (isGpt5Selected)
         {
             <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
-                <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: var(--tb-space-12); color: var(--tb-gray-900);">GPT-5 Settings</h3>
+                <h3 class="tb-heading-sm">GPT-5 Settings</h3>
 
                 <div style="margin-bottom: var(--tb-space-16);">
-                    <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--tb-gray-700);">Reasoning Effort</p>
+                    <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--text-primary);">Reasoning Effort</p>
                     <MudRadioGroup T="string" @bind-Value="@reasoningEffort">
                         <MudRadio T="string" Value="@("minimal")" Color="Color.Primary" Dense="true">Minimal (fastest)</MudRadio>
                         <MudRadio T="string" Value="@("low")" Color="Color.Primary" Dense="true">Low</MudRadio>
@@ -201,7 +217,7 @@
                 </div>
 
                 <div>
-                    <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--tb-gray-700);">Response Style</p>
+                    <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--text-primary);">Response Style</p>
                     <MudSelect T="string" Value="@verbosity" ValueChanged="@((string val) => verbosity = val)" Variant="Variant.Outlined" Dense="true">
                         <MudSelectItem T="string" Value="@("low")">Concise</MudSelectItem>
                         <MudSelectItem T="string" Value="@("medium")">Balanced</MudSelectItem>
@@ -213,12 +229,23 @@
 
         <!-- Session Stats -->
         <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
-            <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: var(--tb-space-12); color: var(--tb-gray-900);">Session Stats</h3>
+            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
+                <div class="tb-icon-container tb-icon-container--accent tb-icon-container--sm">
+                    <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Small" Style="color: var(--tb-accent);" />
+                </div>
+                <h3 class="tb-heading-sm" style="margin: 0;">Session Stats</h3>
+            </div>
             <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
         </div>
 
         <!-- Actions -->
         <div class="tb-card tb-card--flat">
+            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
+                <div class="tb-icon-container tb-icon-container--warning tb-icon-container--sm">
+                    <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Style="color: #f59e0b;" />
+                </div>
+                <h3 class="tb-heading-sm" style="margin: 0;">Actions</h3>
+            </div>
             <div style="display: flex; flex-direction: column; gap: var(--tb-space-12);">
                 <button type="button"
                         class="tb-btn tb-btn--secondary"
@@ -231,7 +258,7 @@
                     }
                     else
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.Refresh" />
+                        <MudIcon Icon="@Icons.Material.Filled.Refresh" Style="color: inherit;" />
                         <span>Refresh Stats</span>
                     }
                 </button>
@@ -247,7 +274,7 @@
                     }
                     else
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.RestartAlt" />
+                        <MudIcon Icon="@Icons.Material.Filled.RestartAlt" Style="color: inherit;" />
                         <span>Reset Session</span>
                     }
                 </button>
@@ -260,7 +287,7 @@
                             @onclick="ExportAsMarkdown"
                             disabled="@(ChatStateService.Messages.Count == 0)"
                             style="flex: 1;">
-                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Style="color: inherit;" />
                         <span>MD</span>
                     </button>
                     <button type="button"
@@ -268,7 +295,7 @@
                             @onclick="ExportAsJson"
                             disabled="@(ChatStateService.Messages.Count == 0)"
                             style="flex: 1;">
-                        <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" />
+                        <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" Style="color: inherit;" />
                         <span>JSON</span>
                     </button>
                 </div>
@@ -284,7 +311,7 @@
     private bool isResetting;
     private SessionStatsComponent? sessionStatsRef;
     private ElementReference _messagesContainer;
-    private string selectedModel = "gpt-5";
+    private string selectedModel = "gpt-5-mini";
     private bool _showSettings = false;
 
     // Async tracking
@@ -333,17 +360,17 @@
     {
         new ModelOption
         {
-            Id = "gpt-5",
-            DisplayName = "GPT-5",
-            ModelId = "gpt-5",
-            Description = "Most capable reasoning model (default)"
-        },
-        new ModelOption
-        {
             Id = "gpt-5-mini",
             DisplayName = "GPT-5 Mini",
             ModelId = "gpt-5-mini",
-            Description = "Balanced reasoning & cost"
+            Description = "Balanced reasoning & cost (default)"
+        },
+        new ModelOption
+        {
+            Id = "gpt-5",
+            DisplayName = "GPT-5",
+            ModelId = "gpt-5",
+            Description = "Most capable reasoning model"
         },
         new ModelOption
         {

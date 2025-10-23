@@ -9,10 +9,37 @@
 
 <div class="tb-page">
     <div class="tb-page__header">
-        <MudText Typo="Typo.h4" Style="font-weight:700;">Multi-Agent Formulation</MudText>
+        <div style="display: flex; align-items: center; gap: var(--tb-space-16); margin-bottom: var(--tb-space-12);">
+            <div class="tb-icon-container tb-icon-container--accent">
+                <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Style="color: var(--tb-accent); font-size: 1.5rem;" />
+            </div>
+            <div>
+                <div style="display: flex; align-items: center; gap: var(--tb-space-8); margin-bottom: var(--tb-space-4);">
+                    <div class="tb-badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                        <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Small" />
+                        Experimental
+                    </div>
+                </div>
+                <MudText Typo="Typo.h4" Style="font-weight:700; margin: 0;">Multi-Agent Formulation</MudText>
+            </div>
+        </div>
         <MudText Typo="Typo.body1" Class="tb-muted">
-            Powered by specialized AI agents working together
+            Powered by specialized AI agents working together to create your perfect blend.
         </MudText>
+        <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); margin-top: var(--tb-space-12);">
+            <span class="tb-chip">
+                <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" />
+                Intelligent Analysis
+            </span>
+            <span class="tb-chip">
+                <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Small" />
+                Evidence-Based
+            </span>
+            <span class="tb-chip">
+                <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" />
+                Safety Checked
+            </span>
+        </div>
     </div>
 
     <div class="tb-page__content">
@@ -166,15 +193,21 @@
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 @if (step.StepType == "thinking")
                                 {
-                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                                    <div class="tb-icon-container tb-icon-container--sm tb-icon-container--info">
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                                    </div>
                                 }
                                 else if (step.StepType == "result")
                                 {
-                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                                    <div class="tb-icon-container tb-icon-container--sm tb-icon-container--accent">
+                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                                    </div>
                                 }
                                 else if (step.StepType == "error")
                                 {
-                                    <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" />
+                                    <div class="tb-icon-container tb-icon-container--sm tb-icon-container--warning">
+                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Warning" />
+                                    </div>
                                 }
 
                                 <div style="flex: 1;">

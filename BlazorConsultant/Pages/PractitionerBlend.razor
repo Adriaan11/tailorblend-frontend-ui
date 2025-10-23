@@ -13,9 +13,19 @@
     <section class="tb-conversation__messages" id="blendMessagesContainer" @ref="_messagesContainer">
         <header class="tb-stack" style="gap: var(--tb-space-sm);">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div>
-                    <MudText Typo="Typo.overline" Class="tb-muted">Practitioner Mode</MudText>
-                    <MudText Typo="Typo.h5" Style="font-weight:700;">Evidence-based supplement formulation</MudText>
+                <div style="display: flex; align-items: center; gap: var(--tb-space-16);">
+                    <div class="tb-icon-container tb-icon-container--accent">
+                        <MudIcon Icon="@Icons.Material.Filled.Science" Style="color: var(--tb-accent); font-size: 1.5rem;" />
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: var(--tb-space-8); margin-bottom: var(--tb-space-4);">
+                            <div class="tb-badge" style="background: var(--tb-indigo-soft); color: var(--tb-indigo);">
+                                <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" Size="Size.Small" />
+                                Practitioner Mode
+                            </div>
+                        </div>
+                        <MudText Typo="Typo.h5" Style="font-weight:700;">Evidence-based supplement formulation</MudText>
+                    </div>
                 </div>
                 @if (blendGenerated)
                 {
@@ -27,11 +37,28 @@
             <MudText Typo="Typo.body2" Class="tb-muted">
                 Create personalized supplement protocols with comprehensive clinical rationale and drug interaction analysis.
             </MudText>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); justify-content: flex-start; margin-top: var(--tb-space-12);">
+                <span class="tb-chip">
+                    <MudIcon Icon="@Icons.Material.Filled.Biotech" Size="Size.Small" />
+                    Clinical Grade
+                </span>
+                <span class="tb-chip">
+                    <MudIcon Icon="@Icons.Material.Filled.LocalHospital" Size="Size.Small" />
+                    Drug Interactions
+                </span>
+                <span class="tb-chip">
+                    <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Small" />
+                    Research-Backed
+                </span>
+            </div>
         </header>
 
         @if (!blendGenerated)
         {
             <div class="tb-card tb-card--flat tb-empty-state">
+                <div class="tb-icon-container tb-icon-container--info" style="margin: 0 auto var(--tb-space-16);">
+                    <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Info" Style="font-size: 1.5rem;" />
+                </div>
                 <MudText Typo="Typo.h6" Style="margin-bottom: 1.5rem; font-weight: 600;">Patient Information</MudText>
 
                 <div class="tb-form-grid">
