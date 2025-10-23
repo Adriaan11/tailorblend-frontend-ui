@@ -1,108 +1,131 @@
 @inherits LayoutComponentBase
+@inject ISessionService SessionService
+@inject IJSRuntime JS
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout Class="tb-app">
-    <div class="@($"tb-shell{(_sidebarCollapsed ? " collapsed" : string.Empty)}")">
-        <div class="tb-shell__sidebar @( _sidebarOpen ? "is-open" : string.Empty)" @onclick="CloseSidebar">
-            <div class="tb-sidebar__panel" @onclick:stopPropagation="true">
-                <div class="tb-sidebar__brand">
-                    <div class="tb-brand__icon">
-                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" />
-                    </div>
-                    <div class="tb-brand__meta">
-                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">TailorBlend</MudText>
-                        <MudText Typo="Typo.caption" Class="tb-muted" Style="letter-spacing:0.08em; text-transform:uppercase;">
-                            AI Consultant
-                        </MudText>
-                    </div>
-                    <MudIconButton Icon="@(_sidebarCollapsed ? Icons.Material.Filled.ChevronRight : Icons.Material.Filled.ChevronLeft)"
-                                    Class="tb-icon-button tb-collapse-btn mud-hidden-sm-and-down"
-                                    OnClick="ToggleSidebarCollapse"
-                                    title="Toggle navigation width"
-                                    aria-label="Toggle navigation width" />
-                </div>
-
-                <nav class="tb-sidebar__nav">
-                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/" Match="NavLinkMatch.All" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.Home">
-                        Overview
-                    </MudNavLink>
-                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/chat" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.Chat">
-                        Consultation
-                    </MudNavLink>
-                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/practitioner-blend" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.MedicalServices">
-                        Practitioner Blend
-                    </MudNavLink>
-                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/multi-agent-blend" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.Psychology">
-                        Multi-Agent Formulation
-                    </MudNavLink>
-                    <MudNavLink Class="tb-nav-item" ActiveClass="active" Href="/configuration" OnClick="@(_ => CloseSidebar())" Icon="@Icons.Material.Filled.Settings">
-                        Configuration
-                    </MudNavLink>
-                </nav>
-
-                <div class="tb-nav-footer">
-                    <MudText Typo="Typo.caption" Class="tb-muted">Personalized nutrition for practitioners and patients who care about precision.</MudText>
-                </div>
+<div class="tb-mobile-app">
+    <!-- Desktop Sidebar (hidden on mobile) -->
+    <aside class="tb-desktop-sidebar">
+        <div class="tb-sidebar-brand">
+            <div class="tb-mobile-nav__icon">
+                <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" />
+            </div>
+            <div>
+                <div style="font-weight: 700; font-size: 1.125rem; color: var(--text-primary);">TailorBlend</div>
+                <div class="tb-text-caption">AI Consultant</div>
             </div>
         </div>
 
-        <div class="tb-shell__content">
-            <header class="tb-appbar">
-                <div class="tb-appbar__left">
-                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Default" OnClick="ToggleSidebar" Class="tb-icon-button mud-hidden-md-up" title="Toggle navigation" aria-label="Toggle navigation" />
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">TailorBlend Session</MudText>
-                        <MudText Typo="Typo.caption" Class="tb-muted">Your health, your blend.</MudText>
-                    </div>
-                </div>
+        <nav class="tb-sidebar-nav">
+            <a href="/" class="tb-sidebar-link @(GetActiveClass("/"))">
+                <MudIcon Icon="@Icons.Material.Filled.Home" />
+                <span>Overview</span>
+            </a>
+            <a href="/chat" class="tb-sidebar-link @(GetActiveClass("/chat"))">
+                <MudIcon Icon="@Icons.Material.Filled.Chat" />
+                <span>Consultation</span>
+            </a>
+            <a href="/practitioner-blend" class="tb-sidebar-link @(GetActiveClass("/practitioner-blend"))">
+                <MudIcon Icon="@Icons.Material.Filled.MedicalServices" />
+                <span>Practitioner</span>
+            </a>
+            <a href="/multi-agent-blend" class="tb-sidebar-link @(GetActiveClass("/multi-agent-blend"))">
+                <MudIcon Icon="@Icons.Material.Filled.Psychology" />
+                <span>Multi-Agent</span>
+            </a>
+            <a href="/configuration" class="tb-sidebar-link @(GetActiveClass("/configuration"))">
+                <MudIcon Icon="@Icons.Material.Filled.Settings" />
+                <span>Configuration</span>
+            </a>
+        </nav>
 
-                <div class="tb-appbar__right">
+        <div style="margin-top: auto; padding-top: var(--tb-space-32);">
+            <div class="tb-divider" style="margin-bottom: var(--tb-space-16);"></div>
+            <button class="tb-icon-btn" style="width: 100%;" @onclick="ToggleTheme" title="Toggle theme">
+                <MudIcon Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" />
+                <span style="margin-left: var(--tb-space-8);">@(_isDarkMode ? "Light" : "Dark") Mode</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Wrapper -->
+    <div style="flex: 1; display: flex; flex-direction: column; min-width: 0;">
+        <!-- Mobile Top Navigation -->
+        <header class="tb-mobile-nav">
+            <a href="/" class="tb-mobile-nav__logo">
+                <div class="tb-mobile-nav__icon">
+                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Medium" />
+                </div>
+                <span>TailorBlend</span>
+            </a>
+
+            <div class="tb-mobile-nav__actions">
+                @if (!string.IsNullOrEmpty(SessionService?.SessionId))
+                {
                     <div class="tb-badge">
-                        <span class="tb-dot"></span>
-                        <span>Session Active</span>
-                        @if (SessionService?.MessageCount > 0)
+                        <span class="tb-text-muted" style="font-size: 0.7rem; font-weight: 500;">SESSION</span>
+                        @if (SessionService.MessageCount > 0)
                         {
-                            <span class="tb-chip" style="background: var(--tb-accent); color: white; font-weight:700;">
+                            <span style="background: var(--tb-accent); color: white; padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 0.7rem;">
                                 @SessionService.MessageCount
                             </span>
                         }
                     </div>
+                }
 
-                    @if (!string.IsNullOrEmpty(SessionService?.SessionId))
-                    {
-                        <div class="tb-chip">
-                            <MudIcon Icon="@Icons.Material.Filled.Key" />
-                            <span>@SessionService.SessionId[..Math.Min(10, SessionService.SessionId.Length)]...</span>
-                        </div>
-                    }
+                <button class="tb-icon-btn" @onclick="ToggleTheme" title="Toggle theme">
+                    <MudIcon Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" />
+                </button>
+            </div>
+        </header>
 
-                    <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                                    Class="tb-icon-button"
-                                    OnClick="ToggleTheme"
-                                    title="Toggle theme"
-                                    aria-label="Toggle theme" />
-                </div>
-            </header>
+        <!-- Page Content -->
+        <main class="tb-mobile-content">
+            @Body
+        </main>
 
-            <main class="tb-content">
-                @Body
-            </main>
-        </div>
+        <!-- Mobile Bottom Navigation -->
+        <nav class="tb-bottom-nav">
+            <a href="/" class="tb-bottom-nav__item @(GetActiveClass("/"))">
+                <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Medium" />
+                <span>Home</span>
+            </a>
+            <a href="/chat" class="tb-bottom-nav__item @(GetActiveClass("/chat"))">
+                <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Medium" />
+                <span>Chat</span>
+            </a>
+            <a href="/practitioner-blend" class="tb-bottom-nav__item @(GetActiveClass("/practitioner-blend"))">
+                <MudIcon Icon="@Icons.Material.Filled.MedicalServices" Size="Size.Medium" />
+                <span>Pro</span>
+            </a>
+            <a href="/multi-agent-blend" class="tb-bottom-nav__item @(GetActiveClass("/multi-agent-blend"))">
+                <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Medium" />
+                <span>Multi</span>
+            </a>
+            <a href="/configuration" class="tb-bottom-nav__item @(GetActiveClass("/configuration"))">
+                <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Medium" />
+                <span>Settings</span>
+            </a>
+        </nav>
     </div>
-</MudLayout>
+</div>
 
 @code {
-    [Inject] private ISessionService? SessionService { get; set; }
-    [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private NavigationManager NavManager { get; set; } = default!;
 
-    private bool _sidebarOpen;
-    private bool _sidebarCollapsed;
     private bool _isDarkMode;
     private bool _themeInitialized;
+    private string _currentPath = "";
+
+    protected override void OnInitialized()
+    {
+        _currentPath = NavManager.ToBaseRelativePath(NavManager.Uri);
+        NavManager.LocationChanged += OnLocationChanged;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -125,14 +148,11 @@
         }
     }
 
-    private void ToggleSidebar()
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        _sidebarOpen = !_sidebarOpen;
+        _currentPath = NavManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
     }
-
-    private void CloseSidebar() => _sidebarOpen = false;
-
-    private void ToggleSidebarCollapse() => _sidebarCollapsed = !_sidebarCollapsed;
 
     private async Task ToggleTheme()
     {
@@ -149,5 +169,24 @@
         {
             // Ignore if the theme script is not yet available
         }
+    }
+
+    private string GetActiveClass(string path)
+    {
+        // Normalize paths for comparison
+        var normalizedPath = path.TrimEnd('/');
+        var normalizedCurrentPath = _currentPath.TrimEnd('/');
+
+        if (path == "/")
+        {
+            return normalizedCurrentPath == "" ? "active" : "";
+        }
+
+        return normalizedCurrentPath.StartsWith(normalizedPath, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    }
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= OnLocationChanged;
     }
 }

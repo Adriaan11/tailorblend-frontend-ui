@@ -2,23 +2,31 @@
 @using Markdig
 @implements IDisposable
 
-<div class="tb-message @(Message.Role == "user" ? "user" : "assistant")">
-    <div class="tb-message__meta">
-        <div class="tb-message__author">
-            <MudIcon Icon="@(Message.Role == "user" ? Icons.Material.Filled.Person : Icons.Material.Filled.LocalFlorist)" />
-            <span>@(Message.Role == "user" ? "You" : "TailorBlend AI")</span>
+<div class="tb-message @(Message.Role == "user" ? "tb-message--user" : "tb-message--assistant")">
+    <!-- Message Header -->
+    <div class="tb-message__header">
+        <div style="display: flex; align-items: center; gap: var(--tb-space-8);">
+            @if (Message.Role != "user")
+            {
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, var(--tb-accent), var(--tb-accent-strong)); display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" Style="color: white; font-size: 14px;" />
+                </div>
+            }
+            <span style="font-weight: 600;">@(Message.Role == "user" ? "You" : "TailorBlend AI")</span>
         </div>
         <span title="@Message.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")">@GetRelativeTime(Message.Timestamp)</span>
     </div>
 
+    <!-- File Attachments -->
     @if (Message.Attachments != null && Message.Attachments.Count > 0)
     {
-        <div style="margin-top: 8px;">
+        <div style="margin-bottom: var(--tb-space-12);">
             <FilePreviewComponent Attachments="@Message.Attachments" ShowRemoveButton="false" />
         </div>
     }
 
-    <div class="tb-message__body">
+    <!-- Message Content -->
+    <div class="tb-message__content">
         @if (Message.Role == "assistant" && TypewriterEnabled && _isTyping)
         {
             @((MarkupString)_displayedHtml)
@@ -29,19 +37,17 @@
         }
     </div>
 
+    <!-- Message Actions -->
     <div class="tb-message__actions">
-        <button class="tb-action-btn" title="Copy message" aria-label="Copy message" @onclick="CopyMessage">
-            <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+        <button class="tb-message__action" title="Copy message" aria-label="Copy message" @onclick="CopyMessage">
+            <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Style="color: var(--text-secondary);" />
         </button>
         @if (Message.Role == "assistant")
         {
-            <button class="tb-action-btn" title="Regenerate response" aria-label="Regenerate response">
-                <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
+            <button class="tb-message__action" title="Regenerate response" aria-label="Regenerate response">
+                <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" Style="color: var(--text-secondary);" />
             </button>
         }
-        <button class="tb-action-btn" title="Share" aria-label="Share message">
-            <MudIcon Icon="@Icons.Material.Filled.Share" Size="Size.Small" />
-        </button>
     </div>
 </div>
 
@@ -51,32 +57,26 @@
     [Parameter]
     public ChatMessage Message { get; set; } = new();
 
-    // ✅ TYPEWRITER CONTROL: Controlled by parent component (Chat.razor) via parameter
-    // Defaults to enabled if parent doesn't specify
     [Parameter]
     public bool TypewriterEnabled { get; set; } = true;
 
-    // ✅ PERFORMANCE: Static shared markdown pipeline (created once, reused by all instances)
-    // Previously: Pipeline was rebuilt on EVERY render (expensive regex compilation)
+    // Static shared markdown pipeline (performance optimization)
     private static readonly MarkdownPipeline _sharedPipeline =
         new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
-    // ✅ PERFORMANCE: Cache fields to prevent redundant markdown parsing
+    // Cache fields
     private string? _lastContent;
     private string? _cachedHtml;
 
-    // ✅ TYPEWRITER: State management for character-by-character reveal
-    private bool _isTyping = false;              // Is typewriter currently active?
-    private string _displayedHtml = "";          // HTML revealed so far
-    private int _typewriterIndex = 0;            // Current character position
-    private Timer? _typewriterTimer;             // Interval timer for animation
-    private string _fullContentSnapshot = "";    // Detect content changes
+    // Typewriter state
+    private bool _isTyping = false;
+    private string _displayedHtml = "";
+    private int _typewriterIndex = 0;
+    private Timer? _typewriterTimer;
+    private string _fullContentSnapshot = "";
 
-    // ✅ PERFORMANCE: Override ShouldRender to prevent unnecessary re-renders
-    // Only re-render when content actually changes OR typewriter is animating
     protected override bool ShouldRender()
     {
-        // Always render during typewriter animation
         if (_isTyping)
             return true;
 
@@ -88,31 +88,21 @@
             return true;
         }
 
-        return false; // Block unnecessary re-renders
+        return false;
     }
 
-    // ✅ TYPEWRITER: Detect new messages and trigger typewriter animation
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
 
-        // DEBUG: Log typewriter state
-        Console.WriteLine($"[ChatMessageComponent] TypewriterEnabled={TypewriterEnabled}, Role={Message.Role}, ContentLength={Message.Content?.Length ?? 0}");
-
-        // Only apply typewriter to assistant messages when enabled
-        if (!TypewriterEnabled || Message.Role != "assistant")
+        if (!TypewriterEnabled || Message.Role != "user")
         {
-            Console.WriteLine($"[ChatMessageComponent] Skipping typewriter (Enabled={TypewriterEnabled}, Role={Message.Role})");
-            return;
-        }
-
-        // Detect new content (not already seen)
-        if (!string.IsNullOrEmpty(Message.Content) &&
-            Message.Content != _fullContentSnapshot)
-        {
-            Console.WriteLine($"[ChatMessageComponent] Starting typewriter for new content ({Message.Content.Length} chars)");
-            _fullContentSnapshot = Message.Content;
-            StartTypewriter();
+            if (!string.IsNullOrEmpty(Message.Content) &&
+                Message.Content != _fullContentSnapshot)
+            {
+                _fullContentSnapshot = Message.Content;
+                StartTypewriter();
+            }
         }
     }
 
@@ -140,29 +130,23 @@
         }
     }
 
-    // ✅ TYPEWRITER: Start character-by-character reveal animation
     private void StartTypewriter()
     {
-        // Stop any existing timer
         _typewriterTimer?.Dispose();
 
-        // Parse markdown once (reuse cached result if available)
         _cachedHtml = Markdown.ToHtml(Message.Content, _sharedPipeline);
         _lastContent = Message.Content;
 
-        // Reset typewriter state
         _displayedHtml = "";
         _typewriterIndex = 0;
         _isTyping = true;
 
-        // Start timer: 15ms intervals, 2 chars per tick = ~133 chars/sec (medium pace)
         _typewriterTimer = new Timer(_ =>
         {
             InvokeAsync(() =>
             {
                 if (_typewriterIndex >= _cachedHtml.Length)
                 {
-                    // Typing complete - show full message
                     _displayedHtml = _cachedHtml;
                     _isTyping = false;
                     _typewriterTimer?.Dispose();
@@ -170,34 +154,29 @@
                     return;
                 }
 
-                // Reveal next 2 characters
                 _typewriterIndex += 2;
                 _displayedHtml = _cachedHtml.Substring(0,
                     Math.Min(_typewriterIndex, _cachedHtml.Length));
 
                 StateHasChanged();
             });
-        }, null, 0, 15);  // 0ms initial delay, 15ms interval
+        }, null, 0, 15);
     }
 
-    // ✅ PERFORMANCE: Cached markdown parsing with shared pipeline
     private string FormatMessage(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
             return string.Empty;
 
-        // Cache hit - reuse previously parsed HTML
         if (content == _lastContent && _cachedHtml != null)
             return _cachedHtml;
 
-        // Cache miss - parse markdown and cache result
         _cachedHtml = Markdown.ToHtml(content, _sharedPipeline);
         _lastContent = content;
 
         return _cachedHtml;
     }
 
-    // ✅ TYPEWRITER: Clean up timer on component disposal to prevent memory leaks
     public void Dispose()
     {
         _typewriterTimer?.Dispose();

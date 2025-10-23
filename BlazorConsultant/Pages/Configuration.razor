@@ -8,7 +8,20 @@
 
 <section class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-lg);">
     <div class="tb-stack" style="gap: var(--tb-space);">
-        <MudText Typo="Typo.overline" Class="tb-muted">Agent configuration</MudText>
+        <div style="display: flex; align-items: center; gap: var(--tb-space-16); margin-bottom: var(--tb-space-12);">
+            <div class="tb-icon-container tb-icon-container--accent">
+                <MudIcon Icon="@Icons.Material.Filled.Settings" Style="color: var(--tb-accent); font-size: 1.5rem;" />
+            </div>
+            <div>
+                <div style="display: flex; align-items: center; gap: var(--tb-space-8); margin-bottom: var(--tb-space-4);">
+                    <div class="tb-badge">
+                        <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" />
+                        Configuration
+                    </div>
+                </div>
+                <MudText Typo="Typo.overline" Class="tb-muted">Agent configuration</MudText>
+            </div>
+        </div>
         <MudText Typo="Typo.h5" Style="font-weight:700;">Fine-tune how TailorBlend consults</MudText>
         <MudText Typo="Typo.body2" Class="tb-muted">
             Update the system instructions that guide tone, safety checks, and recommendation frameworks. Changes apply to the very next conversation.
@@ -17,15 +30,18 @@
         <div class="tb-divider" style="margin: var(--tb-space-sm) 0;"></div>
 
         <div class="tb-stack" style="gap: var(--tb-space-sm);">
-            <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Editing Mode</MudText>
+            <div style="display: flex; align-items: center; gap: var(--tb-space-8);">
+                <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Style="color: var(--text-secondary);" />
+                <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Editing Mode</MudText>
+            </div>
             <MudRadioGroup T="string" Value="@editMode" ValueChanged="@OnModeChanged">
                 <div class="tb-stack tb-stack--row" style="gap: var(--tb-space-lg);">
-                    <MudRadio Value="@("granular")" Color="Color.Success">
+                    <MudRadio Value="@("granular")" Color="Color.Default">
                         <MudText Typo="Typo.body2">
                             <strong>Granular Sections</strong> - Edit structured sections separately
                         </MudText>
                     </MudRadio>
-                    <MudRadio Value="@("raw")" Color="Color.Success">
+                    <MudRadio Value="@("raw")" Color="Color.Default">
                         <MudText Typo="Typo.body2">
                             <strong>Raw Instructions</strong> - Paste your own complete system prompt
                         </MudText>
@@ -46,6 +62,9 @@
 else if (sections.Count == 0)
 {
     <div class="tb-empty-state">
+        <div class="tb-icon-container tb-icon-container--warning" style="margin: 0 auto var(--tb-space-16);">
+            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Warning" Style="font-size: 1.5rem;" />
+        </div>
         <MudText Typo="Typo.subtitle1" Style="font-weight:600;">No instruction sections available</MudText>
         <MudText Typo="Typo.body2" Class="tb-muted">Refresh the page or reset to defaults to restore the standard TailorBlend playbook.</MudText>
         <button class="tb-button tb-button--primary" @onclick="ResetToDefaults">Restore defaults</button>

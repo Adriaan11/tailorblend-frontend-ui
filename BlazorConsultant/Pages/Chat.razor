@@ -13,173 +13,168 @@
 
 <PageTitle>Chat - TailorBlend AI Consultant</PageTitle>
 
-<div class="tb-conversation">
-    <section class="tb-conversation__messages" id="messagesContainer" @ref="_messagesContainer">
-        <header class="tb-stack" style="gap: var(--tb-space-sm);">
-            <MudText Typo="Typo.overline" Class="tb-muted">Consultation</MudText>
-            <MudText Typo="Typo.h5" Style="font-weight:700;">Personalized supplement planning</MudText>
-            <MudText Typo="Typo.body2" Class="tb-muted">
-                Share your goals, lifestyle, and preferences. TailorBlend will respond with targeted guidance in real time.
-            </MudText>
-        </header>
+<!-- Backdrop for bottom sheet -->
+<div class="tb-backdrop @(_showSettings ? "active" : "")" @onclick="CloseSettings"></div>
 
-        <div class="tb-quick-actions">
-            @foreach (var example in examplePrompts)
-            {
-                <button type="button" class="tb-quick-action" @onclick="() => SendExampleMessage(example)">
-                    @example
-                </button>
-            }
-        </div>
-
-        <!-- ✅ USER PROFILE: Optional pre-fillable fields for context enrichment -->
-        <UserProfileComponent Profile="@userProfile" OnProfileChanged="HandleProfileChanged" />
-
+<!-- Main Chat Container -->
+<div class="tb-chat-container">
+    <!-- Messages Area -->
+    <div class="tb-chat-messages" id="messagesContainer" @ref="_messagesContainer">
+        <!-- Empty State -->
         @if (ChatStateService.Messages.Count == 0 && !ChatStateService.IsLoading)
         {
-            <div class="tb-card tb-card--flat tb-empty-state">
-                <div class="tb-empty-state__icon">
-                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Color="Color.Success" Style="font-size:4rem; opacity: 0.2;" />
+            <div class="tb-empty-state">
+                <div class="tb-badge" style="margin: 0 auto var(--tb-space-12);">
+                    <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Small" />
+                    AI-Powered Consultation
                 </div>
-                <MudText Typo="Typo.h4" Style="font-weight:700; margin-top: 1rem;">
-                    Ready to create your perfect blend?
-                </MudText>
-                <MudText Typo="Typo.body1" Class="tb-muted" Style="max-width: 480px; margin: 0 auto;">
-                    Tell me about your health goals, lifestyle, and any dietary preferences.
-                    I'll guide you through a personalized consultation to design your ideal supplement stack.
-                </MudText>
-                <div class="tb-pill-list" style="justify-content: center;">
-                    <span class="tb-chip tb-chip--highlight">
-                        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" />
+                <div class="tb-empty-state__icon">
+                    <div class="tb-icon-container tb-icon-container--accent" style="width: 64px; height: 64px; margin: 0 auto var(--tb-space-16);">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Color="Color.Success" Style="font-size: 1.75rem;" />
+                    </div>
+                </div>
+                <h2 class="tb-empty-state__title">Ready to create your perfect blend?</h2>
+                <p class="tb-empty-state__text">
+                    Share your goals, lifestyle, and preferences. TailorBlend will respond with targeted guidance in real time.
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); justify-content: center; margin-bottom: var(--tb-space-16);">
+                    <span class="tb-chip">
+                        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" Style="color: var(--text-primary);" />
                         Fitness & Performance
                     </span>
-                    <span class="tb-chip tb-chip--highlight">
-                        <MudIcon Icon="@Icons.Material.Filled.SelfImprovement" Size="Size.Small" />
+                    <span class="tb-chip">
+                        <MudIcon Icon="@Icons.Material.Filled.SelfImprovement" Size="Size.Small" Style="color: var(--text-primary);" />
                         Stress & Sleep
                     </span>
-                    <span class="tb-chip tb-chip--highlight">
-                        <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Small" />
+                    <span class="tb-chip">
+                        <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Small" Style="color: var(--text-primary);" />
                         Nutrition Gaps
                     </span>
                 </div>
             </div>
+
+            <!-- Quick Actions -->
+            <div class="tb-quick-actions">
+                @foreach (var example in examplePrompts)
+                {
+                    <button type="button" class="tb-quick-action" @onclick="() => SendExampleMessage(example)">
+                        @example
+                    </button>
+                }
+            </div>
+
+            <!-- User Profile Component -->
+            <UserProfileComponent Profile="@userProfile" OnProfileChanged="HandleProfileChanged" />
         }
         else
         {
-            <div class="tb-stack" style="gap: var(--tb-space);">
-                @foreach (var msg in ChatStateService.Messages)
-                {
-                    <div style="position: relative;">
-                        @* ✅ PROFILE BADGE: Show indicator when message includes profile context *@
-                        @if (msg.Role == "user" && msg.Content.Contains("[Profile Context]"))
-                        {
-                            <div class="tb-profile-badge">
-                                <MudIcon Icon="@Icons.Material.Filled.Assignment" Size="Size.Small" />
-                                Profile included
-                            </div>
-                        }
-                        <ChatMessageComponent
-                            Message="@msg"
-                            TypewriterEnabled="@typewriterEnabled"
-                            @key="@($"{msg.Timestamp.Ticks}_{msg.Role}")" />
-                    </div>
-                }
-            </div>
+            <!-- Messages List -->
+            @foreach (var msg in ChatStateService.Messages)
+            {
+                <ChatMessageComponent
+                    Message="@msg"
+                    TypewriterEnabled="@typewriterEnabled"
+                    @key="@($"{msg.Timestamp.Ticks}_{msg.Role}")" />
+            }
         }
-        <div class="tb-input-bar">
-            <!-- File Preview Component -->
-            @if (selectedFiles.Count > 0)
-            {
-                <FilePreviewComponent Attachments="@selectedFiles"
-                                     ShowRemoveButton="true"
-                                     OnRemoveClick="@RemoveFile" />
-            }
 
-            <div style="position: relative; display: flex; align-items: flex-end; gap: 0.5rem;">
-                <!-- MudBlazor file upload (hidden input) -->
-                <MudFileUpload T="IReadOnlyList<IBrowserFile>"
-                               @ref="fileUpload"
-                               OnFilesChanged="OnFilesChanged"
-                               Hidden="true"
-                               MaximumFileCount="@MaxFiles"
-                               Accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx" />
-
-                <!-- Attach button -->
-                <button type="button"
-                        class="tb-attach-btn"
-                        @onclick="async () => await fileUpload.OpenFilePickerAsync()"
-                        disabled="@ChatStateService.IsLoading"
-                        title="Attach files (max 10MB per file)">
-                    <MudIcon Icon="@Icons.Material.Filled.AttachFile" />
-                </button>
-
-                <div style="position: relative; flex: 1;">
-                    <textarea class="tb-input"
-                              @bind="userInput"
-                              @bind:event="oninput"
-                              placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
-                              @onkeydown="HandleKeyPress"
-                              disabled="@ChatStateService.IsLoading"></textarea>
-
-                    <button type="button"
-                            class="tb-send-btn"
-                            @onclick="SendMessage"
-                            disabled="@ChatStateService.IsLoading">
-                        <MudIcon Icon="@Icons.Material.Filled.Send" />
-                    </button>
-                </div>
-            </div>
-
-            @if (ChatStateService.IsLoading)
-            {
-                <div class="tb-typing-indicator" style="margin-top: 12px;">
-                    <div class="tb-typing-avatar">
-                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" />
-                    </div>
-                    <div class="tb-typing-content">
-                        <div class="tb-typing-text">TailorBlend is thinking...</div>
-                        <div class="tb-typing-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-
-        @if (showScrollButton)
+        <!-- Typing Indicator -->
+        @if (ChatStateService.IsLoading)
         {
-            <button class="tb-scroll-fab" @onclick="ScrollToBottom" aria-label="Scroll to bottom">
-                <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" />
-                @if (hasNewMessages)
-                {
-                    <span class="tb-scroll-badge">New</span>
-                }
-            </button>
+            <div class="tb-typing">
+                <div class="tb-typing__avatar">
+                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" Style="color: white;" />
+                </div>
+                <div class="tb-typing__dots">
+                    <span class="tb-typing__dot"></span>
+                    <span class="tb-typing__dot"></span>
+                    <span class="tb-typing__dot"></span>
+                </div>
+            </div>
         }
-    </section>
+    </div>
 
-    <aside class="tb-stats-panel @(isStatsExpanded ? "expanded" : "")">
-        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space);">
-            <MudText Typo="Typo.overline" Class="tb-muted">AI Model</MudText>
-            <MudText Typo="Typo.h6" Style="font-weight:700; margin-bottom: var(--tb-space-sm);">Select Model</MudText>
+    <!-- File Preview (if files selected) -->
+    @if (selectedFiles.Count > 0)
+    {
+        <div style="border-top: 1px solid var(--tb-border); background: var(--tb-surface); padding: var(--tb-space-12) var(--tb-space-16);">
+            <FilePreviewComponent Attachments="@selectedFiles"
+                                 ShowRemoveButton="true"
+                                 OnRemoveClick="@RemoveFile" />
+        </div>
+    }
 
+    <!-- Chat Input Area -->
+    <div class="tb-chat-input-container">
+        <div class="tb-chat-input-wrapper">
+            <!-- File Upload (Hidden) -->
+            <MudFileUpload T="IReadOnlyList<IBrowserFile>"
+                           @ref="fileUpload"
+                           OnFilesChanged="OnFilesChanged"
+                           Hidden="true"
+                           MaximumFileCount="@MaxFiles"
+                           Accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx" />
+
+            <!-- Attach Button -->
+            <button type="button"
+                    class="tb-icon-btn"
+                    @onclick="async () => await fileUpload.OpenFilePickerAsync()"
+                    disabled="@ChatStateService.IsLoading"
+                    title="Attach files">
+                <MudIcon Icon="@Icons.Material.Filled.AttachFile" Style="color: inherit;" />
+            </button>
+
+            <!-- Text Input -->
+            <textarea class="tb-chat-input"
+                      @bind="userInput"
+                      @bind:event="oninput"
+                      placeholder="Type your message..."
+                      @onkeydown="HandleKeyPress"
+                      disabled="@ChatStateService.IsLoading"
+                      rows="1"></textarea>
+
+            <!-- Send Button -->
+            <button type="button"
+                    class="tb-chat-send-btn"
+                    @onclick="SendMessage"
+                    disabled="@ChatStateService.IsLoading">
+                <MudIcon Icon="@Icons.Material.Filled.Send" Style="color: inherit;" />
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button (Settings) -->
+<button class="tb-fab" @onclick="ToggleSettings" title="Settings & Stats">
+    <MudIcon Icon="@(_showSettings ? Icons.Material.Filled.Close : Icons.Material.Filled.Tune)" Style="color: inherit;" />
+</button>
+
+<!-- Bottom Sheet (Settings & Stats) -->
+<div class="tb-bottom-sheet @(_showSettings ? "active" : "")">
+    <div class="tb-bottom-sheet__handle"></div>
+    <div class="tb-bottom-sheet__content">
+        <!-- Model Selection -->
+        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16); background: var(--tb-indigo-soft); border-left: 3px solid var(--tb-indigo);">
+            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
+                <div class="tb-icon-container tb-icon-container--info tb-icon-container--sm">
+                    <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" Style="color: var(--tb-indigo);" />
+                </div>
+                <h3 class="tb-heading-sm" style="margin: 0;">AI Model</h3>
+            </div>
             <MudSelect T="string"
                        Value="@selectedModel"
                        ValueChanged="@OnModelChanged"
-                       Variant="Variant.Text"
+                       Variant="Variant.Outlined"
                        Dense="true"
-                       FullWidth="true"
-                       Class="tb-model-select">
+                       FullWidth="true">
                 @foreach (var model in availableModels)
                 {
                     <MudSelectItem T="string" Value="@model.ModelId">
                         <div>
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@model.DisplayName</MudText>
+                            <div style="font-weight: 600;">@model.DisplayName</div>
                             @if (!string.IsNullOrEmpty(model.Description))
                             {
-                                <MudText Typo="Typo.caption" Class="tb-muted">@model.Description</MudText>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">@model.Description</div>
                             }
                         </div>
                     </MudSelectItem>
@@ -187,126 +182,126 @@
             </MudSelect>
         </div>
 
-        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space);">
-            <MudText Typo="Typo.overline" Class="tb-muted">Display Options</MudText>
-
-            <MudCheckBox
-                T="bool"
-                @bind-Checked="typewriterEnabled"
-                Label="Typewriter effect"
-                Color="Color.Primary"
-                Dense="true" />
-
-            <MudText Typo="Typo.caption" Class="tb-muted" Style="margin-top: 0.25rem;">
-                Gradually reveal AI responses (applies to new messages)
-            </MudText>
+        <!-- Display Options -->
+        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
+            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
+                <div class="tb-icon-container tb-icon-container--accent tb-icon-container--sm">
+                    <MudIcon Icon="@Icons.Material.Filled.Brush" Size="Size.Small" Style="color: var(--tb-accent);" />
+                </div>
+                <h3 class="tb-heading-sm" style="margin: 0;">Display Options</h3>
+            </div>
+            <MudCheckBox T="bool"
+                         @bind-Checked="typewriterEnabled"
+                         Label="Typewriter effect"
+                         Color="Color.Primary"
+                         Dense="true" />
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--tb-space-4);">
+                Gradually reveal AI responses
+            </p>
         </div>
 
+        <!-- GPT-5 Settings -->
         @if (isGpt5Selected)
         {
-            <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space);">
-                <MudText Typo="Typo.overline" Class="tb-muted">GPT-5 Settings</MudText>
+            <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
+                <h3 class="tb-heading-sm">GPT-5 Settings</h3>
 
-                <MudText Typo="Typo.body2" Style="margin-top: 0.5rem; font-weight: 600;">Reasoning Effort</MudText>
-                <MudRadioGroup T="string" @bind-Value="@reasoningEffort">
-                    <MudRadio T="string" Value="@("minimal")" Color="Color.Primary">Minimal (fastest)</MudRadio>
-                    <MudRadio T="string" Value="@("low")" Color="Color.Primary">Low</MudRadio>
-                    <MudRadio T="string" Value="@("medium")" Color="Color.Primary">Medium (balanced)</MudRadio>
-                    <MudRadio T="string" Value="@("high")" Color="Color.Primary">High (thorough)</MudRadio>
-                </MudRadioGroup>
+                <div style="margin-bottom: var(--tb-space-16);">
+                    <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--text-primary);">Reasoning Effort</p>
+                    <MudRadioGroup T="string" @bind-Value="@reasoningEffort">
+                        <MudRadio T="string" Value="@("minimal")" Color="Color.Primary" Dense="true">Minimal (fastest)</MudRadio>
+                        <MudRadio T="string" Value="@("low")" Color="Color.Primary" Dense="true">Low</MudRadio>
+                        <MudRadio T="string" Value="@("medium")" Color="Color.Primary" Dense="true">Medium (balanced)</MudRadio>
+                        <MudRadio T="string" Value="@("high")" Color="Color.Primary" Dense="true">High (thorough)</MudRadio>
+                    </MudRadioGroup>
+                </div>
 
-                <MudText Typo="Typo.body2" Style="margin-top: 1rem; font-weight: 600;">Response Style</MudText>
-                <MudSelect T="string" Value="@verbosity" ValueChanged="@((string val) => verbosity = val)" Variant="Variant.Outlined" Dense="true" Style="margin-top: 0.25rem;">
-                    <MudSelectItem T="string" Value="@("low")">Concise</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("medium")">Balanced</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("high")">Detailed</MudSelectItem>
-                </MudSelect>
+                <div>
+                    <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--text-primary);">Response Style</p>
+                    <MudSelect T="string" Value="@verbosity" ValueChanged="@((string val) => verbosity = val)" Variant="Variant.Outlined" Dense="true">
+                        <MudSelectItem T="string" Value="@("low")">Concise</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("medium")">Balanced</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("high")">Detailed</MudSelectItem>
+                    </MudSelect>
+                </div>
             </div>
         }
 
-        <div class="tb-card tb-card--flat">
-            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" @onclick="ToggleStatsPanel">
-                <div>
-                    <MudText Typo="Typo.overline" Class="tb-muted">Session snapshot</MudText>
-                    <MudText Typo="Typo.h6" Style="font-weight:700;">Usage overview</MudText>
+        <!-- Session Stats -->
+        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
+            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
+                <div class="tb-icon-container tb-icon-container--accent tb-icon-container--sm">
+                    <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Small" Style="color: var(--tb-accent);" />
                 </div>
-                <MudIconButton Icon="@(isStatsExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                               Color="Color.Default"
-                               Size="Size.Small" />
+                <h3 class="tb-heading-sm" style="margin: 0;">Session Stats</h3>
             </div>
-
-            @if (isStatsExpanded)
-            {
-                <div class="tb-divider"></div>
-
-                <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
-
-                <div class="tb-divider"></div>
-
-                <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
-                    <button type="button"
-                            class="tb-button tb-button--secondary"
-                            @onclick="RefreshStats"
-                            @onclick:stopPropagation="true"
-                            disabled="@isRefreshing">
-                        @if (isRefreshing)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="color: var(--tb-gray-600);" />
-                            <span>Refreshing</span>
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.Refresh" />
-                            <span>Refresh</span>
-                        }
-                    </button>
-
-                    <button type="button"
-                            class="tb-button tb-button--primary"
-                            @onclick="ResetConversation"
-                            @onclick:stopPropagation="true"
-                            disabled="@isResetting">
-                        @if (isResetting)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="color: white;" />
-                            <span>Resetting</span>
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.RestartAlt" />
-                            <span>Reset session</span>
-                        }
-                    </button>
-                </div>
-
-                <div class="tb-divider"></div>
-
-                <div class="tb-stack">
-                    <MudText Typo="Typo.overline" Class="tb-muted">Export conversation</MudText>
-                    <div class="tb-stack tb-stack--row" style="gap: 0.5rem;">
-                        <button type="button"
-                                class="tb-button tb-button--secondary"
-                                @onclick="ExportAsMarkdown"
-                                @onclick:stopPropagation="true"
-                                style="flex: 1;"
-                                disabled="@(ChatStateService.Messages.Count == 0)">
-                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
-                            <span>Markdown</span>
-                        </button>
-                        <button type="button"
-                                class="tb-button tb-button--secondary"
-                                @onclick="ExportAsJson"
-                                @onclick:stopPropagation="true"
-                                style="flex: 1;"
-                                disabled="@(ChatStateService.Messages.Count == 0)">
-                            <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" />
-                            <span>JSON</span>
-                        </button>
-                    </div>
-                </div>
-            }
+            <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
         </div>
-    </aside>
+
+        <!-- Actions -->
+        <div class="tb-card tb-card--flat">
+            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
+                <div class="tb-icon-container tb-icon-container--warning tb-icon-container--sm">
+                    <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Style="color: #f59e0b;" />
+                </div>
+                <h3 class="tb-heading-sm" style="margin: 0;">Actions</h3>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: var(--tb-space-12);">
+                <button type="button"
+                        class="tb-btn tb-btn--secondary"
+                        @onclick="RefreshStats"
+                        disabled="@isRefreshing">
+                    @if (isRefreshing)
+                    {
+                        <div class="tb-spinner" style="width: 20px; height: 20px;"></div>
+                        <span>Refreshing...</span>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Refresh" Style="color: inherit;" />
+                        <span>Refresh Stats</span>
+                    }
+                </button>
+
+                <button type="button"
+                        class="tb-btn tb-btn--primary"
+                        @onclick="ResetConversation"
+                        disabled="@isResetting">
+                    @if (isResetting)
+                    {
+                        <div class="tb-spinner" style="width: 20px; height: 20px; border-color: rgba(255,255,255,0.3); border-top-color: white;"></div>
+                        <span>Resetting...</span>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.RestartAlt" Style="color: inherit;" />
+                        <span>Reset Session</span>
+                    }
+                </button>
+
+                <div class="tb-divider"></div>
+
+                <div style="display: flex; gap: var(--tb-space-8);">
+                    <button type="button"
+                            class="tb-btn tb-btn--ghost"
+                            @onclick="ExportAsMarkdown"
+                            disabled="@(ChatStateService.Messages.Count == 0)"
+                            style="flex: 1;">
+                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Style="color: inherit;" />
+                        <span>MD</span>
+                    </button>
+                    <button type="button"
+                            class="tb-btn tb-btn--ghost"
+                            @onclick="ExportAsJson"
+                            disabled="@(ChatStateService.Messages.Count == 0)"
+                            style="flex: 1;">
+                        <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" Style="color: inherit;" />
+                        <span>JSON</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @code {
@@ -314,23 +309,17 @@
     private bool isRefreshing;
     private bool _disposed;
     private bool isResetting;
-    private bool isStatsExpanded = false;
     private SessionStatsComponent? sessionStatsRef;
     private ElementReference _messagesContainer;
-    private string selectedModel = "gpt-5";
-    private bool showScrollButton = false;
-    private bool hasNewMessages = false;
-    // ✅ PERFORMANCE: Throttle scroll to prevent excessive JS interop
-    private DateTime _lastScrollTime = DateTime.MinValue;
-    private const int SCROLL_THROTTLE_MS = 150;
-    private int _previousMessageCount = 0;
+    private string selectedModel = "gpt-5-mini";
+    private bool _showSettings = false;
 
-    // ✅ ASYNC: Component-level cancellation and disposal tracking
+    // Async tracking
     private readonly CancellationTokenSource _componentCts = new();
     private readonly DisposalGuard _disposalGuard = new();
     private Task? _statsRefreshTask;
 
-    // ✅ TYPEWRITER: User preference for typewriter effect (applies to new messages)
+    // Typewriter
     private bool typewriterEnabled
     {
         get => _typewriterEnabled;
@@ -346,7 +335,7 @@
 
     private bool _typewriterEnabled = true;
 
-    // ✅ USER PROFILE: Optional pre-fillable fields for context enrichment
+    // User Profile
     private UserProfile userProfile = new();
 
     // File attachment support
@@ -371,17 +360,17 @@
     {
         new ModelOption
         {
-            Id = "gpt-5",
-            DisplayName = "GPT-5",
-            ModelId = "gpt-5",
-            Description = "Most capable reasoning model (default)"
-        },
-        new ModelOption
-        {
             Id = "gpt-5-mini",
             DisplayName = "GPT-5 Mini",
             ModelId = "gpt-5-mini",
-            Description = "Balanced reasoning & cost"
+            Description = "Balanced reasoning & cost (default)"
+        },
+        new ModelOption
+        {
+            Id = "gpt-5",
+            DisplayName = "GPT-5",
+            ModelId = "gpt-5",
+            Description = "Most capable reasoning model"
         },
         new ModelOption
         {
@@ -405,17 +394,6 @@
             {
                 if (_disposalGuard.IsDisposed) return;
 
-                // Detect new messages
-                if (ChatStateService.Messages.Count > _previousMessageCount)
-                {
-                    hasNewMessages = true;
-                    showScrollButton = true;
-                    _previousMessageCount = ChatStateService.Messages.Count;
-
-                    // Refresh stats after new message (tracked and cancellable)
-                    _statsRefreshTask = RefreshStatsAfterDelayAsync();
-                }
-
                 if (_disposalGuard.IsDisposed) return;
 
                 StateHasChanged();
@@ -436,7 +414,7 @@
         var message = userInput.Trim();
         userInput = string.Empty;
 
-        // ✅ PROFILE ENRICHMENT: Append profile context if any fields are filled
+        // Profile enrichment
         if (userProfile.HasAnyData())
         {
             message = $"{message}{userProfile.ToContextString()}";
@@ -449,15 +427,6 @@
         Logger.LogInformation("Sending chat message: {MessagePreview}... with {AttachmentCount} attachments",
             message.Substring(0, Math.Min(50, message.Length)),
             attachments?.Count ?? 0);
-
-        if (attachments != null && Logger.IsEnabled(LogLevel.Debug))
-        {
-            foreach (var att in attachments)
-            {
-                Logger.LogDebug("Attachment: {FileName} ({FileSize} bytes, base64: {Base64Length} chars)",
-                    att.FileName, att.FileSize, att.Base64Data?.Length ?? 0);
-            }
-        }
 
         await ChatStateService.SendMessageAsync(
             message,
@@ -480,14 +449,12 @@
         {
             Logger.LogInformation("File upload initiated with {FileCount} file(s)", e.FileCount);
 
-            // Check if we've reached max files
             if (selectedFiles.Count >= MaxFiles)
             {
                 Logger.LogWarning("Maximum {MaxFiles} files already selected", MaxFiles);
                 return;
             }
 
-            // Process each file
             foreach (var browserFile in e.GetMultipleFiles(MaxFiles))
             {
                 if (selectedFiles.Count >= MaxFiles)
@@ -496,7 +463,6 @@
                     break;
                 }
 
-                // Check file size
                 if (browserFile.Size > MaxFileSizeMB * 1024 * 1024)
                 {
                     Logger.LogWarning("File {FileName} exceeds {MaxSize}MB limit", browserFile.Name, MaxFileSizeMB);
@@ -505,7 +471,6 @@
 
                 Logger.LogInformation("Reading file: {FileName} ({FileSize} bytes)", browserFile.Name, browserFile.Size);
 
-                // Read file to base64
                 using var stream = browserFile.OpenReadStream(MaxFileSizeMB * 1024 * 1024);
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
@@ -519,8 +484,8 @@
                     FileSize = (int)browserFile.Size
                 };
 
-                Logger.LogInformation("Added file: {FileName} ({FormattedSize}), MIME: {MimeType}, Base64 length: {Base64Length} chars",
-                    fileAttachment.FileName, fileAttachment.FormattedSize, fileAttachment.MimeType, base64Data.Length);
+                Logger.LogInformation("Added file: {FileName} ({FormattedSize}), MIME: {MimeType}",
+                    fileAttachment.FileName, fileAttachment.FormattedSize, fileAttachment.MimeType);
 
                 selectedFiles.Add(fileAttachment);
             }
@@ -541,7 +506,6 @@
         selectedFiles.Remove(file);
         Logger.LogInformation("Removed file: {FileName}", file.FileName);
 
-        // Clear MudFileUpload if no files left
         if (selectedFiles.Count == 0 && fileUpload != null)
         {
             await fileUpload.ClearAsync();
@@ -593,12 +557,10 @@
             ChatStateService.Clear();
             SessionService.Reset();
 
-            // Attempt to reset backend session
             var resetSucceeded = await ChatService.ResetSessionAsync();
 
             if (!resetSucceeded)
             {
-                // Backend reset failed - warn user but keep local state cleared
                 Logger.LogWarning("Backend session reset failed for session {SessionId}", SessionService.SessionId);
                 Snackbar.Add(
                     "⚠️ Session reset partially failed. Local conversation cleared, but backend may still have history.",
@@ -627,9 +589,14 @@
         await Task.CompletedTask;
     }
 
-    private void ToggleStatsPanel()
+    private void ToggleSettings()
     {
-        isStatsExpanded = !isStatsExpanded;
+        _showSettings = !_showSettings;
+    }
+
+    private void CloseSettings()
+    {
+        _showSettings = false;
     }
 
     private async Task OnModelChanged(string newModel)
@@ -640,55 +607,35 @@
         selectedModel = newModel;
         SessionService.SetModel(newModel);
 
-        // Reset GPT-5 settings to defaults when switching models
         if (newModel?.StartsWith("gpt-5") == true)
         {
             reasoningEffort = "minimal";
             verbosity = "medium";
         }
 
-        // Reset session to apply new model
         await ResetConversation();
-    }
-
-    private async Task ScrollToBottom()
-    {
-        hasNewMessages = false;
-        showScrollButton = false;
-        await ScrollToBottomAsync();
     }
 
     private async Task ScrollToBottomAsync()
     {
         try
         {
-            // ✅ PERFORMANCE: Throttle scroll calls - skip if called within 150ms
-            // Reduces JS interop overhead from 50/sec to ~7/sec (87% reduction)
-            var elapsed = (DateTime.Now - _lastScrollTime).TotalMilliseconds;
-            if (elapsed < SCROLL_THROTTLE_MS)
-                return; // Skip - too soon since last scroll
-
-            _lastScrollTime = DateTime.Now;
             await JS.InvokeVoidAsync("scrollToBottom", _messagesContainer);
         }
         catch (JSDisconnectedException ex)
         {
-            // SignalR circuit lost - this is critical for user experience
             Logger.LogError(ex, "SignalR circuit disconnected during scroll. User has lost connection.");
-            // Circuit disconnection means user needs to refresh - this is a critical error
         }
         catch (JSException ex)
         {
-            // JavaScript error - log for debugging but don't fail the component
             Logger.LogWarning(ex, "JavaScript scroll function failed: {Message}", ex.Message);
         }
         catch (ObjectDisposedException)
         {
-            // Component disposed during scroll - expected during navigation, no logging needed
+            // Component disposed during scroll - expected during navigation
         }
         catch (Exception ex)
         {
-            // Unexpected error - log it for diagnostics
             Logger.LogWarning(ex, "Unexpected error during scroll operation");
         }
     }
@@ -741,40 +688,6 @@
         await JS.InvokeVoidAsync("downloadFile", filename, base64, contentType);
     }
 
-    /// <summary>
-    /// Tracked async task for stats refresh with proper cancellation support.
-    /// Replaces fire-and-forget Task.Run pattern.
-    /// </summary>
-    private async Task RefreshStatsAfterDelayAsync()
-    {
-        try
-        {
-            // Wait 500ms before refreshing (debounce rapid message updates)
-            await Task.Delay(500, _componentCts.Token);
-
-            // Execute stats refresh on UI thread with disposal guard
-            await _disposalGuard.ExecuteIfNotDisposedAsync(async () =>
-            {
-                await InvokeAsync(async () =>
-                {
-                    if (sessionStatsRef != null)
-                    {
-                        await sessionStatsRef.RefreshStats();
-                    }
-                });
-                return Task.CompletedTask;
-            });
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected when component is disposed - no logging needed
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Stats refresh failed");
-        }
-    }
-
     public async ValueTask DisposeAsync()
     {
         if (_disposed)
@@ -784,10 +697,8 @@
 
         Logger.LogInformation("Disposing Chat component");
 
-        // Cancel any pending operations
         _componentCts.Cancel();
 
-        // Wait for stats refresh task to complete (with timeout)
         if (_statsRefreshTask != null && !_statsRefreshTask.IsCompleted)
         {
             try
@@ -800,14 +711,11 @@
             }
         }
 
-        // Unsubscribe from events
         ChatStateService.OnStateChanged -= HandleStateChanged;
 
-        // Dispose resources
         await _disposalGuard.DisposeAsync();
         _componentCts.Dispose();
 
-        // Dispose ChatStateService if it implements IAsyncDisposable
         if (ChatStateService is IAsyncDisposable asyncDisposable)
         {
             await asyncDisposable.DisposeAsync();
@@ -816,21 +724,24 @@
 }
 
 <script>
+    function scrollToBottom(element) {
+        if (element) {
+            element.scrollTop = element.scrollHeight;
+        }
+    }
+
     function copyCode(elementId) {
         const codeElement = document.getElementById(elementId);
         if (!codeElement) return;
 
         const code = codeElement.textContent;
         navigator.clipboard.writeText(code).then(() => {
-            // Find the copy button and update its state
             const codeBlock = codeElement.closest('.tb-code-block');
             const copyBtn = codeBlock?.querySelector('.tb-code-copy');
             if (copyBtn) {
                 const originalText = copyBtn.innerHTML;
                 copyBtn.classList.add('copied');
-                copyBtn.innerHTML = `<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'>
-                    <polyline points='20 6 9 17 4 12'></polyline>
-                </svg>Copied!`;
+                copyBtn.innerHTML = 'Copied!';
 
                 setTimeout(() => {
                     copyBtn.classList.remove('copied');
