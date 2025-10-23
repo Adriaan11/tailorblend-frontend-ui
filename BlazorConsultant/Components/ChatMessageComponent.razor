@@ -40,12 +40,12 @@
     <!-- Message Actions -->
     <div class="tb-message__actions">
         <button class="tb-message__action" title="Copy message" aria-label="Copy message" @onclick="CopyMessage">
-            <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+            <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Style="color: var(--text-secondary);" />
         </button>
         @if (Message.Role == "assistant")
         {
             <button class="tb-message__action" title="Regenerate response" aria-label="Regenerate response">
-                <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" />
+                <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" Style="color: var(--text-secondary);" />
             </button>
         }
     </div>

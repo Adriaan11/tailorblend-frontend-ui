@@ -46,7 +46,7 @@ public class ChatService : IChatService
             message,
             session_id = _sessionService.SessionId,
             custom_instructions = customInstructions,
-            model = model ?? "chatgpt-4o-latest",
+            model = model ?? "gpt-5-mini",
             attachments = attachments ?? new List<FileAttachment>(),
             practitioner_mode = practitionerMode,
             reasoning_effort = reasoningEffort ?? "minimal",
