@@ -176,6 +176,17 @@
             var isInstallable = await JS.InvokeAsync<bool>("pwaInstall.isInstallable");
             _showInstallButton = isInstallable;
             StateHasChanged();
+
+            // After rendering the button, ensure visibility is updated
+            if (_showInstallButton)
+            {
+                await Task.Delay(50); // Wait for DOM to update
+                try
+                {
+                    await JS.InvokeVoidAsync("pwaInstall.updateButton");
+                }
+                catch { }
+            }
         }
         catch
         {

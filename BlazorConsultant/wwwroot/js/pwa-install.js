@@ -39,7 +39,14 @@
     // Update button visibility based on install state
     function updateInstallButtonVisibility() {
         const button = document.getElementById('pwa-install-button');
-        if (!button) return;
+        if (!button) {
+            // Button doesn't exist yet - will be rendered by Blazor
+            // Try again in the next tick if we know it's installable
+            if (isInstallable && !isRunningStandalone()) {
+                setTimeout(updateInstallButtonVisibility, 100);
+            }
+            return;
+        }
 
         if (isRunningStandalone()) {
             // App is installed and running standalone
