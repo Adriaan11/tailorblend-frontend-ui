@@ -8,54 +8,56 @@
 <PageTitle>Multi-Agent Formulation | TailorBlend</PageTitle>
 
 <div class="tb-page">
-    <div class="tb-page__header">
-        <div style="display: flex; align-items: center; gap: var(--tb-space-16); margin-bottom: var(--tb-space-12);">
-            <div class="tb-icon-container tb-icon-container--accent">
-                <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Style="color: var(--tb-accent); font-size: 1.5rem;" />
-            </div>
-            <div>
-                <div style="display: flex; align-items: center; gap: var(--tb-space-8); margin-bottom: var(--tb-space-4);">
-                    <div class="tb-badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
-                        <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Small" />
-                        Experimental
+    <div class="tb-container">
+        <div class="tb-page__header">
+            <div class="tb-page__title-block">
+                <div class="tb-page__identity">
+                    <div class="tb-icon-container tb-icon-container--accent">
+                        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Style="color: var(--tb-accent); font-size: 1.5rem;" />
+                    </div>
+                    <div class="tb-stack tb-stack--sm">
+                        <div class="tb-badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                            <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Small" />
+                            Experimental
+                        </div>
+                        <h1 class="tb-page__title">Multi-Agent Formulation</h1>
                     </div>
                 </div>
-                <MudText Typo="Typo.h4" Style="font-weight:700; margin: 0;">Multi-Agent Formulation</MudText>
+                <p class="tb-page__subtitle">
+                    Powered by specialized AI agents working together to create your perfect blend.
+                </p>
+                <div class="tb-scroll-row" aria-label="Highlights of the multi-agent workflow">
+                    <span class="tb-chip">
+                        <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" />
+                        Intelligent Analysis
+                    </span>
+                    <span class="tb-chip">
+                        <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Small" />
+                        Evidence-Based
+                    </span>
+                    <span class="tb-chip">
+                        <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" />
+                        Safety Checked
+                    </span>
+                </div>
             </div>
         </div>
-        <MudText Typo="Typo.body1" Class="tb-muted">
-            Powered by specialized AI agents working together to create your perfect blend.
-        </MudText>
-        <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); margin-top: var(--tb-space-12);">
-            <span class="tb-chip">
-                <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" />
-                Intelligent Analysis
-            </span>
-            <span class="tb-chip">
-                <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Small" />
-                Evidence-Based
-            </span>
-            <span class="tb-chip">
-                <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" />
-                Safety Checked
-            </span>
-        </div>
-    </div>
 
-    <div class="tb-page__content">
+        <div class="tb-page__content">
         @if (!isGenerating && string.IsNullOrEmpty(errorMessage))
         {
             <!-- Input Form -->
-            <div class="tb-card" style="margin-bottom: 2rem;">
-                <div class="tb-card__header">
-                    <MudText Typo="Typo.h6">Patient Profile</MudText>
-                    <MudText Typo="Typo.caption" Class="tb-muted">
-                        Enter health information to generate a personalized blend
-                    </MudText>
-                </div>
+            <section class="tb-section">
+                <div class="tb-card">
+                    <div class="tb-card__header">
+                        <h2 class="tb-section__title">Patient profile</h2>
+                        <p class="tb-section__subtitle">
+                            Enter health information to generate a personalized blend.
+                        </p>
+                    </div>
 
-                <div class="tb-card__content">
-                    <div class="tb-form-grid">
+                    <div class="tb-card__content">
+                        <div class="tb-form-grid">
                         <!-- Basic Info -->
                         <div class="tb-form-col-6">
                             <div class="tb-form-group">
@@ -159,10 +161,10 @@
                                           rows="2"></textarea>
                             </div>
                         </div>
+                        </div>
                     </div>
 
-                    <!-- Generate Button -->
-                    <div style="margin-top: 1.5rem; text-align: right;">
+                    <div class="tb-card__actions">
                         <button type="button"
                                 class="tb-button tb-button--primary"
                                 @onclick="GenerateBlend"
@@ -172,25 +174,25 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            </section>
         }
 
         @if (isGenerating)
         {
             <!-- Agent Progress Display -->
-            <div class="tb-card">
-                <div class="tb-card__header">
-                    <MudText Typo="Typo.h6">Agent Workflow</MudText>
-                    <MudText Typo="Typo.caption" Class="tb-muted">
-                        Watching specialized agents work together...
-                    </MudText>
-                </div>
+            <section class="tb-section">
+                <div class="tb-card">
+                    <div class="tb-card__header">
+                        <h2 class="tb-section__title">Agent workflow</h2>
+                        <p class="tb-section__subtitle">
+                            Watching specialized agents collaborate in real time.
+                        </p>
+                    </div>
 
-                <div class="tb-card__content">
-                    @foreach (var step in agentSteps)
-                    {
-                        <div class="agent-step @GetStepClass(step.StepType)" style="margin-bottom: 1rem;">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div class="tb-card__content">
+                        @foreach (var step in agentSteps)
+                        {
+                            <div class="agent-step @GetStepClass(step.StepType)">
                                 @if (step.StepType == "thinking")
                                 {
                                     <div class="tb-icon-container tb-icon-container--sm tb-icon-container--info">
@@ -210,34 +212,34 @@
                                     </div>
                                 }
 
-                                <div style="flex: 1;">
-                                    <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@step.AgentName</MudText>
-                                    <MudText Typo="Typo.body2">@step.Content</MudText>
+                                <div class="agent-step__body">
+                                    <p class="agent-step__title">@step.AgentName</p>
+                                    <p class="agent-step__text">@step.Content</p>
                                 </div>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
-            </div>
+            </section>
         }
 
         @if (!string.IsNullOrEmpty(finalResult) && !isGenerating)
         {
             <!-- Final Results -->
-            <div class="tb-card">
-                <div class="tb-card__header">
-                    <MudText Typo="Typo.h6">Formulation Complete!</MudText>
-                    <MudText Typo="Typo.caption" Class="tb-muted">
-                        Your personalized blend has been created
-                    </MudText>
-                </div>
-
-                <div class="tb-card__content">
-                    <div style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace; font-size: 0.875rem; background: var(--mud-palette-surface); padding: 1.5rem; border-radius: 8px;">
-                        @((MarkupString)finalResult)
+            <section class="tb-section">
+                <div class="tb-card">
+                    <div class="tb-card__header">
+                        <h2 class="tb-section__title">Formulation complete</h2>
+                        <p class="tb-section__subtitle">Your personalized blend has been created.</p>
                     </div>
 
-                    <div style="margin-top: 1.5rem; text-align: right;">
+                    <div class="tb-card__content">
+                        <div class="tb-result-panel">
+                            @((MarkupString)finalResult)
+                        </div>
+                    </div>
+
+                    <div class="tb-card__actions">
                         <button type="button"
                                 class="tb-button tb-button--secondary"
                                 @onclick="Reset">
@@ -246,17 +248,19 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            </section>
         }
 
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <!-- Error Display -->
-            <div class="tb-card" style="background: rgba(var(--mud-palette-error-rgb), 0.1); border-left: 4px solid var(--mud-palette-error);">
-                <div class="tb-card__content">
-                    <MudText Typo="Typo.subtitle2" Style="font-weight:600; color: var(--mud-palette-error);">Error</MudText>
-                    <MudText Typo="Typo.body2" Style="margin-top: 0.5rem;">@errorMessage</MudText>
-                    <div style="margin-top: 1rem;">
+            <section class="tb-section">
+                <div class="tb-card tb-card--flat tb-error-card">
+                    <div class="tb-card__content">
+                        <h3 class="tb-section__title">Something went wrong</h3>
+                        <p class="tb-copy">@errorMessage</p>
+                    </div>
+                    <div class="tb-card__actions">
                         <button type="button"
                                 class="tb-button tb-button--secondary"
                                 @onclick="Reset">
@@ -264,32 +268,11 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            </section>
         }
+        </div>
     </div>
 </div>
-
-<style>
-    .agent-step {
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid var(--mud-palette-primary);
-    }
-
-    .agent-step.thinking {
-        background: rgba(var(--mud-palette-primary-rgb), 0.08);
-    }
-
-    .agent-step.result {
-        background: rgba(var(--mud-palette-success-rgb), 0.08);
-        border-left-color: var(--mud-palette-success);
-    }
-
-    .agent-step.error {
-        background: rgba(var(--mud-palette-error-rgb), 0.08);
-        border-left-color: var(--mud-palette-error);
-    }
-</style>
 
 @code {
     private MultiAgentRequest request = new()
