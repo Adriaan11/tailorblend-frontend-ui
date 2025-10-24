@@ -55,6 +55,7 @@
 
             <!-- Quick Actions -->
             <div class="tb-quick-actions">
+                <span class="tb-quick-actions__title">Quick prompts</span>
                 @foreach (var example in examplePrompts)
                 {
                     <button type="button" class="tb-quick-action" @onclick="() => SendExampleMessage(example)">
