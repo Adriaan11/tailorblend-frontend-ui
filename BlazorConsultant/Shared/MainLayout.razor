@@ -45,6 +45,16 @@
 
         <div style="margin-top: auto; padding-top: var(--tb-space-32);">
             <div class="tb-divider" style="margin-bottom: var(--tb-space-16);"></div>
+
+            <!-- PWA Install Button (Desktop) -->
+            @if (_showInstallButton)
+            {
+                <button id="pwa-install-button" class="tb-icon-btn" style="width: 100%; margin-bottom: var(--tb-space-8); background: linear-gradient(135deg, var(--tb-accent), #5bbfb5); color: white;" @onclick="PromptInstall" title="Install app">
+                    <MudIcon Icon="@Icons.Material.Filled.GetApp" />
+                    <span style="margin-left: var(--tb-space-8);">Install App</span>
+                </button>
+            }
+
             <button class="tb-icon-btn" style="width: 100%;" @onclick="ToggleTheme" title="Toggle theme">
                 <MudIcon Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" />
                 <span style="margin-left: var(--tb-space-8);">@(_isDarkMode ? "Light" : "Dark") Mode</span>
@@ -75,6 +85,13 @@
                             </span>
                         }
                     </div>
+                }
+
+                @if (_showInstallButton)
+                {
+                    <button class="tb-icon-btn" @onclick="PromptInstall" title="Install app" style="color: var(--tb-accent);">
+                        <MudIcon Icon="@Icons.Material.Filled.GetApp" />
+                    </button>
                 }
 
                 <button class="tb-icon-btn" @onclick="ToggleTheme" title="Toggle theme">
@@ -119,6 +136,7 @@
 
     private bool _isDarkMode;
     private bool _themeInitialized;
+    private bool _showInstallButton;
     private string _currentPath = "";
 
     protected override void OnInitialized()
@@ -145,6 +163,24 @@
                 _themeInitialized = true;
                 StateHasChanged();
             }
+
+            // Check if PWA install is available
+            await CheckInstallAvailability();
+        }
+    }
+
+    private async Task CheckInstallAvailability()
+    {
+        try
+        {
+            var isInstallable = await JS.InvokeAsync<bool>("pwaInstall.isInstallable");
+            _showInstallButton = isInstallable;
+            StateHasChanged();
+        }
+        catch
+        {
+            // PWA install not available
+            _showInstallButton = false;
         }
     }
 
@@ -152,6 +188,34 @@
     {
         _currentPath = NavManager.ToBaseRelativePath(e.Location);
         StateHasChanged();
+    }
+
+    private async Task PromptInstall()
+    {
+        try
+        {
+            var result = await JS.InvokeAsync<InstallResult>("pwaInstall.showPrompt");
+
+            if (result.Success)
+            {
+                if (result.Installed)
+                {
+                    // User accepted installation
+                    _showInstallButton = false;
+                    StateHasChanged();
+                }
+                // If not installed, user dismissed the prompt - button stays visible
+            }
+            else
+            {
+                // Error occurred or prompt not available
+                Console.WriteLine($"[PWA] Install error: {result.Error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PWA] Install exception: {ex.Message}");
+        }
     }
 
     private async Task ToggleTheme()
@@ -169,6 +233,14 @@
         {
             // Ignore if the theme script is not yet available
         }
+    }
+
+    // Model for PWA install result
+    private class InstallResult
+    {
+        public bool Success { get; set; }
+        public bool Installed { get; set; }
+        public string? Error { get; set; }
     }
 
     private string GetActiveClass(string path)

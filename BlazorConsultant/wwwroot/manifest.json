@@ -1,0 +1,50 @@
+{
+  "name": "TailorBlend AI Consultant",
+  "short_name": "TailorBlend",
+  "description": "AI-powered supplement consultation platform for personalized health guidance",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f5f5f5",
+  "theme_color": "#70d1c7",
+  "categories": ["health", "lifestyle", "medical"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Consultation",
+      "short_name": "Chat",
+      "description": "Start a new supplement consultation",
+      "url": "/chat",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/chat",
+    "method": "GET",
+    "params": {
+      "text": "message"
+    }
+  }
+}
