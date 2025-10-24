@@ -1765,3 +1765,381 @@ body {
         display: none !important;
     }
 }
+
+/* ============================================================================
+   PWA & Mobile Performance Optimizations
+   Enhanced touch, scroll, and performance features
+   ============================================================================ */
+
+/* Smooth scrolling with momentum (iOS) */
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent overscroll bounce on iOS */
+body {
+    overscroll-behavior-y: none;
+}
+
+/* Enable GPU acceleration for animations */
+.tb-message,
+.tb-bottom-nav__item,
+.tb-btn,
+.tb-fab,
+.tb-bottom-sheet {
+    will-change: transform;
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+/* Optimize font rendering on mobile */
+body,
+input,
+textarea,
+button {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Prevent iOS zoom on input focus */
+@media screen and (max-width: 767px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+}
+
+/* Safe area support for notched devices */
+@supports (padding: max(0px)) {
+    .tb-mobile-nav {
+        padding-left: max(var(--tb-space-16), env(safe-area-inset-left));
+        padding-right: max(var(--tb-space-16), env(safe-area-inset-right));
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .tb-bottom-nav {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+        padding-bottom: max(var(--tb-space-8), env(safe-area-inset-bottom));
+    }
+
+    .tb-chat-input-container {
+        padding-left: max(var(--tb-space-16), env(safe-area-inset-left));
+        padding-right: max(var(--tb-space-16), env(safe-area-inset-right));
+    }
+}
+
+/* Pull-to-refresh custom styling */
+.ptr-element {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100%);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 999;
+}
+
+.ptr-element.ptr-refresh {
+    transform: translateX(-50%) translateY(10px);
+}
+
+.ptr-element.ptr-loading {
+    transform: translateX(-50%) translateY(10px);
+}
+
+.ptr-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--tb-accent), var(--tb-accent-strong));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    box-shadow: var(--shadow-accent-md);
+}
+
+/* Optimize touch targets */
+a,
+button,
+input,
+textarea,
+select,
+[role="button"],
+[tabindex="0"] {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .tb-btn,
+    .tb-card,
+    .tb-message {
+        border-width: 2px;
+    }
+}
+
+/* Haptic feedback simulation (visual) */
+.tb-btn:active,
+.tb-bottom-nav__item:active,
+.tb-fab:active {
+    transition: transform 0.05s ease;
+}
+
+/* iOS Safari status bar adjustment */
+@supports (-webkit-touch-callout: none) {
+    .tb-mobile-nav {
+        padding-top: max(var(--tb-space-8), env(safe-area-inset-top));
+    }
+}
+
+/* Prevent text selection on UI elements */
+.tb-bottom-nav,
+.tb-mobile-nav,
+.tb-btn,
+.tb-icon-btn,
+.tb-fab {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* Allow text selection in content areas */
+.tb-message__content,
+.tb-chat-input,
+.tb-textarea {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Optimize scrolling performance */
+.tb-chat-messages,
+.tb-mobile-content,
+.tb-bottom-sheet {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* Loading state optimization */
+.tb-skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--tb-gray-100) 0%,
+        var(--tb-gray-200) 50%,
+        var(--tb-gray-100) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+[data-theme="dark"] .tb-skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(148, 163, 184, 0.1) 0%,
+        rgba(148, 163, 184, 0.2) 50%,
+        rgba(148, 163, 184, 0.1) 100%
+    );
+    background-size: 200% 100%;
+}
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+    outline: 3px solid var(--tb-accent);
+    outline-offset: 2px;
+}
+
+/* Image lazy loading optimization */
+img[loading="lazy"] {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+img[loading="lazy"].loaded {
+    opacity: 1;
+}
+
+/* Reduce blur on iOS Safari */
+* {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* Better text input on mobile */
+.tb-chat-input,
+.tb-textarea {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Prevent iOS zoom on double tap */
+* {
+    touch-action: manipulation;
+}
+
+/* Allow pinch zoom on specific elements */
+.tb-message__content,
+.tb-message__content img {
+    touch-action: pinch-zoom;
+}
+
+/* Optimize for mobile landscape */
+@media (max-width: 767px) and (orientation: landscape) {
+    .tb-mobile-nav {
+        height: 48px;
+    }
+
+    .tb-bottom-nav {
+        height: 56px;
+    }
+
+    .tb-fab {
+        width: 48px;
+        height: 48px;
+        bottom: calc(56px + var(--safe-area-inset-bottom) + var(--tb-space-8));
+    }
+}
+
+/* Improve contrast in dark mode */
+[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+/* Light mode */
+[data-theme="light"],
+:root:not([data-theme="dark"]) {
+    color-scheme: light;
+}
+
+/* Standalone PWA mode optimizations */
+@media (display-mode: standalone) {
+    /* Hide install banner when already installed */
+    #pwa-install-banner {
+        display: none !important;
+    }
+
+    /* Full viewport height in PWA mode */
+    .tb-mobile-app {
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+    }
+
+    /* Additional padding for iOS home indicator */
+    .tb-bottom-nav {
+        padding-bottom: max(var(--tb-space-8), env(safe-area-inset-bottom, 20px));
+    }
+}
+
+/* Offline indicator */
+.offline-banner {
+    position: fixed;
+    top: calc(var(--mobile-nav-height) + var(--tb-space-8));
+    left: var(--tb-space-16);
+    right: var(--tb-space-16);
+    background: #f59e0b;
+    color: white;
+    padding: var(--tb-space-12) var(--tb-space-16);
+    border-radius: var(--tb-radius);
+    box-shadow: var(--tb-shadow-lg);
+    z-index: var(--z-sticky);
+    display: flex;
+    align-items: center;
+    gap: var(--tb-space-12);
+    font-size: 0.875rem;
+    font-weight: 600;
+    animation: slideDown 0.3s ease;
+}
+
+.offline-banner::before {
+    content: '📡';
+    font-size: 1.25rem;
+}
+
+/* Network status transitions */
+.online-transition {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Performance: Contain layout shifts */
+.tb-message,
+.tb-card,
+.tb-bottom-sheet__content {
+    contain: layout style paint;
+}
+
+/* Improve rendering performance */
+.tb-mobile-nav,
+.tb-bottom-nav,
+.tb-fab {
+    contain: layout style;
+}
+
+/* Better tap highlights */
+@media (hover: none) and (pointer: coarse) {
+    a,
+    button {
+        -webkit-tap-highlight-color: rgba(112, 209, 199, 0.2);
+    }
+}
+
+/* Optimize for slow connections */
+@media (prefers-reduced-data: reduce) {
+    /* Disable animations on slow connections */
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* Disable background gradients */
+    .tb-btn--primary,
+    .tb-chat-send-btn,
+    .tb-fab {
+        background: var(--tb-accent) !important;
+    }
+}
