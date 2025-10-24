@@ -1,6 +1,4 @@
 using BlazorConsultant.Services;
-using MudBlazor.Services;
-using MudBlazor;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,14 +48,8 @@ builder.Services.AddHttpClient("PythonAPI", client =>
     EnableMultipleHttp2Connections = false                // Disable HTTP/2 multiplexing for simpler streaming
 });
 
-// Add MudBlazor services with TailorBlend brand colors
-builder.Services.AddMudServices(config =>
-{
-    config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
-    config.SnackbarConfiguration.ShowCloseIcon = true;
-});
-
 // Add scoped services
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IInstructionService, InstructionService>();

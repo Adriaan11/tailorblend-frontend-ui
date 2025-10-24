@@ -1,0 +1,90 @@
+@inject INotificationService NotificationService
+@implements IDisposable
+
+<div class="tb-toast-container">
+    @foreach (var toast in _toasts)
+    {
+        <div class="tb-toast tb-toast--@GetSeverityClass(toast.Severity)" @key="toast.Id">
+            <div class="tb-toast__icon">
+                <Icon Icon="@GetIcon(toast.Severity)" Size="Medium" />
+            </div>
+            <div class="tb-toast__content">
+                @toast.Message
+            </div>
+            <button class="tb-toast__close" @onclick="() => RemoveToast(toast.Id)" aria-label="Close">
+                <Icon Icon="Icons.Material.Filled.Close" Size="Small" />
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private List<NotificationEventArgs> _toasts = new();
+    private Dictionary<string, Timer> _timers = new();
+
+    protected override void OnInitialized()
+    {
+        NotificationService.OnNotificationAdded += HandleNotificationAdded;
+    }
+
+    private void HandleNotificationAdded(object? sender, NotificationEventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            _toasts.Add(e);
+            StateHasChanged();
+
+            // Auto-remove after duration
+            var timer = new Timer(_ =>
+            {
+                InvokeAsync(() => RemoveToast(e.Id));
+            }, null, e.DurationMs, Timeout.Infinite);
+
+            _timers[e.Id] = timer;
+        });
+    }
+
+    private void RemoveToast(string id)
+    {
+        var toast = _toasts.FirstOrDefault(t => t.Id == id);
+        if (toast != null)
+        {
+            _toasts.Remove(toast);
+
+            if (_timers.TryGetValue(id, out var timer))
+            {
+                timer.Dispose();
+                _timers.Remove(id);
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private string GetSeverityClass(NotificationSeverity severity) => severity switch
+    {
+        NotificationSeverity.Success => "success",
+        NotificationSeverity.Error => "error",
+        NotificationSeverity.Warning => "warning",
+        _ => "info"
+    };
+
+    private string GetIcon(NotificationSeverity severity) => severity switch
+    {
+        NotificationSeverity.Success => "Icons.Material.Filled.CheckCircle",
+        NotificationSeverity.Error => "Icons.Material.Filled.ErrorOutline",
+        NotificationSeverity.Warning => "Icons.Material.Filled.ErrorOutline",
+        _ => "Icons.Material.Filled.Analytics"
+    };
+
+    public void Dispose()
+    {
+        NotificationService.OnNotificationAdded -= HandleNotificationAdded;
+
+        foreach (var timer in _timers.Values)
+        {
+            timer.Dispose();
+        }
+        _timers.Clear();
+    }
+}
