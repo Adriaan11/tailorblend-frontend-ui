@@ -28,6 +28,12 @@
         updateInstallButtonVisibility();
     });
 
+    // Check if running on iOS
+    function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+               !window.MSStream; // Exclude Windows Phone
+    }
+
     // Check if app is already installed (standalone mode)
     function isRunningStandalone() {
         return (
@@ -63,7 +69,17 @@
     // Expose API for Blazor
     window.pwaInstall = {
         isInstallable: function () {
-            return isInstallable && !isRunningStandalone();
+            // Show button if:
+            // 1. Chrome/Chromium: beforeinstallprompt event fired
+            // 2. iOS: Not yet installed (not in standalone mode)
+            if (isRunningStandalone()) {
+                return false; // Already installed
+            }
+            return isInstallable || isIOS();
+        },
+
+        isIOS: function () {
+            return isIOS();
         },
 
         isStandalone: function () {
@@ -71,6 +87,23 @@
         },
 
         showPrompt: async function () {
+            // iOS requires manual installation
+            if (isIOS()) {
+                console.log('[PWA] iOS detected - showing manual installation instructions');
+                alert(
+                    'Add TailorBlend to Home Screen:\n\n' +
+                    '1. Tap the Share button (⬆️)\n' +
+                    '2. Scroll down and tap "Add to Home Screen"\n' +
+                    '3. Tap "Add" to confirm\n\n' +
+                    'The app will appear on your home screen and work offline!'
+                );
+                return {
+                    success: true,
+                    message: 'iOS installation instructions shown'
+                };
+            }
+
+            // Chrome/Chromium: Use beforeinstallprompt
             if (!deferredPrompt) {
                 console.warn('[PWA] Install prompt not available');
                 return {

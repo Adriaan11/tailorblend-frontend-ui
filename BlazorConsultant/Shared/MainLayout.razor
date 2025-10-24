@@ -49,9 +49,9 @@
             <!-- PWA Install Button (Desktop) -->
             @if (_showInstallButton)
             {
-                <button id="pwa-install-button" class="tb-icon-btn" style="width: 100%; margin-bottom: var(--tb-space-8); background: linear-gradient(135deg, var(--tb-accent), #5bbfb5); color: white;" @onclick="PromptInstall" title="Install app">
+                <button id="pwa-install-button" class="tb-icon-btn" style="width: 100%; margin-bottom: var(--tb-space-8); background: linear-gradient(135deg, var(--tb-accent), #5bbfb5); color: white;" @onclick="PromptInstall" title="@(_isIOSDevice ? "Get installation instructions" : "Install app")">
                     <MudIcon Icon="@Icons.Material.Filled.GetApp" />
-                    <span style="margin-left: var(--tb-space-8);">Install App</span>
+                    <span style="margin-left: var(--tb-space-8);">@(_isIOSDevice ? "Add to Home Screen" : "Install App")</span>
                 </button>
             }
 
@@ -89,7 +89,7 @@
 
                 @if (_showInstallButton)
                 {
-                    <button class="tb-icon-btn" @onclick="PromptInstall" title="Install app" style="color: var(--tb-accent);">
+                    <button class="tb-icon-btn" @onclick="PromptInstall" title="@(_isIOSDevice ? "Get installation instructions" : "Install app")" style="color: var(--tb-accent);">
                         <MudIcon Icon="@Icons.Material.Filled.GetApp" />
                     </button>
                 }
@@ -137,6 +137,7 @@
     private bool _isDarkMode;
     private bool _themeInitialized;
     private bool _showInstallButton;
+    private bool _isIOSDevice;
     private string _currentPath = "";
 
     protected override void OnInitialized()
@@ -175,6 +176,17 @@
         {
             var isInstallable = await JS.InvokeAsync<bool>("pwaInstall.isInstallable");
             _showInstallButton = isInstallable;
+
+            // Check if device is iOS
+            try
+            {
+                _isIOSDevice = await JS.InvokeAsync<bool>("pwaInstall.isIOS");
+            }
+            catch
+            {
+                _isIOSDevice = false;
+            }
+
             StateHasChanged();
 
             // After rendering the button, ensure visibility is updated
