@@ -11,8 +11,19 @@
     @apply text-text-primary bg-bg-surface;
   }
 
+  /* Light mode placeholder styling */
+  .tb-form-input::placeholder {
+    @apply text-gray-500;
+    opacity: 1; /* Firefox requires this */
+  }
+
   [data-theme="dark"] .tb-form-input {
-    @apply bg-gray-900 border-gray-700 text-white placeholder-gray-400;
+    @apply bg-gray-900 border-gray-700 text-white;
+  }
+
+  [data-theme="dark"] .tb-form-input::placeholder {
+    @apply text-gray-400;
+    opacity: 1;
   }
 
   [data-theme="dark"] .tb-form-input:focus {
@@ -39,8 +50,19 @@
     @apply text-text-primary bg-bg-surface font-mono;
   }
 
+  /* Light mode placeholder for textarea */
+  .tb-form-textarea::placeholder {
+    @apply text-gray-500;
+    opacity: 1;
+  }
+
   [data-theme="dark"] .tb-form-textarea {
-    @apply bg-gray-900 border-gray-700 text-white placeholder-gray-400;
+    @apply bg-gray-900 border-gray-700 text-white;
+  }
+
+  [data-theme="dark"] .tb-form-textarea::placeholder {
+    @apply text-gray-400;
+    opacity: 1;
   }
 
   [data-theme="dark"] .tb-form-textarea:focus {
@@ -54,8 +76,25 @@
     @apply text-text-primary bg-bg-surface;
   }
 
+  /* Light mode placeholder for select options */
+  .tb-form-select option {
+    @apply text-text-primary;
+  }
+
+  .tb-form-select option[disabled] {
+    @apply text-gray-500;
+  }
+
   [data-theme="dark"] .tb-form-select {
     @apply bg-gray-900 border-gray-700 text-white;
+  }
+
+  [data-theme="dark"] .tb-form-select option {
+    @apply text-white bg-gray-900;
+  }
+
+  [data-theme="dark"] .tb-form-select option[disabled] {
+    @apply text-gray-400 bg-gray-800;
   }
 
   [data-theme="dark"] .tb-form-select:focus {

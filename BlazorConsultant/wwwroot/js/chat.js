@@ -45,3 +45,16 @@ window.copyToClipboard = async function (text) {
         return false;
     }
 };
+
+/**
+ * Trigger file picker dialog.
+ * Called when user clicks "Attach files" button.
+ */
+window.triggerFileInput = function () {
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+        fileInput.click();
+    } else {
+        console.warn('File input element not found');
+    }
+};

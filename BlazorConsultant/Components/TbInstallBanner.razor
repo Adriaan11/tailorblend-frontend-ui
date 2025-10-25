@@ -1,0 +1,177 @@
+@using BlazorConsultant.Models
+@inject IJSRuntime JS
+@inject ILogger<TbInstallBanner> Logger
+
+@if (isVisible)
+{
+    <div class="tb-install-banner" role="banner" aria-live="polite">
+        <div class="tb-install-banner__content">
+            <div style="display: flex; align-items: center; gap: var(--tb-space-16);">
+                <div class="tb-icon-container tb-icon-container--info">
+                    <TbIcon Icon="arrow-down-to-square" Color="info" Size="lg" />
+                </div>
+                <div style="flex: 1;">
+                    <TbText Typo="subtitle2" Style="font-weight: 600; margin-bottom: 0.25rem;">
+                        Install TailorBlend App
+                    </TbText>
+                    <TbText Typo="caption" Class="tb-muted">
+                        @GetBannerMessage()
+                    </TbText>
+                </div>
+            </div>
+        </div>
+
+        <div class="tb-install-banner__actions">
+            <TbButton Variant="text" Color="primary" Size="sm" @onclick="DismissBanner" StartIcon="x">
+                Dismiss
+            </TbButton>
+            <TbButton Variant="filled" Color="primary" Size="sm" @onclick="InstallApp" StartIcon="@GetInstallIcon()">
+                @GetInstallButtonLabel()
+            </TbButton>
+        </div>
+    </div>
+}
+
+<style>
+    .tb-install-banner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--tb-space-16);
+        padding: var(--tb-space-12) var(--tb-space-16);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%);
+        border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 0;
+    }
+
+    .tb-install-banner__content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: var(--tb-space-16);
+    }
+
+    .tb-install-banner__actions {
+        display: flex;
+        gap: var(--tb-space-8);
+        flex-wrap: wrap;
+    }
+
+    [data-theme="dark"] .tb-install-banner {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0.06) 100%);
+        border-bottom-color: rgba(99, 102, 241, 0.3);
+    }
+
+    @media (max-width: 640px) {
+        .tb-install-banner {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .tb-install-banner__content {
+            width: 100%;
+        }
+
+        .tb-install-banner__actions {
+            justify-content: flex-end;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public Action? OnInstallClicked { get; set; }
+
+    private bool isVisible = false;
+    private bool isIOS = false;
+    private bool isInstallable = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if user has dismissed the banner before
+        var isDismissed = await JS.InvokeAsync<bool>("localStorage.getItem", "tb_installBannerDismissed") != null;
+        if (isDismissed)
+        {
+            Logger.LogInformation("[InstallBanner] User previously dismissed the banner");
+            return;
+        }
+
+        // Check if running standalone (already installed)
+        var isStandalone = await JS.InvokeAsync<bool>("eval", "(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)");
+        if (isStandalone)
+        {
+            Logger.LogInformation("[InstallBanner] App is already running in standalone mode");
+            return;
+        }
+
+        // Check if installable (PWA mode on Chrome/Edge)
+        var installableResult = await JS.InvokeAsync<bool>("pwaInstall.isInstallable");
+        isInstallable = installableResult;
+
+        // Check if iOS
+        var iosResult = await JS.InvokeAsync<bool>("pwaInstall.isIOS");
+        isIOS = iosResult;
+
+        // Show banner if either iOS or installable
+        if (isIOS || isInstallable)
+        {
+            Logger.LogInformation("[InstallBanner] Showing install banner - iOS: {IsIOS}, Installable: {IsInstallable}", isIOS, isInstallable);
+            isVisible = true;
+        }
+    }
+
+    private async Task InstallApp()
+    {
+        try
+        {
+            Logger.LogInformation("[InstallBanner] User clicked install button");
+
+            var result = await JS.InvokeAsync<Dictionary<string, object>>("pwaInstall.showPrompt");
+
+            if (result != null && result.TryGetValue("success", out var successObj) && successObj is bool success && success)
+            {
+                Logger.LogInformation("[InstallBanner] Installation initiated successfully");
+                DismissBanner(); // Hide banner after showing prompt
+                OnInstallClicked?.Invoke();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[InstallBanner] Error during install");
+        }
+    }
+
+    private async Task DismissBanner()
+    {
+        try
+        {
+            // Set flag in localStorage to not show banner again for 30 days
+            var dismissalDate = DateTime.Now.AddDays(30).ToString("O");
+            await JS.InvokeVoidAsync("localStorage.setItem", "tb_installBannerDismissed", dismissalDate);
+
+            Logger.LogInformation("[InstallBanner] Banner dismissed, set dismissal date: {Date}", dismissalDate);
+            isVisible = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[InstallBanner] Error dismissing banner");
+        }
+    }
+
+    private string GetBannerMessage()
+    {
+        return isIOS
+            ? "Add TailorBlend to your home screen for quick access."
+            : "Get quick access to TailorBlend and use it offline.";
+    }
+
+    private string GetInstallButtonLabel()
+    {
+        return isIOS ? "Add to Home Screen" : "Install";
+    }
+
+    private string GetInstallIcon()
+    {
+        return isIOS ? "arrow-up-from-bracket" : "download";
+    }
+}

@@ -6,6 +6,8 @@
 
     let deferredPrompt = null;
     let isInstallable = false;
+    let buttonVisibilityRetries = 0;
+    const MAX_BUTTON_VISIBILITY_RETRIES = 10; // Prevent infinite retry loop
 
     // Debug: Log initial state
     console.log('[PWA] iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent));
@@ -51,17 +53,23 @@
     // Update button visibility based on install state
     function updateInstallButtonVisibility() {
         const button = document.getElementById('pwa-install-button');
-        console.log('[PWA] updateInstallButtonVisibility called, button:', !!button);
+        console.log('[PWA] updateInstallButtonVisibility called, button:', !!button, 'retries:', buttonVisibilityRetries);
 
         if (!button) {
             // Button doesn't exist yet - will be rendered by Blazor
-            // Try again in the next tick if we know it's installable
-            if ((isInstallable || isIOS()) && !isRunningStandalone()) {
-                console.log('[PWA] Button not yet rendered, retrying in 100ms...');
+            // Try again in the next tick if we know it's installable, but limit retries
+            if ((isInstallable || isIOS()) && !isRunningStandalone() && buttonVisibilityRetries < MAX_BUTTON_VISIBILITY_RETRIES) {
+                buttonVisibilityRetries++;
+                console.log('[PWA] Button not yet rendered, retrying in 100ms... (attempt', buttonVisibilityRetries + '/' + MAX_BUTTON_VISIBILITY_RETRIES + ')');
                 setTimeout(updateInstallButtonVisibility, 100);
+            } else if (buttonVisibilityRetries >= MAX_BUTTON_VISIBILITY_RETRIES) {
+                console.warn('[PWA] Max retries reached for button visibility. Button may not be rendered.');
             }
             return;
         }
+
+        // Button found - reset retry counter
+        buttonVisibilityRetries = 0;
 
         if (isRunningStandalone()) {
             // App is installed and running standalone

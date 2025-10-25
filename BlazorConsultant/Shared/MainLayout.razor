@@ -96,10 +96,36 @@
             </div>
         </header>
 
-        <!-- Page Content -->
-        <main class="tb-mobile-content">
-            @Body
-        </main>
+        <!-- PWA Install Banner -->
+        <TbInstallBanner OnInstallClicked="@(() => _showInstallButton = false)" />
+
+        <!-- Page Content with Global Error Boundary -->
+        <ErrorBoundary>
+            <ChildContent>
+                <main class="tb-mobile-content">
+                    @Body
+                </main>
+            </ChildContent>
+            <ErrorContent>
+                <div style="padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                    <h2 style="color: var(--text-primary); margin-bottom: 0.5rem;">Something went wrong</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem; max-width: 400px;">
+                        We encountered an unexpected error. Please try refreshing the page or navigating to a different section.
+                    </p>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+                        <TbButton Variant="filled" Color="primary" @onclick="() => NavManager.NavigateTo('/')">
+                            <TbIcon Icon="home" />
+                            <span>Go Home</span>
+                        </TbButton>
+                        <TbButton Variant="outlined" Color="primary" @onclick="() => NavManager.NavigateTo(NavManager.Uri, true)">
+                            <TbIcon Icon="refresh" />
+                            <span>Refresh Page</span>
+                        </TbButton>
+                    </div>
+                </div>
+            </ErrorContent>
+        </ErrorBoundary>
 
         <!-- Mobile Bottom Navigation -->
         <nav class="tb-bottom-nav">

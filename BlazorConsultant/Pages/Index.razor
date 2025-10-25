@@ -1,5 +1,6 @@
 @page "/"
 @page "/home"
+@inject NavigationManager NavManager
 
 <PageTitle>TailorBlend – Personalized Supplement Intelligence</PageTitle>
 
@@ -21,14 +22,12 @@
 
     <!-- CTAs -->
     <div style="display: flex; flex-direction: column; gap: var(--tb-space-12); max-width: 400px; margin: 0 auto var(--tb-space-24);">
-        <a href="/chat" class="tb-btn tb-btn--primary" style="text-decoration: none; width: 100%;">
-            <TbIcon Icon="rocket" Size="md" />
+        <TbButton Variant="filled" Color="primary" @onclick="@(() => NavManager.NavigateTo("/chat"))" StartIcon="rocket" Style="width: 100%; padding: var(--tb-space-12) var(--tb-space-24);">
             <span>Start Consultation</span>
-        </a>
-        <a href="/configuration" class="tb-btn tb-btn--secondary" style="text-decoration: none; width: 100%;">
-            <TbIcon Icon="sliders" Size="md" />
+        </TbButton>
+        <TbButton Variant="outlined" Color="primary" @onclick="@(() => NavManager.NavigateTo("/configuration"))" StartIcon="sliders" Style="width: 100%; padding: var(--tb-space-12) var(--tb-space-24);">
             <span>Configure Agent</span>
-        </a>
+        </TbButton>
     </div>
 
     <!-- Feature Chips -->
@@ -158,9 +157,8 @@
         <p style="color: var(--text-secondary); line-height: 1.6; max-width: 520px; margin: 0 auto var(--tb-space-24);">
             Join practitioners and patients already using TailorBlend for personalized, evidence-based supplement recommendations.
         </p>
-        <a href="/chat" class="tb-btn tb-btn--primary" style="text-decoration: none;">
-            <TbIcon Icon="bolt" Size="md" />
+        <TbButton Variant="filled" Color="primary" @onclick="@(() => NavManager.NavigateTo("/chat"))" StartIcon="bolt">
             <span>Launch the consultant</span>
-        </a>
+        </TbButton>
     </div>
 </div>

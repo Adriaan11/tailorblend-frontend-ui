@@ -162,12 +162,10 @@
                                        multiple
                                        accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.xlsx,.docx"
                                        style="display: none;" />
-                            <button type="button"
-                                    class="tb-button tb-button--secondary"
-                                    @onclick="OpenFilePicker">
+                            <TbButton Variant="filled" Color="secondary" @onclick="OpenFilePicker">
                                 <TbIcon Icon="paperclip" Size="md" />
                                 <span>Attach Lab Results / DNA Reports / Files</span>
-                            </button>
+                            </TbButton>
                         </div>
                     </div>
 
@@ -183,11 +181,7 @@
 
                     <!-- Generate Button -->
                     <div class="tb-form-col-12" style="display: flex; justify-content: center; margin-top: var(--tb-space);">
-                        <button type="button"
-                                class="tb-button tb-button--primary"
-                                @onclick="GenerateBlend"
-                                disabled="@isGenerating"
-                                style="padding: 1rem 3rem;">
+                        <TbButton Variant="filled" Color="primary" @onclick="GenerateBlend" Disabled="@isGenerating" Style="padding: 1rem 3rem;">
                             @if (isGenerating)
                             {
                                 <span class="tb-spinner"></span>
@@ -198,7 +192,7 @@
                                 <TbIcon Icon="flask" Size="md" />
                                 <span>Generate Evidence-Based Blend</span>
                             }
-                        </button>
+                        </TbButton>
                     </div>
                 </div>
             </div>

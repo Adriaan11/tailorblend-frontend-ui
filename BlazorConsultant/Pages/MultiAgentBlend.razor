@@ -163,13 +163,10 @@
 
                     <!-- Generate Button -->
                     <div style="margin-top: 1.5rem; text-align: right;">
-                        <button type="button"
-                                class="tb-button tb-button--primary"
-                                @onclick="GenerateBlend"
-                                disabled="@(string.IsNullOrWhiteSpace(request.HealthGoals))">
-                            <TbIcon Icon="wand-magic-sparkles" Size="md" Style="margin-right: 0.5rem;" />
+                        <TbButton Variant="filled" Color="primary" @onclick="GenerateBlend" Disabled="@(string.IsNullOrWhiteSpace(request.HealthGoals))">
+                            <TbIcon Icon="wand-magic-sparkles" Size="md" />
                             <span>Generate Multi-Agent Formulation</span>
-                        </button>
+                        </TbButton>
                     </div>
                 </div>
             </div>
@@ -238,12 +235,10 @@
                     </div>
 
                     <div style="margin-top: 1.5rem; text-align: right;">
-                        <button type="button"
-                                class="tb-button tb-button--secondary"
-                                @onclick="Reset">
-                            <TbIcon Icon="rotate-right" Size="md" Style="margin-right: 0.5rem;" />
+                        <TbButton Variant="filled" Color="secondary" @onclick="Reset">
+                            <TbIcon Icon="rotate-right" Size="md" />
                             <span>Create Another Blend</span>
-                        </button>
+                        </TbButton>
                     </div>
                 </div>
             </div>
@@ -257,11 +252,9 @@
                     <TbText Typo="subtitle1" Style="font-weight:600; color: var(--tb-error, #ef4444);">Error</TbText>
                     <TbText Typo="body2" Style="margin-top: 0.5rem;">@errorMessage</TbText>
                     <div style="margin-top: 1rem;">
-                        <button type="button"
-                                class="tb-button tb-button--secondary"
-                                @onclick="Reset">
+                        <TbButton Variant="filled" Color="secondary" @onclick="Reset">
                             <span>Try Again</span>
-                        </button>
+                        </TbButton>
                     </div>
                 </div>
             </div>

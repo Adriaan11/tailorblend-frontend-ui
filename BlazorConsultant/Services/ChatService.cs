@@ -28,6 +28,7 @@ public class ChatService : IChatService
     /// <summary>
     /// Send chat message and receive complete response (non-streaming).
     /// Backend accumulates full response, frontend simulates streaming.
+    /// Includes retry logic for transient failures.
     /// </summary>
     public async Task<ChatResponse> SendChatAsync(
         string message,
@@ -39,8 +40,6 @@ public class ChatService : IChatService
         string? verbosity = null,
         CancellationToken cancellationToken = default)
     {
-        var client = _httpClientFactory.CreateClient("PythonAPI");
-
         var requestBody = new
         {
             message,
@@ -56,32 +55,90 @@ public class ChatService : IChatService
         _logger.LogInformation("Sending chat request for session {SessionId} with {AttachmentCount} attachments",
             _sessionService.SessionId, attachments?.Count ?? 0);
 
-        // Add timeout guard for chat requests
-        using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
-            TimeoutPolicy.HttpRequestTimeout,
-            cancellationToken);
-
-        try
+        // Retry logic for transient failures
+        const int maxRetries = 3;
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var response = await client.PostAsJsonAsync("/api/chat", requestBody, timeoutCts.Token)
-                .ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                var client = _httpClientFactory.CreateClient("PythonAPI");
 
-            var chatResponse = await response.Content.ReadFromJsonAsync<ChatResponse>(timeoutCts.Token)
-                .ConfigureAwait(false);
+                // Add timeout guard for chat requests
+                using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
+                    TimeoutPolicy.HttpRequestTimeout,
+                    cancellationToken);
 
-            _logger.LogInformation("Received chat response for session {SessionId}: {ResponseLength} chars",
-                _sessionService.SessionId, chatResponse?.Response.Length ?? 0);
+                var response = await client.PostAsJsonAsync("/api/chat", requestBody, timeoutCts.Token)
+                    .ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
 
-            return chatResponse ?? throw new Exception("Empty response from backend");
+                var chatResponse = await response.Content.ReadFromJsonAsync<ChatResponse>(timeoutCts.Token)
+                    .ConfigureAwait(false);
+
+                _logger.LogInformation("Received chat response for session {SessionId}: {ResponseLength} chars",
+                    _sessionService.SessionId, chatResponse?.Response.Length ?? 0);
+
+                return chatResponse ?? throw new Exception("Empty response from backend");
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Timeout occurred (not parent cancellation) - don't retry
+                _logger.LogWarning("Chat request timed out for session {SessionId} after {Timeout}s",
+                    _sessionService.SessionId, TimeoutPolicy.HttpRequestTimeout.TotalSeconds);
+                throw new TimeoutException($"Chat request timed out after {TimeoutPolicy.HttpRequestTimeout.TotalSeconds} seconds");
+            }
+            catch (HttpRequestException ex) when (attempt < maxRetries && IsTransientError(ex))
+            {
+                // Transient error - retry with exponential backoff
+                int delayMs = (int)Math.Pow(2, attempt - 1) * 500; // 500ms, 1s, 2s
+                _logger.LogWarning("Chat request failed with transient error (attempt {Attempt}/{MaxRetries}): {Message}. Retrying in {DelayMs}ms",
+                    attempt, maxRetries, ex.Message, delayMs);
+
+                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+            catch (Exception ex)
+            {
+                // Non-transient error or final attempt - throw
+                if (attempt == maxRetries)
+                {
+                    _logger.LogError(ex, "Chat request failed after {MaxRetries} attempts for session {SessionId}",
+                        maxRetries, _sessionService.SessionId);
+                    throw;
+                }
+
+                // Check if it's transient before retrying
+                if (IsTransientError(ex))
+                {
+                    int delayMs = (int)Math.Pow(2, attempt - 1) * 500;
+                    _logger.LogWarning("Chat request failed with error (attempt {Attempt}/{MaxRetries}): {Message}. Retrying in {DelayMs}ms",
+                        attempt, maxRetries, ex.Message, delayMs);
+
+                    await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                throw;
+            }
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+
+        throw new InvalidOperationException("Chat request retry loop completed without result");
+    }
+
+    /// <summary>
+    /// Determine if an exception is transient and should be retried.
+    /// </summary>
+    private static bool IsTransientError(Exception ex)
+    {
+        // Network connectivity issues
+        if (ex is HttpRequestException hre)
         {
-            // Timeout occurred (not parent cancellation)
-            _logger.LogWarning("Chat request timed out for session {SessionId} after {Timeout}s",
-                _sessionService.SessionId, TimeoutPolicy.HttpRequestTimeout.TotalSeconds);
-            throw new TimeoutException($"Chat request timed out after {TimeoutPolicy.HttpRequestTimeout.TotalSeconds} seconds");
+            // Connection timeout, network unreachable, etc.
+            return hre.InnerException is IOException or TimeoutException;
         }
+
+        // IOException often indicates temporary network issues
+        return ex is IOException;
     }
 
     public async Task<SessionStats> GetSessionStatsAsync(CancellationToken cancellationToken = default)
