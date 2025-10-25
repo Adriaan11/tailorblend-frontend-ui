@@ -1,253 +1,153 @@
 @using BlazorConsultant.Models
 
 <div class="tb-profile-section">
-    <MudExpansionPanels Elevation="0">
-        <MudExpansionPanel>
-            <TitleContent>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Medium" Color="Color.Primary" />
-                    <div>
-                        <MudText Typo="Typo.h6" Style="font-weight: 600;">Your Profile</MudText>
-                        <MudText Typo="Typo.caption" Class="tb-muted">Optional - helps AI skip information-gathering questions</MudText>
-                    </div>
-                </div>
-            </TitleContent>
-            <ChildContent>
-                <MudGrid Spacing="2">
-                    <!-- Section 1: Core Identity -->
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
-                            Basic Information
-                        </MudText>
-                    </MudItem>
+    <TbExpansionPanel
+        Icon="user"
+        Title="Your Profile"
+        Subtitle="Optional - helps AI skip information-gathering questions"
+        IsOpen="true">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Section 1: Core Identity -->
+            <div class="col-span-full">
+                <TbText Typo="subtitle2" Style="font-weight: 600; margin-bottom: 0.5rem;">
+                    Basic Information
+                </TbText>
+            </div>
 
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="Profile.FirstName"
-                                      Label="First Name"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense" />
-                    </MudItem>
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="Profile.Surname"
-                                      Label="Surname"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense" />
-                    </MudItem>
-                    <MudItem xs="12" sm="4">
-                        <MudTextField @bind-Value="Profile.Email"
-                                      Label="Email"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      InputType="InputType.Email" />
-                    </MudItem>
+            <TbTextField @bind-Value="Profile.FirstName"
+                         Label="First Name" />
+            <TbTextField @bind-Value="Profile.Surname"
+                         Label="Surname" />
+            <TbTextField @bind-Value="Profile.Email"
+                         Label="Email"
+                         InputType="email" />
 
-                    <!-- Section 2: Demographics -->
-                    <MudItem xs="12" Style="margin-top: 1rem;">
-                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
-                            Demographics (for accurate dosing)
-                        </MudText>
-                    </MudItem>
+            <!-- Section 2: Demographics -->
+            <div class="col-span-full">
+                <TbText Typo="subtitle2" Style="font-weight: 600; margin-bottom: 0.5rem;">
+                    Demographics (for accurate dosing)
+                </TbText>
+            </div>
 
-                    <MudItem xs="12" sm="3">
-                        <MudNumericField @bind-Value="Profile.Age"
-                                         Label="Age"
-                                         Variant="Variant.Outlined"
-                                         Margin="Margin.Dense"
-                                         Min="1"
-                                         Max="120" />
-                    </MudItem>
-                    <MudItem xs="12" sm="3">
-                        <MudSelect @bind-Value="Profile.BiologicalSex"
-                                   Label="Biological Sex"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Clearable="true">
-                            <MudSelectItem Value="@("Male")">Male</MudSelectItem>
-                            <MudSelectItem Value="@("Female")">Female</MudSelectItem>
-                            <MudSelectItem Value="@("Other")">Other</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" sm="3">
-                        <MudNumericField @bind-Value="Profile.HeightCm"
-                                         Label="Height (cm)"
-                                         Variant="Variant.Outlined"
-                                         Margin="Margin.Dense"
-                                         Min="50"
-                                         Max="250" />
-                    </MudItem>
-                    <MudItem xs="12" sm="3">
-                        <MudNumericField @bind-Value="Profile.WeightKg"
-                                         Label="Weight (kg)"
-                                         Variant="Variant.Outlined"
-                                         Margin="Margin.Dense"
-                                         Min="20"
-                                         Max="300" />
-                    </MudItem>
+            <TbNumericField @bind-IntValue="Profile.Age"
+                            Label="Age"
+                            MinStr="1"
+                            MaxStr="120" />
+            <TbSelect @bind-Value="Profile.BiologicalSex"
+                      Label="Biological Sex"
+                      Options="@_biologicalSexOptions"
+                      Clearable="true" />
+            <TbNumericField @bind-IntValue="Profile.HeightCm"
+                            Label="Height (cm)"
+                            MinStr="50"
+                            MaxStr="250" />
+            <TbNumericField @bind-IntValue="Profile.WeightKg"
+                            Label="Weight (kg)"
+                            MinStr="20"
+                            MaxStr="300" />
 
-                    <!-- Section 3: Safety Information (CRITICAL) -->
-                    <MudItem xs="12" Style="margin-top: 1rem;">
-                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: var(--tb-accent-strong); margin-bottom: 0.5rem;">
-                            <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" Size="Size.Small" />
-                            Safety Information (Important!)
-                        </MudText>
-                    </MudItem>
+            <!-- Section 3: Safety Information (CRITICAL) -->
+            <div class="col-span-full flex items-center gap-2">
+                <TbIcon Icon="shield-heart" Size="lg" Color="accent" />
+                <TbText Typo="subtitle2" Style="font-weight: 600;">
+                    Safety Information (Important!)
+                </TbText>
+            </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="Profile.CurrentMedications"
-                                      Label="Current Medications"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Lines="2"
-                                      HelperText="List any medications you're taking" />
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="Profile.KnownAllergies"
-                                      Label="Known Allergies"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Lines="2"
-                                      HelperText="List any known allergies" />
-                    </MudItem>
+            <div class="col-span-full md:col-span-1">
+                <TbTextField @bind-Value="Profile.CurrentMedications"
+                             Label="Current Medications"
+                             Lines="2"
+                             HelperText="List any medications you're taking" />
+            </div>
+            <div class="col-span-full md:col-span-1">
+                <TbTextField @bind-Value="Profile.KnownAllergies"
+                             Label="Known Allergies"
+                             Lines="2"
+                             HelperText="List any known allergies" />
+            </div>
 
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="Profile.HealthConditions"
-                                      Label="Chronic Health Conditions"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Lines="2"
-                                      HelperText="e.g., diabetes, hypertension, thyroid issues" />
-                    </MudItem>
+            <div class="col-span-full">
+                <TbTextField @bind-Value="Profile.HealthConditions"
+                             Label="Chronic Health Conditions"
+                             Lines="2"
+                             HelperText="e.g., diabetes, hypertension, thyroid issues" />
+            </div>
 
-                    <!-- Section 4: Lifestyle Factors -->
-                    <MudItem xs="12" Style="margin-top: 1rem;">
-                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
-                            Lifestyle & Diet
-                        </MudText>
-                    </MudItem>
+            <!-- Section 4: Lifestyle Factors -->
+            <div class="col-span-full">
+                <TbText Typo="subtitle2" Style="font-weight: 600; margin-bottom: 0.5rem;">
+                    Lifestyle & Diet
+                </TbText>
+            </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudSelect @bind-Value="Profile.DietType"
-                                   Label="Diet Type"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Clearable="true">
-                            <MudSelectItem Value="@("Omnivore")">Omnivore</MudSelectItem>
-                            <MudSelectItem Value="@("Vegetarian")">Vegetarian</MudSelectItem>
-                            <MudSelectItem Value="@("Vegan")">Vegan</MudSelectItem>
-                            <MudSelectItem Value="@("Keto")">Keto</MudSelectItem>
-                            <MudSelectItem Value="@("High Protein")">High Protein</MudSelectItem>
-                            <MudSelectItem Value="@("Paleo")">Paleo</MudSelectItem>
-                            <MudSelectItem Value="@("Other")">Other</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect @bind-Value="Profile.ActivityLevel"
-                                   Label="Activity Level"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Clearable="true">
-                            <MudSelectItem Value="@("Sedentary")">Sedentary</MudSelectItem>
-                            <MudSelectItem Value="@("Light Activity")">Light Activity</MudSelectItem>
-                            <MudSelectItem Value="@("Moderate Exercise")">Moderate Exercise</MudSelectItem>
-                            <MudSelectItem Value="@("Very Active")">Very Active</MudSelectItem>
-                            <MudSelectItem Value="@("Athlete")">Athlete</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
+            <TbSelect @bind-Value="Profile.DietType"
+                      Label="Diet Type"
+                      Options="@_dietTypeOptions"
+                      Clearable="true" />
+            <TbSelect @bind-Value="Profile.ActivityLevel"
+                      Label="Activity Level"
+                      Options="@_activityLevelOptions"
+                      Clearable="true" />
 
-                    <!-- Section 5: Habits -->
-                    <MudItem xs="12" Style="margin-top: 1rem;">
-                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
-                            Habits & Sleep
-                        </MudText>
-                    </MudItem>
+            <!-- Section 5: Habits -->
+            <div class="col-span-full">
+                <TbText Typo="subtitle2" Style="font-weight: 600; margin-bottom: 0.5rem;">
+                    Habits & Sleep
+                </TbText>
+            </div>
 
-                    <MudItem xs="12" sm="6">
-                        <MudSelect @bind-Value="Profile.SmokingStatus"
-                                   Label="Smoking Status"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Clearable="true">
-                            <MudSelectItem Value="@("Non-smoker")">Non-smoker</MudSelectItem>
-                            <MudSelectItem Value="@("Occasional")">Occasional</MudSelectItem>
-                            <MudSelectItem Value="@("Daily")">Daily</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect @bind-Value="Profile.AlcoholConsumption"
-                                   Label="Alcohol Consumption"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Clearable="true">
-                            <MudSelectItem Value="@("None")">None</MudSelectItem>
-                            <MudSelectItem Value="@("Occasional (1-2x/week)")">Occasional (1-2x/week)</MudSelectItem>
-                            <MudSelectItem Value="@("Moderate (3-5x/week)")">Moderate (3-5x/week)</MudSelectItem>
-                            <MudSelectItem Value="@("Heavy (Daily)")">Heavy (Daily)</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
+            <TbSelect @bind-Value="Profile.SmokingStatus"
+                      Label="Smoking Status"
+                      Options="@_smokingStatusOptions"
+                      Clearable="true" />
+            <TbSelect @bind-Value="Profile.AlcoholConsumption"
+                      Label="Alcohol Consumption"
+                      Options="@_alcoholConsumptionOptions"
+                      Clearable="true" />
 
-                    <MudItem xs="12" sm="6">
-                        <MudNumericField @bind-Value="Profile.AverageSleepHours"
-                                         Label="Average Sleep (hours/night)"
-                                         Variant="Variant.Outlined"
-                                         Margin="Margin.Dense"
-                                         Step="0.5M"
-                                         Min="0M"
-                                         Max="24M" />
-                    </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect @bind-Value="Profile.CaffeineIntake"
-                                   Label="Caffeine Intake"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Clearable="true">
-                            <MudSelectItem Value="@("None")">None</MudSelectItem>
-                            <MudSelectItem Value="@("1-2 cups/day")">1-2 cups/day</MudSelectItem>
-                            <MudSelectItem Value="@("3-5 cups/day")">3-5 cups/day</MudSelectItem>
-                            <MudSelectItem Value="@("6+ cups/day")">6+ cups/day</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
+            <TbNumericField @bind-DecimalValue="Profile.AverageSleepHours"
+                            Label="Average Sleep (hours/night)"
+                            Step="0.5"
+                            MinStr="0"
+                            MaxStr="24" />
+            <TbSelect @bind-Value="Profile.CaffeineIntake"
+                      Label="Caffeine Intake"
+                      Options="@_caffeineIntakeOptions"
+                      Clearable="true" />
 
-                    <!-- Section 6: Preferences -->
-                    <MudItem xs="12" Style="margin-top: 1rem;">
-                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">
-                            Preferences
-                        </MudText>
-                    </MudItem>
+            <!-- Section 6: Preferences -->
+            <div class="col-span-full">
+                <TbText Typo="subtitle2" Style="font-weight: 600; margin-bottom: 0.5rem;">
+                    Preferences
+                </TbText>
+            </div>
 
-                    <MudItem xs="12">
-                        <MudSelect @bind-Value="Profile.PreferredBaseType"
-                                   Label="Preferred Base Type"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Clearable="true"
-                                   HelperText="What format do you prefer?">
-                            <MudSelectItem Value="@("Drink (zero calorie)")">Drink (zero calorie)</MudSelectItem>
-                            <MudSelectItem Value="@("Shake (Whey)")">Shake (Whey)</MudSelectItem>
-                            <MudSelectItem Value="@("Shake (Vegan)")">Shake (Vegan)</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
+            <div class="col-span-full">
+                <TbSelect @bind-Value="Profile.PreferredBaseType"
+                          Label="Preferred Base Type"
+                          Options="@_preferredBaseTypeOptions"
+                          Clearable="true"
+                          HelperText="What format do you prefer?" />
+            </div>
 
-                    <!-- Action Buttons -->
-                    <MudItem xs="12" Style="margin-top: 1rem;">
-                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                            <MudButton Variant="Variant.Text"
-                                       OnClick="ClearProfile"
-                                       Disabled="@(!Profile.HasAnyData())">
-                                Clear All
-                            </MudButton>
-                            <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       OnClick="SaveProfile"
-                                       Disabled="@(!Profile.HasAnyData())">
-                                <MudIcon Icon="@Icons.Material.Filled.Save" Size="Size.Small" />
-                                Save Profile
-                            </MudButton>
-                        </div>
-                    </MudItem>
-                </MudGrid>
-            </ChildContent>
-        </MudExpansionPanel>
-    </MudExpansionPanels>
+            <!-- Action Buttons -->
+            <div class="col-span-full flex gap-2 justify-end">
+                <TbButton Variant="text"
+                          @onclick="ClearProfile"
+                          Disabled="@(!Profile.HasAnyData())">
+                    Clear All
+                </TbButton>
+                <TbButton Variant="filled"
+                          Color="primary"
+                          @onclick="SaveProfile"
+                          Disabled="@(!Profile.HasAnyData())"
+                          StartIcon="floppy-disk">
+                    Save Profile
+                </TbButton>
+            </div>
+        </div>
+    </TbExpansionPanel>
 </div>
 
 @code {
@@ -262,6 +162,39 @@
     /// </summary>
     [Parameter]
     public EventCallback<UserProfile> OnProfileChanged { get; set; }
+
+    // Option lists for select dropdowns
+    private List<string> _biologicalSexOptions = new() { "Male", "Female", "Other" };
+
+    private List<string> _dietTypeOptions = new()
+    {
+        "Omnivore", "Vegetarian", "Vegan", "Keto", "High Protein", "Paleo", "Other"
+    };
+
+    private List<string> _activityLevelOptions = new()
+    {
+        "Sedentary", "Light Activity", "Moderate Exercise", "Very Active", "Athlete"
+    };
+
+    private List<string> _smokingStatusOptions = new()
+    {
+        "Non-smoker", "Occasional", "Daily"
+    };
+
+    private List<string> _alcoholConsumptionOptions = new()
+    {
+        "None", "Occasional (1-2x/week)", "Moderate (3-5x/week)", "Heavy (Daily)"
+    };
+
+    private List<string> _caffeineIntakeOptions = new()
+    {
+        "None", "1-2 cups/day", "3-5 cups/day", "6+ cups/day"
+    };
+
+    private List<string> _preferredBaseTypeOptions = new()
+    {
+        "Drink (zero calorie)", "Shake (Whey)", "Shake (Vegan)"
+    };
 
     /// <summary>
     /// Save profile and notify parent component

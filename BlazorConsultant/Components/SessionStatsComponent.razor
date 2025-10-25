@@ -5,8 +5,8 @@
 @if (stats == null)
 {
     <div class="tb-stack" style="align-items: center; padding: var(--tb-space);">
-        <MudProgressCircular Color="Color.Success" Indeterminate="true" />
-        <MudText Typo="Typo.caption" Class="tb-text-muted">Loading session analytics...</MudText>
+        <TbLoadingSpinner Size="md" Variant="circular" Color="success" />
+        <TbText Typo="caption" Class="tb-text-muted">Loading session analytics...</TbText>
     </div>
 }
 else

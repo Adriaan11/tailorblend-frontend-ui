@@ -1,0 +1,85 @@
+@inherits ComponentBase
+
+@* TbExpansionPanel: Collapsible accordion-style panel with smooth animations *@
+<div class="tb-expansion-panel">
+    <button
+        type="button"
+        class="tb-expansion-header"
+        @onclick="TogglePanel">
+        <div class="flex items-center gap-3 flex-1">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <TbIcon Icon="@Icon" Color="accent" Size="lg" />
+            }
+            <div class="text-left">
+                @if (!string.IsNullOrEmpty(Title))
+                {
+                    <div class="font-semibold text-text-primary">@Title</div>
+                }
+                @if (!string.IsNullOrEmpty(Subtitle))
+                {
+                    <div class="text-sm text-text-muted">@Subtitle</div>
+                }
+            </div>
+        </div>
+        <TbIcon Icon="@(_isOpen ? "chevron-up" : "chevron-down")" Color="muted" Size="lg" />
+    </button>
+
+    @if (_isOpen)
+    {
+        <div class="tb-expansion-content">
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Panel title/header text</summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>Subtitle text (optional, appears below title in muted color)</summary>
+    [Parameter]
+    public string? Subtitle { get; set; }
+
+    /// <summary>Icon name to display in header (optional)</summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>Is the panel initially open?</summary>
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    /// <summary>Panel content (rendered when open)</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Event callback when panel is toggled</summary>
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+
+    /// <summary>Additional CSS classes</summary>
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    /// <summary>Inline styles</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>Additional HTML attributes</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private bool _isOpen;
+
+    protected override void OnInitialized()
+    {
+        _isOpen = IsOpen;
+    }
+
+    private async Task TogglePanel()
+    {
+        _isOpen = !_isOpen;
+        await IsOpenChanged.InvokeAsync(_isOpen);
+    }
+}

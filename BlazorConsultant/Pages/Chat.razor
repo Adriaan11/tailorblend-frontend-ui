@@ -8,7 +8,6 @@
 @inject ISessionService SessionService
 @inject IJSRuntime JS
 @inject ILogger<Chat> Logger
-@inject MudBlazor.ISnackbar Snackbar
 @implements IAsyncDisposable
 
 <PageTitle>Chat - TailorBlend AI Consultant</PageTitle>
@@ -25,12 +24,12 @@
         {
             <div class="tb-empty-state">
                 <div class="tb-badge" style="margin: 0 auto var(--tb-space-12);">
-                    <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Small" />
+                    <TbIcon Icon="sparkles" Size="sm" />
                     AI-Powered Consultation
                 </div>
                 <div class="tb-empty-state__icon">
                     <div class="tb-icon-container tb-icon-container--accent" style="width: 64px; height: 64px; margin: 0 auto var(--tb-space-16);">
-                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Color="Color.Success" Style="font-size: 1.75rem;" />
+                        <TbIcon Icon="flower" Color="success" Style="font-size: 1.75rem;" />
                     </div>
                 </div>
                 <h2 class="tb-empty-state__title">Ready to create your perfect blend?</h2>
@@ -39,15 +38,15 @@
                 </p>
                 <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); justify-content: center; margin-bottom: var(--tb-space-16);">
                     <span class="tb-chip">
-                        <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Size="Size.Small" Style="color: var(--text-primary);" />
+                        <TbIcon Icon="dumbbell" Size="sm" />
                         Fitness & Performance
                     </span>
                     <span class="tb-chip">
-                        <MudIcon Icon="@Icons.Material.Filled.SelfImprovement" Size="Size.Small" Style="color: var(--text-primary);" />
+                        <TbIcon Icon="meditation" Size="sm" />
                         Stress & Sleep
                     </span>
                     <span class="tb-chip">
-                        <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Small" Style="color: var(--text-primary);" />
+                        <TbIcon Icon="utensils" Size="sm" />
                         Nutrition Gaps
                     </span>
                 </div>
@@ -83,7 +82,7 @@
         {
             <div class="tb-typing">
                 <div class="tb-typing__avatar">
-                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" Style="color: white;" />
+                    <TbIcon Icon="flower" Size="sm" Style="color: white;" />
                 </div>
                 <div class="tb-typing__dots">
                     <span class="tb-typing__dot"></span>
@@ -108,20 +107,20 @@
     <div class="tb-chat-input-container">
         <div class="tb-chat-input-wrapper">
             <!-- File Upload (Hidden) -->
-            <MudFileUpload T="IReadOnlyList<IBrowserFile>"
-                           @ref="fileUpload"
-                           OnFilesChanged="OnFilesChanged"
-                           Hidden="true"
-                           MaximumFileCount="@MaxFiles"
-                           Accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx" />
+            <InputFile @ref="fileInputRef"
+                       OnChange="@OnFilesChanged"
+                       hidden="hidden"
+                       multiple
+                       accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx"
+                       style="display: none;" />
 
             <!-- Attach Button -->
             <button type="button"
                     class="tb-icon-btn"
-                    @onclick="async () => await fileUpload.OpenFilePickerAsync()"
+                    @onclick="OpenFilePicker"
                     disabled="@ChatStateService.IsLoading"
                     title="Attach files">
-                <MudIcon Icon="@Icons.Material.Filled.AttachFile" Style="color: inherit;" />
+                <TbIcon Icon="paperclip" Size="md" />
             </button>
 
             <!-- Text Input -->
@@ -138,7 +137,7 @@
                     class="tb-chat-send-btn"
                     @onclick="SendMessage"
                     disabled="@ChatStateService.IsLoading">
-                <MudIcon Icon="@Icons.Material.Filled.Send" Style="color: inherit;" />
+                <TbIcon Icon="paper-plane" Size="md" />
             </button>
         </div>
     </div>
@@ -146,7 +145,7 @@
 
 <!-- Floating Action Button (Settings) -->
 <button class="tb-fab" @onclick="ToggleSettings" title="Settings & Stats">
-    <MudIcon Icon="@(_showSettings ? Icons.Material.Filled.Close : Icons.Material.Filled.Tune)" Style="color: inherit;" />
+    <TbIcon Icon="@(_showSettings ? "xmark" : "sliders")" Size="md" />
 </button>
 
 <!-- Bottom Sheet (Settings & Stats) -->
@@ -157,44 +156,26 @@
         <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16); background: var(--tb-indigo-soft); border-left: 3px solid var(--tb-indigo);">
             <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
                 <div class="tb-icon-container tb-icon-container--info tb-icon-container--sm">
-                    <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" Style="color: var(--tb-indigo);" />
+                    <TbIcon Icon="brain" Size="sm" Color="info" />
                 </div>
                 <h3 class="tb-heading-sm" style="margin: 0;">AI Model</h3>
             </div>
-            <MudSelect T="string"
-                       Value="@selectedModel"
-                       ValueChanged="@OnModelChanged"
-                       Variant="Variant.Outlined"
-                       Dense="true"
-                       FullWidth="true">
-                @foreach (var model in availableModels)
-                {
-                    <MudSelectItem T="string" Value="@model.ModelId">
-                        <div>
-                            <div style="font-weight: 600;">@model.DisplayName</div>
-                            @if (!string.IsNullOrEmpty(model.Description))
-                            {
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">@model.Description</div>
-                            }
-                        </div>
-                    </MudSelectItem>
-                }
-            </MudSelect>
+            <TbSelect Value="@selectedModel"
+                      ValueChanged="@OnModelChanged"
+                      Options="@(availableModels.Select(m => m.ModelId).ToList())"
+                      Label="Select Model" />
         </div>
 
         <!-- Display Options -->
         <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
             <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
                 <div class="tb-icon-container tb-icon-container--accent tb-icon-container--sm">
-                    <MudIcon Icon="@Icons.Material.Filled.Brush" Size="Size.Small" Style="color: var(--tb-accent);" />
+                    <TbIcon Icon="paintbrush" Size="sm" Color="accent" />
                 </div>
                 <h3 class="tb-heading-sm" style="margin: 0;">Display Options</h3>
             </div>
-            <MudCheckBox T="bool"
-                         @bind-Checked="typewriterEnabled"
-                         Label="Typewriter effect"
-                         Color="Color.Primary"
-                         Dense="true" />
+            <TbCheckbox @bind-Checked="typewriterEnabled"
+                        Label="Typewriter effect" />
             <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--tb-space-4);">
                 Gradually reveal AI responses
             </p>
@@ -208,21 +189,18 @@
 
                 <div style="margin-bottom: var(--tb-space-16);">
                     <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--text-primary);">Reasoning Effort</p>
-                    <MudRadioGroup T="string" @bind-Value="@reasoningEffort">
-                        <MudRadio T="string" Value="@("minimal")" Color="Color.Primary" Dense="true">Minimal (fastest)</MudRadio>
-                        <MudRadio T="string" Value="@("low")" Color="Color.Primary" Dense="true">Low</MudRadio>
-                        <MudRadio T="string" Value="@("medium")" Color="Color.Primary" Dense="true">Medium (balanced)</MudRadio>
-                        <MudRadio T="string" Value="@("high")" Color="Color.Primary" Dense="true">High (thorough)</MudRadio>
-                    </MudRadioGroup>
+                    <TbRadioGroup Value="@reasoningEffort"
+                                  ValueChanged="@((string val) => reasoningEffort = val)"
+                                  Options="@(new List<string> { "minimal", "low", "medium", "high" })"
+                                  OptionLabels="@(new List<string> { "Minimal (fastest)", "Low", "Medium (balanced)", "High (thorough)" })" />
                 </div>
 
                 <div>
                     <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--text-primary);">Response Style</p>
-                    <MudSelect T="string" Value="@verbosity" ValueChanged="@((string val) => verbosity = val)" Variant="Variant.Outlined" Dense="true">
-                        <MudSelectItem T="string" Value="@("low")">Concise</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("medium")">Balanced</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("high")">Detailed</MudSelectItem>
-                    </MudSelect>
+                    <TbSelect Value="@verbosity"
+                              ValueChanged="@((string val) => verbosity = val)"
+                              Options="@(new List<string> { "low", "medium", "high" })"
+                              Label="Select Response Style" />
                 </div>
             </div>
         }
@@ -231,7 +209,7 @@
         <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
             <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
                 <div class="tb-icon-container tb-icon-container--accent tb-icon-container--sm">
-                    <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Small" Style="color: var(--tb-accent);" />
+                    <TbIcon Icon="chart-simple" Size="sm" Color="accent" />
                 </div>
                 <h3 class="tb-heading-sm" style="margin: 0;">Session Stats</h3>
             </div>
@@ -242,7 +220,7 @@
         <div class="tb-card tb-card--flat">
             <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
                 <div class="tb-icon-container tb-icon-container--warning tb-icon-container--sm">
-                    <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Style="color: #f59e0b;" />
+                    <TbIcon Icon="gear" Size="sm" Color="warning" />
                 </div>
                 <h3 class="tb-heading-sm" style="margin: 0;">Actions</h3>
             </div>
@@ -253,12 +231,12 @@
                         disabled="@isRefreshing">
                     @if (isRefreshing)
                     {
-                        <div class="tb-spinner" style="width: 20px; height: 20px;"></div>
+                        <TbLoadingSpinner Size="sm" Variant="circular" />
                         <span>Refreshing...</span>
                     }
                     else
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.Refresh" Style="color: inherit;" />
+                        <TbIcon Icon="refresh" Size="sm" />
                         <span>Refresh Stats</span>
                     }
                 </button>
@@ -269,12 +247,12 @@
                         disabled="@isResetting">
                     @if (isResetting)
                     {
-                        <div class="tb-spinner" style="width: 20px; height: 20px; border-color: rgba(255,255,255,0.3); border-top-color: white;"></div>
+                        <TbLoadingSpinner Size="sm" Variant="circular" />
                         <span>Resetting...</span>
                     }
                     else
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.RestartAlt" Style="color: inherit;" />
+                        <TbIcon Icon="rotate-left" Size="sm" />
                         <span>Reset Session</span>
                     }
                 </button>
@@ -287,7 +265,7 @@
                             @onclick="ExportAsMarkdown"
                             disabled="@(ChatStateService.Messages.Count == 0)"
                             style="flex: 1;">
-                        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Style="color: inherit;" />
+                        <TbIcon Icon="file-text" Size="sm" />
                         <span>MD</span>
                     </button>
                     <button type="button"
@@ -295,7 +273,7 @@
                             @onclick="ExportAsJson"
                             disabled="@(ChatStateService.Messages.Count == 0)"
                             style="flex: 1;">
-                        <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" Style="color: inherit;" />
+                        <TbIcon Icon="code" Size="sm" />
                         <span>JSON</span>
                     </button>
                 </div>
@@ -339,7 +317,7 @@
     private UserProfile userProfile = new();
 
     // File attachment support
-    private MudFileUpload<IReadOnlyList<IBrowserFile>>? fileUpload;
+    private InputFile? fileInputRef;
     private List<FileAttachment> selectedFiles = new();
     private const int MaxFileSizeMB = 10;
 
@@ -437,8 +415,7 @@
 
         // Clear attachments after sending
         selectedFiles.Clear();
-        if (fileUpload != null)
-            await fileUpload.ClearAsync();
+        // Note: InputFile doesn't need explicit clearing
 
         await ScrollToBottomAsync();
     }
@@ -506,13 +483,21 @@
         selectedFiles.Remove(file);
         Logger.LogInformation("Removed file: {FileName}", file.FileName);
 
-        if (selectedFiles.Count == 0 && fileUpload != null)
-        {
-            await fileUpload.ClearAsync();
-        }
-
         if (!_disposed)
             StateHasChanged();
+    }
+
+    private void OpenFilePicker()
+    {
+        // Use JS interop to trigger file picker
+        try
+        {
+            _ = JS.InvokeVoidAsync("triggerFileInput");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to open file picker");
+        }
     }
 
     private async Task SendExampleMessage(string example)
@@ -562,10 +547,7 @@
             if (!resetSucceeded)
             {
                 Logger.LogWarning("Backend session reset failed for session {SessionId}", SessionService.SessionId);
-                Snackbar.Add(
-                    "⚠️ Session reset partially failed. Local conversation cleared, but backend may still have history.",
-                    MudBlazor.Severity.Warning,
-                    config => config.VisibleStateDuration = 5000);
+                // Note: Could show a TbAlert here if needed, for now just log
             }
             else
             {

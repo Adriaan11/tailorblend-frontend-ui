@@ -1,0 +1,114 @@
+@inherits ComponentBase
+
+@* TbText: Semantic typography component with predefined styles *@
+@{
+    var element = GetElement();
+}
+
+@((MarkupString)$"<{element} class=\"{GetTextClass()}\" style=\"{Style}\" {GetAttributesString()}>")
+@ChildContent
+@((MarkupString)$"</{element}>")
+
+@code {
+    /// <summary>Typography variant: h1-h6 (headings), body1, body2, subtitle1, subtitle2, caption</summary>
+    [Parameter]
+    public string Typo { get; set; } = "body1";
+
+    /// <summary>Text color: "primary", "secondary", "muted", "disabled", "error", "success", "warning", "info", or custom</summary>
+    [Parameter]
+    public string Color { get; set; } = "primary";
+
+    /// <summary>Text alignment: "left", "center", "right", "justify"</summary>
+    [Parameter]
+    public string Align { get; set; } = "left";
+
+    /// <summary>Additional CSS classes</summary>
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    /// <summary>Inline styles</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>Text content</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Additional HTML attributes</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string GetElement()
+    {
+        return Typo switch
+        {
+            "h1" => "h1",
+            "h2" => "h2",
+            "h3" => "h3",
+            "h4" => "h4",
+            "h5" => "h5",
+            "h6" => "h6",
+            "subtitle1" => "div",
+            "subtitle2" => "div",
+            "body1" => "div",
+            "body2" => "div",
+            "caption" => "div",
+            _ => "div"
+        };
+    }
+
+    private string GetTextClass()
+    {
+        var typoClass = Typo switch
+        {
+            "h1" => "text-4xl font-bold",
+            "h2" => "text-3xl font-bold",
+            "h3" => "text-2xl font-semibold",
+            "h4" => "text-xl font-semibold",
+            "h5" => "text-lg font-medium",
+            "h6" => "text-base font-medium",
+            "subtitle1" => "text-lg font-medium",
+            "subtitle2" => "text-base font-medium",
+            "body1" => "text-base",
+            "body2" => "text-sm",
+            "caption" => "text-xs",
+            _ => "text-base"
+        };
+
+        var colorClass = Color switch
+        {
+            "primary" => "text-text-primary",
+            "secondary" => "text-text-secondary",
+            "muted" => "text-text-muted",
+            "disabled" => "text-text-disabled",
+            "error" => "text-red-600 [data-theme=dark]:text-red-400",
+            "success" => "text-green-600 [data-theme=dark]:text-green-400",
+            "warning" => "text-amber-600 [data-theme=dark]:text-amber-400",
+            "info" => "text-blue-600 [data-theme=dark]:text-blue-400",
+            "accent" => "text-tb-accent",
+            _ => string.IsNullOrEmpty(Color) ? "text-text-primary" : $"text-{Color}"
+        };
+
+        var alignClass = Align switch
+        {
+            "center" => "text-center",
+            "right" => "text-right",
+            "justify" => "text-justify",
+            _ => "text-left"
+        };
+
+        return $"{typoClass} {colorClass} {alignClass} {Class}";
+    }
+
+    private string GetAttributesString()
+    {
+        if (AdditionalAttributes == null || AdditionalAttributes.Count == 0)
+            return string.Empty;
+
+        var parts = AdditionalAttributes
+            .Select(kvp => $"{kvp.Key}=\"{kvp.Value}\"")
+            .ToList();
+
+        return string.Join(" ", parts);
+    }
+}

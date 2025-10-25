@@ -41,9 +41,11 @@
         })();
     </script>
 
-    <!-- MudBlazor CSS and Roboto Font -->
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
-    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <!-- Tailwind CSS Output -->
+    <link href="~/css/tailwind.output.css" asp-append-version="true" rel="stylesheet" />
+
+    <!-- Font Awesome 6 Icons -->
+    <link href="~/css/fontawesome.min.css" asp-append-version="true" rel="stylesheet" />
 
     <!-- Custom CSS with cache busting -->
     <link href="~/css/tailorblend.css" asp-append-version="true" rel="stylesheet" />
@@ -62,9 +64,6 @@
         <a class="dismiss">🗙</a>
     </div>
 
-    <!-- MudBlazor JavaScript - MUST load before Blazor framework -->
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-
     <!-- Blazor framework -->
     <script src="_framework/blazor.server.js"></script>
 
@@ -72,7 +71,6 @@
     <script src="js/theme.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/file-utils.js"></script>
-    <script src="js/sse-client.js"></script>
 
     <!-- PWA Scripts -->
     <script src="js/pwa-install.js"></script>

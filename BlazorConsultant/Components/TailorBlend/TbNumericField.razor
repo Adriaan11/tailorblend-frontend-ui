@@ -1,0 +1,176 @@
+@inherits ComponentBase
+
+@* TbNumericField: Generic numeric input component supporting int, decimal, and nullable variants *@
+<div class="tb-form-group">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="tb-form-label">@Label</label>
+    }
+
+    <input
+        type="number"
+        class="@GetInputClass()"
+        @bind="StringValue"
+        @bind:event="oninput"
+        placeholder="@Placeholder"
+        @attributes="GetHtmlAttributes()"
+        style="@Style" />
+
+    @if (!string.IsNullOrEmpty(HelperText))
+    {
+        <div class="tb-form-helper">@HelperText</div>
+    }
+
+    @if (Error && !string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="tb-form-error">@ErrorMessage</div>
+    }
+</div>
+
+@code {
+    /// <summary>Label text for the input</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>Input value as string for flexible binding</summary>
+    private string? _stringValue;
+    public string? StringValue
+    {
+        get => _stringValue;
+        set
+        {
+            _stringValue = value;
+            // Parse the string value based on the actual type
+            ParseAndUpdateValue(value);
+        }
+    }
+
+    /// <summary>Input value - for int? properties</summary>
+    [Parameter]
+    public int? IntValue { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> IntValueChanged { get; set; }
+
+    /// <summary>Input value - for decimal? properties</summary>
+    [Parameter]
+    public decimal? DecimalValue { get; set; }
+
+    [Parameter]
+    public EventCallback<decimal?> DecimalValueChanged { get; set; }
+
+    /// <summary>Minimum allowed value (string representation)</summary>
+    [Parameter]
+    public string? MinStr { get; set; }
+
+    /// <summary>Maximum allowed value (string representation)</summary>
+    [Parameter]
+    public string? MaxStr { get; set; }
+
+    /// <summary>Step increment (e.g., 0.5, 1, 10)</summary>
+    [Parameter]
+    public string? Step { get; set; }
+
+    /// <summary>Helper text displayed below input</summary>
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    /// <summary>Placeholder text for empty input</summary>
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    /// <summary>Is the input disabled?</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Show error state</summary>
+    [Parameter]
+    public bool Error { get; set; }
+
+    /// <summary>Error message to display</summary>
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>Additional CSS classes</summary>
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    /// <summary>Inline styles</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>Additional HTML attributes</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Initialize string value based on which parameter is set
+        if (IntValue.HasValue)
+            _stringValue = IntValue.ToString();
+        else if (DecimalValue.HasValue)
+            _stringValue = DecimalValue.ToString();
+    }
+
+    private async Task ParseAndUpdateValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            // Clear both values
+            if (IntValue.HasValue)
+            {
+                IntValue = null;
+                await IntValueChanged.InvokeAsync(null);
+            }
+            if (DecimalValue.HasValue)
+            {
+                DecimalValue = null;
+                await DecimalValueChanged.InvokeAsync(null);
+            }
+            return;
+        }
+
+        // Try to parse and invoke the appropriate callback
+        if (IntValueChanged.HasDelegate)
+        {
+            if (int.TryParse(value, out var intVal))
+            {
+                IntValue = intVal;
+                await IntValueChanged.InvokeAsync(intVal);
+            }
+        }
+        else if (DecimalValueChanged.HasDelegate)
+        {
+            if (decimal.TryParse(value, out var decimalVal))
+            {
+                DecimalValue = decimalVal;
+                await DecimalValueChanged.InvokeAsync(decimalVal);
+            }
+        }
+    }
+
+    private string GetInputClass()
+    {
+        var baseClass = "tb-form-input";
+        var disabledClass = Disabled ? "opacity-50 cursor-not-allowed" : "";
+        var errorClass = Error ? "border-red-500 focus:ring-red-500" : "";
+
+        return $"{baseClass} {disabledClass} {errorClass} {Class}";
+    }
+
+    private Dictionary<string, object> GetHtmlAttributes()
+    {
+        var attrs = new Dictionary<string, object>(AdditionalAttributes ?? new());
+
+        if (!string.IsNullOrEmpty(MinStr))
+            attrs["min"] = MinStr;
+
+        if (!string.IsNullOrEmpty(MaxStr))
+            attrs["max"] = MaxStr;
+
+        if (!string.IsNullOrEmpty(Step))
+            attrs["step"] = Step;
+
+        return attrs;
+    }
+}

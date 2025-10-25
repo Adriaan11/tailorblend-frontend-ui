@@ -12,7 +12,20 @@
     <!-- HTTP Client for Python API communication -->
     <PackageReference Include="Markdig" Version="0.42.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-    <PackageReference Include="MudBlazor" Version="8.13.0" />
+  </ItemGroup>
+
+  <!-- Tailwind CSS Build Integration -->
+  <Target Name="BuildTailwind" BeforeTargets="Build">
+    <Exec Command="npm install" Condition="!Exists('node_modules')" />
+    <Exec Command="npm run build:css" />
+  </Target>
+
+  <!-- Exclude node_modules from build -->
+  <ItemGroup>
+    <Content Remove="node_modules\**" />
+    <Compile Remove="node_modules\**" />
+    <EmbeddedResource Remove="node_modules\**" />
+    <None Remove="node_modules\**" />
   </ItemGroup>
 
 </Project>

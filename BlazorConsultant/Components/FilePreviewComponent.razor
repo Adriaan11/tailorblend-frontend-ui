@@ -9,28 +9,28 @@
                 <div class="tb-attachment-icon">
                     @if (attachment.IsImage)
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Success" />
+                        <TbIcon Icon="image" Color="success" Size="md" />
                     }
                     else
                     {
                         @switch (attachment.Extension)
                         {
                             case "pdf":
-                                <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Error" />
+                                <TbIcon Icon="file-pdf" Color="error" Size="md" />
                                 break;
                             case "doc":
                             case "docx":
-                                <MudIcon Icon="@Icons.Material.Filled.Description" Color="Color.Primary" />
+                                <TbIcon Icon="file-lines" Color="indigo" Size="md" />
                                 break;
                             case "xls":
                             case "xlsx":
-                                <MudIcon Icon="@Icons.Material.Filled.TableChart" Color="Color.Success" />
+                                <TbIcon Icon="table" Color="success" Size="md" />
                                 break;
                             case "txt":
-                                <MudIcon Icon="@Icons.Material.Filled.TextFields" Color="Color.Default" />
+                                <TbIcon Icon="file-text" Color="default" Size="md" />
                                 break;
                             default:
-                                <MudIcon Icon="@Icons.Material.Filled.AttachFile" Color="Color.Default" />
+                                <TbIcon Icon="paperclip" Color="default" Size="md" />
                                 break;
                         }
                     }
@@ -42,7 +42,7 @@
                 @if (ShowRemoveButton)
                 {
                     <button class="tb-attachment-remove" @onclick="@(() => OnRemove(attachment))" aria-label="Remove attachment">
-                        <MudIcon Icon="@Icons.Material.Filled.Close" Size="Size.Small" />
+                        <TbIcon Icon="xmark" Size="sm" />
                     </button>
                 }
             </div>
@@ -113,7 +113,7 @@
     }
 
     .tb-attachment-remove:hover {
-        color: var(--mud-palette-error);
+        color: var(--tb-error, #ef4444);
     }
 </style>
 

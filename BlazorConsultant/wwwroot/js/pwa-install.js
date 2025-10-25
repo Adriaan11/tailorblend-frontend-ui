@@ -2,8 +2,14 @@
 (function () {
     'use strict';
 
+    console.log('[PWA] Install script loading...');
+
     let deferredPrompt = null;
     let isInstallable = false;
+
+    // Debug: Log initial state
+    console.log('[PWA] iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent));
+    console.log('[PWA] User Agent:', navigator.userAgent);
 
     // Listen for the beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -45,10 +51,13 @@
     // Update button visibility based on install state
     function updateInstallButtonVisibility() {
         const button = document.getElementById('pwa-install-button');
+        console.log('[PWA] updateInstallButtonVisibility called, button:', !!button);
+
         if (!button) {
             // Button doesn't exist yet - will be rendered by Blazor
             // Try again in the next tick if we know it's installable
-            if (isInstallable && !isRunningStandalone()) {
+            if ((isInstallable || isIOS()) && !isRunningStandalone()) {
+                console.log('[PWA] Button not yet rendered, retrying in 100ms...');
                 setTimeout(updateInstallButtonVisibility, 100);
             }
             return;
@@ -69,17 +78,25 @@
     // Expose API for Blazor
     window.pwaInstall = {
         isInstallable: function () {
-            // Show button if:
-            // 1. Chrome/Chromium: beforeinstallprompt event fired
-            // 2. iOS: Not yet installed (not in standalone mode)
-            if (isRunningStandalone()) {
-                return false; // Already installed
-            }
-            return isInstallable || isIOS();
+            const standalone = isRunningStandalone();
+            const ios = isIOS();
+            const result = (isInstallable || ios) && !standalone;
+
+            console.log('[PWA] isInstallable() called:', {
+                deferredPrompt: !!deferredPrompt,
+                isInstallable,
+                ios,
+                standalone,
+                result
+            });
+
+            return result;
         },
 
         isIOS: function () {
-            return isIOS();
+            const result = isIOS();
+            console.log('[PWA] isIOS() called:', result);
+            return result;
         },
 
         isStandalone: function () {
@@ -148,8 +165,12 @@
 
     // Check initial state after DOM loads
     if (document.readyState === 'loading') {
+        console.log('[PWA] DOM still loading, waiting for DOMContentLoaded...');
         document.addEventListener('DOMContentLoaded', updateInstallButtonVisibility);
     } else {
+        console.log('[PWA] DOM already loaded, checking button visibility...');
         updateInstallButtonVisibility();
     }
+
+    console.log('[PWA] Install script initialization complete');
 })();

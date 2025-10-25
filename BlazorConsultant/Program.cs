@@ -1,12 +1,7 @@
 using BlazorConsultant.Services;
-using MudBlazor.Services;
-using MudBlazor;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Enable static web assets from NuGet packages (required for MudBlazor)
-builder.WebHost.UseStaticWebAssets();
 
 // ============================================================================
 // Service Configuration
@@ -48,13 +43,6 @@ builder.Services.AddHttpClient("PythonAPI", client =>
     PooledConnectionLifetime = TimeSpan.FromMinutes(2),  // Refresh connections periodically
     ResponseDrainTimeout = TimeSpan.FromSeconds(30),      // Time to drain responses before closing
     EnableMultipleHttp2Connections = false                // Disable HTTP/2 multiplexing for simpler streaming
-});
-
-// Add MudBlazor services with TailorBlend brand colors
-builder.Services.AddMudServices(config =>
-{
-    config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
-    config.SnackbarConfiguration.ShowCloseIcon = true;
 });
 
 // Add scoped services

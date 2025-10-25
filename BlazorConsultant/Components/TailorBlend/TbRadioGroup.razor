@@ -1,0 +1,79 @@
+@inherits ComponentBase
+
+@* TbRadioGroup: Group of mutually exclusive radio buttons *@
+<div class="tb-radio-group">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="tb-form-label mb-2">@Label</label>
+    }
+
+    <div class="space-y-2">
+        @foreach (var option in Options ?? new())
+        {
+            <label class="tb-radio-wrapper">
+                <input
+                    type="radio"
+                    name="@Name"
+                    class="tb-radio"
+                    value="@option"
+                    checked="@(Value == option)"
+                    @onchange="@((ChangeEventArgs e) => SelectOption(e.Value?.ToString() ?? ""))"
+                    disabled="@Disabled" />
+                <span class="tb-radio-visual"></span>
+                <span class="tb-radio-label">@option</span>
+            </label>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(HelperText))
+    {
+        <div class="tb-form-helper">@HelperText</div>
+    }
+</div>
+
+@code {
+    /// <summary>Label text for the radio group</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>Currently selected value</summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>List of available options</summary>
+    [Parameter]
+    public List<string>? Options { get; set; }
+
+    /// <summary>Helper text displayed below options</summary>
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    /// <summary>Is the radio group disabled?</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Name attribute for radio buttons (groups them together)</summary>
+    [Parameter]
+    public string Name { get; set; } = Guid.NewGuid().ToString();
+
+    /// <summary>Additional CSS classes</summary>
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    /// <summary>Inline styles</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>Additional HTML attributes</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private async Task SelectOption(string option)
+    {
+        Value = option;
+        await ValueChanged.InvokeAsync(Value);
+    }
+}

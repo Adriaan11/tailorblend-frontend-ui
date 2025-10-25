@@ -10,44 +10,34 @@
     <div class="tb-stack" style="gap: var(--tb-space);">
         <div style="display: flex; align-items: center; gap: var(--tb-space-16); margin-bottom: var(--tb-space-12);">
             <div class="tb-icon-container tb-icon-container--accent">
-                <MudIcon Icon="@Icons.Material.Filled.Settings" Style="color: var(--tb-accent); font-size: 1.5rem;" />
+                <TbIcon Icon="gear" Size="lg" Color="accent" Style="font-size: 1.5rem;" />
             </div>
             <div>
                 <div style="display: flex; align-items: center; gap: var(--tb-space-8); margin-bottom: var(--tb-space-4);">
                     <div class="tb-badge">
-                        <MudIcon Icon="@Icons.Material.Filled.Tune" Size="Size.Small" />
+                        <TbIcon Icon="sliders" Size="sm" />
                         Configuration
                     </div>
                 </div>
-                <MudText Typo="Typo.overline" Class="tb-muted">Agent configuration</MudText>
+                <TbText Typo="overline" Class="tb-muted">Agent configuration</TbText>
             </div>
         </div>
-        <MudText Typo="Typo.h5" Style="font-weight:700;">Fine-tune how TailorBlend consults</MudText>
-        <MudText Typo="Typo.body2" Class="tb-muted">
+        <TbText Typo="h5" Style="font-weight:700;">Fine-tune how TailorBlend consults</TbText>
+        <TbText Typo="body2" Class="tb-muted">
             Update the system instructions that guide tone, safety checks, and recommendation frameworks. Changes apply to the very next conversation.
-        </MudText>
+        </TbText>
 
         <div class="tb-divider" style="margin: var(--tb-space-sm) 0;"></div>
 
         <div class="tb-stack" style="gap: var(--tb-space-sm);">
             <div style="display: flex; align-items: center; gap: var(--tb-space-8);">
-                <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Style="color: var(--text-secondary);" />
-                <MudText Typo="Typo.subtitle2" Style="font-weight:600;">Editing Mode</MudText>
+                <TbIcon Icon="pen" Size="sm" />
+                <TbText Typo="subtitle2" Style="font-weight:600;">Editing Mode</TbText>
             </div>
-            <MudRadioGroup T="string" Value="@editMode" ValueChanged="@OnModeChanged">
-                <div class="tb-stack tb-stack--row" style="gap: var(--tb-space-lg);">
-                    <MudRadio Value="@("granular")" Color="Color.Default">
-                        <MudText Typo="Typo.body2">
-                            <strong>Granular Sections</strong> - Edit structured sections separately
-                        </MudText>
-                    </MudRadio>
-                    <MudRadio Value="@("raw")" Color="Color.Default">
-                        <MudText Typo="Typo.body2">
-                            <strong>Raw Instructions</strong> - Paste your own complete system prompt
-                        </MudText>
-                    </MudRadio>
-                </div>
-            </MudRadioGroup>
+            <TbRadioGroup Value="@editMode"
+                          ValueChanged="@OnModeChanged"
+                          Options="@(new List<string> { "granular", "raw" })"
+                          OptionLabels="@(new List<string> { "Granular Sections - Edit structured sections separately", "Raw Instructions - Paste your own complete system prompt" })" />
         </div>
     </div>
 </section>
@@ -55,31 +45,28 @@
 @if (isLoading)
 {
     <div class="tb-stack" style="align-items:center; gap: var(--tb-space); padding: var(--tb-space-lg);">
-        <MudProgressCircular Color="Color.Success" Indeterminate="true" Size="Size.Large" />
-        <MudText Typo="Typo.body1" Class="tb-muted">Loading instruction sections...</MudText>
+        <TbLoadingSpinner Size="lg" Variant="circular" Color="success" />
+        <TbText Typo="body1" Class="tb-muted">Loading instruction sections...</TbText>
     </div>
 }
 else if (sections.Count == 0)
 {
     <div class="tb-empty-state">
         <div class="tb-icon-container tb-icon-container--warning" style="margin: 0 auto var(--tb-space-16);">
-            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Warning" Style="font-size: 1.5rem;" />
+            <TbIcon Icon="exclamation-triangle" Size="lg" Color="warning" Style="font-size: 1.5rem;" />
         </div>
-        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">No instruction sections available</MudText>
-        <MudText Typo="Typo.body2" Class="tb-muted">Refresh the page or reset to defaults to restore the standard TailorBlend playbook.</MudText>
-        <button class="tb-button tb-button--primary" @onclick="ResetToDefaults">Restore defaults</button>
+        <TbText Typo="subtitle1" Style="font-weight:600;">No instruction sections available</TbText>
+        <TbText Typo="body2" Class="tb-muted">Refresh the page or reset to defaults to restore the standard TailorBlend playbook.</TbText>
+        <TbButton Variant="filled" Color="primary" @onclick="ResetToDefaults">Restore defaults</TbButton>
     </div>
 }
 else
 {
     if (!string.IsNullOrEmpty(statusMessage))
     {
-        <MudAlert Severity="@(statusClass == "success" ? Severity.Success : Severity.Error)"
-                  Variant="Variant.Filled"
-                  Elevation="0"
-                  Class="mb-4">
-            @statusMessage
-        </MudAlert>
+        <TbAlert Severity="@(statusClass == "success" ? "success" : "error")"
+                 Message="@statusMessage"
+                 Closeable="true" />
     }
 
     @if (editMode == "raw")
@@ -88,10 +75,10 @@ else
         <div class="tb-card tb-card--flat">
             <div class="tb-stack" style="gap: var(--tb-space);">
                 <div class="tb-stack" style="gap: var(--tb-space-sm);">
-                    <MudText Typo="Typo.subtitle1" Style="font-weight:600;">Raw System Instructions</MudText>
-                    <MudText Typo="Typo.caption" Class="tb-muted">
+                    <TbText Typo="subtitle1" Style="font-weight:600;">Raw System Instructions</TbText>
+                    <TbText Typo="caption" Class="tb-muted">
                         Paste your complete system prompt here. This will replace all granular sections.
-                    </MudText>
+                    </TbText>
                 </div>
 
                 <textarea class="tb-textarea"
@@ -101,33 +88,35 @@ else
                           style="min-height: 500px; font-family: var(--tb-font-mono); font-size: 0.9rem;"></textarea>
 
                 <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
-                    <MudText Typo="Typo.caption" Class="tb-muted">Character count: @(rawInstructions?.Length.ToString("N0") ?? "0")</MudText>
-                    <MudText Typo="Typo.caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</MudText>
+                    <TbText Typo="caption" Class="tb-muted">Character count: @(rawInstructions?.Length.ToString("N0") ?? "0")</TbText>
+                    <TbText Typo="caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</TbText>
                 </div>
 
                 <div class="tb-divider"></div>
 
                 <div class="tb-stack tb-stack--row" style="justify-content:flex-end;">
-                    <button class="tb-button tb-button--secondary"
-                            @onclick="ResetToDefaults"
-                            disabled="@isSaving">
-                        <MudIcon Icon="@Icons.Material.Filled.Restore" />
+                    <TbButton Variant="outlined"
+                              Color="secondary"
+                              @onclick="ResetToDefaults"
+                              Disabled="@isSaving"
+                              StartIcon="rotate-left">
                         Reset to defaults
-                    </button>
-                    <button class="tb-button tb-button--primary"
-                            @onclick="ApplyRawChanges"
-                            disabled="@isSaving">
+                    </TbButton>
+                    <TbButton Variant="filled"
+                              Color="primary"
+                              @onclick="ApplyRawChanges"
+                              Disabled="@isSaving"
+                              StartIcon="@(isSaving ? null : "check-circle")">
                         @if (isSaving)
                         {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="color:white;" />
+                            <TbLoadingSpinner Size="sm" Variant="circular" />
                             <span>Saving</span>
                         }
                         else
                         {
-                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
                             <span>Apply changes</span>
                         }
-                    </button>
+                    </TbButton>
                 </div>
             </div>
         </div>
@@ -141,18 +130,18 @@ else
             {
                 var isActive = activeSection == section;
                 <button type="button" class="@(isActive ? "active" : null)" @onclick="() => SelectSection(section)">
-                    <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@(section.Name)</MudText>
-                    <MudText Typo="Typo.caption" Class="tb-muted">@(section.LineCount) lines</MudText>
+                    <TbText Typo="subtitle2" Style="font-weight:600;">@(section.Name)</TbText>
+                    <TbText Typo="caption" Class="tb-muted">@(section.LineCount) lines</TbText>
                 </button>
             }
         </nav>
 
         <div class="tb-editor-panel">
             <div class="tb-stack" style="gap: var(--tb-space-sm);">
-                <MudText Typo="Typo.subtitle1" Style="font-weight:600;">@activeSection?.Name</MudText>
-                <MudText Typo="Typo.caption" Class="tb-muted">
+                <TbText Typo="subtitle1" Style="font-weight:600;">@activeSection?.Name</TbText>
+                <TbText Typo="caption" Class="tb-muted">
                     Edit instructions to steer the AI's approach for this step of the consultation.
-                </MudText>
+                </TbText>
             </div>
 
             <textarea class="tb-textarea"
@@ -161,33 +150,35 @@ else
                       placeholder="Compose refined instructions that reflect your operating procedures."></textarea>
 
             <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
-                <MudText Typo="Typo.caption" Class="tb-muted">Character count: @((activeSection?.Content?.Length ?? 0).ToString("N0"))</MudText>
-                <MudText Typo="Typo.caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</MudText>
+                <TbText Typo="caption" Class="tb-muted">Character count: @((activeSection?.Content?.Length ?? 0).ToString("N0"))</TbText>
+                <TbText Typo="caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</TbText>
             </div>
 
             <div class="tb-divider"></div>
 
             <div class="tb-stack tb-stack--row" style="justify-content:flex-end;">
-                <button class="tb-button tb-button--secondary"
-                        @onclick="ResetToDefaults"
-                        disabled="@isSaving">
-                    <MudIcon Icon="@Icons.Material.Filled.Restore" />
+                <TbButton Variant="outlined"
+                          Color="secondary"
+                          @onclick="ResetToDefaults"
+                          Disabled="@isSaving"
+                          StartIcon="rotate-left">
                     Reset to defaults
-                </button>
-                <button class="tb-button tb-button--primary"
-                        @onclick="ApplyChanges"
-                        disabled="@isSaving">
+                </TbButton>
+                <TbButton Variant="filled"
+                          Color="primary"
+                          @onclick="ApplyChanges"
+                          Disabled="@isSaving"
+                          StartIcon="@(isSaving ? null : "check-circle")">
                     @if (isSaving)
                     {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="color:white;" />
+                        <TbLoadingSpinner Size="sm" Variant="circular" />
                         <span>Saving</span>
                     }
                     else
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" />
                         <span>Apply changes</span>
                     }
-                </button>
+                </TbButton>
             </div>
         </div>
         </div>

@@ -1,0 +1,158 @@
+@inherits ComponentBase
+
+@* TbSelect: Dropdown select component with support for clearable options and helper text *@
+<div class="tb-form-group">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="tb-form-label">@Label</label>
+    }
+
+    <div class="relative">
+        <button
+            type="button"
+            class="@GetButtonClass()"
+            @onclick="ToggleDropdown"
+            disabled="@Disabled">
+            <span class="flex-1 text-left">
+                @if (string.IsNullOrEmpty(Value))
+                {
+                    <span class="text-text-muted">Select an option...</span>
+                }
+                else
+                {
+                    @Value
+                }
+            </span>
+            <TbIcon Icon="@(_isOpen ? "chevron-up" : "chevron-down")" Size="sm" />
+        </button>
+
+        @if (_isOpen)
+        {
+            <div class="absolute top-full left-0 right-0 mt-1 bg-surface border border-surface-border rounded-lg shadow-lg z-50">
+                <ul class="max-h-48 overflow-y-auto">
+                    @foreach (var option in Options ?? new())
+                    {
+                        <li>
+                            <button
+                                type="button"
+                                class="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors @(Value == option ? "bg-tb-accent/10 text-tb-accent font-medium" : "")"
+                                @onclick="@(() => SelectOption(option))">
+                                @option
+                            </button>
+                        </li>
+                    }
+
+                    @if (Clearable && !string.IsNullOrEmpty(Value))
+                    {
+                        <li class="border-t border-surface-border">
+                            <button
+                                type="button"
+                                class="w-full text-left px-3 py-2 text-gray-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-sm"
+                                @onclick="ClearSelection">
+                                Clear selection
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(HelperText))
+    {
+        <div class="tb-form-helper">@HelperText</div>
+    }
+
+    @if (Error && !string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="tb-form-error">@ErrorMessage</div>
+    }
+</div>
+
+@code {
+    /// <summary>Label text for the select</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>Selected value (two-way binding)</summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>List of available options to select from</summary>
+    [Parameter]
+    public List<string>? Options { get; set; }
+
+    /// <summary>Allow clearing the selection</summary>
+    [Parameter]
+    public bool Clearable { get; set; }
+
+    /// <summary>Helper text displayed below select</summary>
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    /// <summary>Is the select disabled?</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Show error state</summary>
+    [Parameter]
+    public bool Error { get; set; }
+
+    /// <summary>Error message to display</summary>
+    [Parameter]
+    public string? ErrorMessage { get; set; }
+
+    /// <summary>Additional CSS classes</summary>
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    /// <summary>Inline styles</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>Additional HTML attributes</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private bool _isOpen;
+
+    private string GetButtonClass()
+    {
+        var baseClass = "tb-form-input w-full flex items-center justify-between";
+        var disabledClass = Disabled ? "opacity-50 cursor-not-allowed" : "";
+        var errorClass = Error ? "border-red-500 focus:ring-red-500" : "";
+
+        return $"{baseClass} {disabledClass} {errorClass} {Class}";
+    }
+
+    private void ToggleDropdown()
+    {
+        if (!Disabled)
+        {
+            _isOpen = !_isOpen;
+        }
+    }
+
+    private async Task SelectOption(string option)
+    {
+        Value = option;
+        _isOpen = false;
+        await ValueChanged.InvokeAsync(Value);
+    }
+
+    private async Task ClearSelection()
+    {
+        Value = null;
+        _isOpen = false;
+        await ValueChanged.InvokeAsync(Value);
+    }
+
+    protected override void OnInitialized()
+    {
+        // Close dropdown when component initializes
+        _isOpen = false;
+    }
+}

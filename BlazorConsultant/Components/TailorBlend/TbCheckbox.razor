@@ -1,0 +1,55 @@
+@inherits ComponentBase
+
+@* TbCheckbox: Boolean toggle with optional label *@
+<label class="tb-checkbox-wrapper">
+    <input
+        type="checkbox"
+        class="tb-checkbox"
+        checked="@Checked"
+        @onchange="OnCheckedChanged"
+        disabled="@Disabled"
+        @attributes="AdditionalAttributes" />
+    <span class="tb-checkbox-visual"></span>
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <span class="tb-checkbox-label">@Label</span>
+    }
+</label>
+
+@code {
+    /// <summary>Whether the checkbox is checked</summary>
+    [Parameter]
+    public bool Checked { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> CheckedChanged { get; set; }
+
+    /// <summary>Label text next to checkbox</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>Is the checkbox disabled?</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Additional CSS classes</summary>
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    /// <summary>Inline styles</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>Additional HTML attributes</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private async Task OnCheckedChanged(ChangeEventArgs e)
+    {
+        if (e.Value is bool isChecked)
+        {
+            Checked = isChecked;
+            await CheckedChanged.InvokeAsync(Checked);
+        }
+    }
+}

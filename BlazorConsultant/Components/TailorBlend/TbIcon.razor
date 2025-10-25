@@ -1,0 +1,78 @@
+@inherits ComponentBase
+
+@* TbIcon: Wraps Font Awesome 6 icons with consistent sizing and color API *@
+<i class="@GetIconClass()" style="@GetIconStyle()" @attributes="AdditionalAttributes"></i>
+
+@code {
+    /// <summary>Font Awesome icon name (e.g., "heart", "user", "settings")</summary>
+    [Parameter, EditorRequired]
+    public string Icon { get; set; } = string.Empty;
+
+    /// <summary>Icon size: "xs", "sm", "md", "lg", "xl"</summary>
+    [Parameter]
+    public string Size { get; set; } = "md";
+
+    /// <summary>Icon color: "primary", "accent", "muted", "inherit", or custom color value</summary>
+    [Parameter]
+    public string Color { get; set; } = "inherit";
+
+    /// <summary>Icon style variant: "solid" (default), "regular", "light", "brands"</summary>
+    [Parameter]
+    public string Variant { get; set; } = "solid";
+
+    /// <summary>Additional CSS classes</summary>
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    /// <summary>Inline styles</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>Additional HTML attributes</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string GetIconClass()
+    {
+        // Font Awesome size classes
+        var sizeClass = Size switch
+        {
+            "xs" => "text-xs",
+            "sm" => "text-sm",
+            "md" => "text-base",
+            "lg" => "text-lg",
+            "xl" => "text-xl",
+            _ => "text-base"
+        };
+
+        // Font Awesome style prefix
+        var variantPrefix = Variant switch
+        {
+            "regular" => "far",
+            "light" => "fal",
+            "brands" => "fab",
+            _ => "fas"  // solid or any other default
+        };
+
+        return $"{variantPrefix} fa-{Icon} {sizeClass} {Class}";
+    }
+
+    private string GetIconStyle()
+    {
+        var colorStyle = Color switch
+        {
+            "primary" => "color: var(--tb-accent);",
+            "accent" => "color: var(--tb-accent-strong);",
+            "secondary" => "color: var(--tb-indigo);",
+            "muted" => "color: var(--text-muted);",
+            "success" => "color: #10b981;",
+            "error" => "color: #ef4444;",
+            "warning" => "color: #f59e0b;",
+            "info" => "color: #3b82f6;",
+            "inherit" => "color: inherit;",
+            _ => !string.IsNullOrEmpty(Color) && Color.StartsWith("#") ? $"color: {Color};" : $"color: {Color};"
+        };
+
+        return Style != null ? $"{colorStyle} {Style}" : colorStyle;
+    }
+}

@@ -15,39 +15,39 @@
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <div style="display: flex; align-items: center; gap: var(--tb-space-16);">
                     <div class="tb-icon-container tb-icon-container--accent">
-                        <MudIcon Icon="@Icons.Material.Filled.Science" Style="color: var(--tb-accent); font-size: 1.5rem;" />
+                        <TbIcon Icon="flask" Color="accent" Size="lg" Style="font-size: 1.5rem;" />
                     </div>
                     <div>
                         <div style="display: flex; align-items: center; gap: var(--tb-space-8); margin-bottom: var(--tb-space-4);">
                             <div class="tb-badge" style="background: var(--tb-indigo-soft); color: var(--tb-indigo);">
-                                <MudIcon Icon="@Icons.Material.Filled.HealthAndSafety" Size="Size.Small" />
+                                <TbIcon Icon="shield-heart" Size="sm" />
                                 Practitioner Mode
                             </div>
                         </div>
-                        <MudText Typo="Typo.h5" Style="font-weight:700;">Evidence-based supplement formulation</MudText>
+                        <TbText Typo="h5" Style="font-weight:700;">Evidence-based supplement formulation</TbText>
                     </div>
                 </div>
                 @if (blendGenerated)
                 {
-                    <MudButton OnClick="ResetForm" StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Text" Color="Color.Primary">
+                    <TbButton Variant="text" Color="primary" @onclick="ResetForm" StartIcon="plus">
                         New Patient
-                    </MudButton>
+                    </TbButton>
                 }
             </div>
-            <MudText Typo="Typo.body2" Class="tb-muted">
+            <TbText Typo="body2" Class="tb-muted">
                 Create personalized supplement protocols with comprehensive clinical rationale and drug interaction analysis.
-            </MudText>
+            </TbText>
             <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); justify-content: flex-start; margin-top: var(--tb-space-12);">
                 <span class="tb-chip">
-                    <MudIcon Icon="@Icons.Material.Filled.Biotech" Size="Size.Small" />
+                    <TbIcon Icon="dna" Size="sm" />
                     Clinical Grade
                 </span>
                 <span class="tb-chip">
-                    <MudIcon Icon="@Icons.Material.Filled.LocalHospital" Size="Size.Small" />
+                    <TbIcon Icon="hospital" Size="sm" />
                     Drug Interactions
                 </span>
                 <span class="tb-chip">
-                    <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Small" />
+                    <TbIcon Icon="book" Size="sm" />
                     Research-Backed
                 </span>
             </div>
@@ -57,9 +57,9 @@
         {
             <div class="tb-card tb-card--flat tb-empty-state">
                 <div class="tb-icon-container tb-icon-container--info" style="margin: 0 auto var(--tb-space-16);">
-                    <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Info" Style="font-size: 1.5rem;" />
+                    <TbIcon Icon="user-plus" Color="info" Size="lg" Style="font-size: 1.5rem;" />
                 </div>
-                <MudText Typo="Typo.h6" Style="margin-bottom: 1.5rem; font-weight: 600;">Patient Information</MudText>
+                <TbText Typo="h6" Style="margin-bottom: 1.5rem; font-weight: 600;">Patient Information</TbText>
 
                 <div class="tb-form-grid">
                     <!-- Row 1: Basic Info -->
@@ -156,16 +156,16 @@
                     <div class="tb-form-col-12">
                         <div class="tb-form-group">
                             <label class="tb-form-label">Attachments (Optional)</label>
-                            <MudFileUpload T="IReadOnlyList<IBrowserFile>"
-                                          @ref="fileUpload"
-                                          OnFilesChanged="OnFilesChanged"
-                                          Hidden="true"
-                                          MaximumFileCount="5"
-                                          Accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.xlsx,.docx" />
+                            <InputFile @ref="fileInputRef"
+                                       OnChange="@OnFilesChanged"
+                                       hidden="hidden"
+                                       multiple
+                                       accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.xlsx,.docx"
+                                       style="display: none;" />
                             <button type="button"
                                     class="tb-button tb-button--secondary"
-                                    @onclick="async () => await fileUpload.OpenFilePickerAsync()">
-                                <MudIcon Icon="@Icons.Material.Filled.AttachFile" />
+                                    @onclick="OpenFilePicker">
+                                <TbIcon Icon="paperclip" Size="md" />
                                 <span>Attach Lab Results / DNA Reports / Files</span>
                             </button>
                         </div>
@@ -195,7 +195,7 @@
                             }
                             else
                             {
-                                <MudIcon Icon="@Icons.Material.Filled.Science" />
+                                <TbIcon Icon="flask" Size="md" />
                                 <span>Generate Evidence-Based Blend</span>
                             }
                         </button>
@@ -228,7 +228,7 @@
                             class="tb-send-btn"
                             @onclick="@GetSendAction()"
                             disabled="@GetSendButtonDisabled()">
-                        <MudIcon Icon="@Icons.Material.Filled.Send" />
+                        <TbIcon Icon="paper-plane" Size="md" />
                     </button>
                 </div>
             </div>
@@ -237,7 +237,7 @@
             {
                 <div class="tb-typing-indicator" style="margin-top: 12px;">
                     <div class="tb-typing-avatar">
-                        <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" />
+                        <TbIcon Icon="flower" Size="sm" />
                     </div>
                     <div class="tb-typing-content">
                         <div class="tb-typing-text">TailorBlend is formulating...</div>
@@ -255,7 +255,7 @@
 
 @code {
     private ElementReference _messagesContainer;
-    private MudFileUpload<IReadOnlyList<IBrowserFile>>? fileUpload;
+    private InputFile? fileInputRef;
     private PractitionerBlendRequest request = new();
     private List<FileAttachment> selectedFiles = new();
     private List<ChatMessage> messages = new();
@@ -374,17 +374,23 @@
         }
     }
 
-    private async Task RemoveFile(FileAttachment file)
+    private void RemoveFile(FileAttachment file)
     {
         selectedFiles.Remove(file);
         Console.WriteLine($"🗑️ [PRACTITIONER] Removed file: {file.FileName}");
-
-        if (selectedFiles.Count == 0 && fileUpload != null)
-        {
-            await fileUpload.ClearAsync();
-        }
-
         StateHasChanged();
+    }
+
+    private void OpenFilePicker()
+    {
+        try
+        {
+            _ = JS.InvokeVoidAsync("triggerFileInput");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [PRACTITIONER] Failed to open file picker: {ex.Message}");
+        }
     }
 
     private async Task GenerateBlend()

@@ -1,0 +1,79 @@
+@inherits ComponentBase
+
+@* TbLoadingSpinner: Loading indicator with multiple sizes and styles *@
+<div class="@GetSpinnerClass()" style="@Style">
+    @if (Variant == "circular")
+    {
+        <div class="tb-spinner"></div>
+    }
+    else if (Variant == "dots")
+    {
+        <div class="tb-spinner-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    }
+    else if (Variant == "bar")
+    {
+        <div class="tb-spinner-bar"></div>
+    }
+
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <div class="tb-spinner-label">@Label</div>
+    }
+</div>
+
+@code {
+    /// <summary>Spinner size: "sm", "md", "lg"</summary>
+    [Parameter]
+    public string Size { get; set; } = "md";
+
+    /// <summary>Spinner variant: "circular" (default), "dots", "bar"</summary>
+    [Parameter]
+    public string Variant { get; set; } = "circular";
+
+    /// <summary>Spinner color: "primary", "accent", "success", "error", "warning", "info", or custom color</summary>
+    [Parameter]
+    public string Color { get; set; } = "primary";
+
+    /// <summary>Optional label text below spinner</summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>Additional CSS classes</summary>
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    /// <summary>Inline styles</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>Additional HTML attributes</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string GetSpinnerClass()
+    {
+        var sizeClass = Size switch
+        {
+            "sm" => "tb-spinner-wrapper--sm",
+            "lg" => "tb-spinner-wrapper--lg",
+            _ => "tb-spinner-wrapper--md"
+        };
+
+        var colorClass = Color switch
+        {
+            "primary" => "text-tb-accent",
+            "accent" => "text-tb-accent-strong",
+            "success" => "text-green-600 dark:text-green-400",
+            "error" => "text-red-600 dark:text-red-400",
+            "warning" => "text-amber-600 dark:text-amber-400",
+            "info" => "text-blue-600 dark:text-blue-400",
+            _ => !string.IsNullOrEmpty(Color) && Color.StartsWith("#") ? $"text-[{Color}]" : "text-tb-accent"
+        };
+
+        return $"tb-spinner-wrapper {sizeClass} {colorClass} {Class}";
+    }
+}

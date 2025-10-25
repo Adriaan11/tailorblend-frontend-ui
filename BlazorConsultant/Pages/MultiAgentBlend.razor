@@ -11,32 +11,32 @@
     <div class="tb-page__header">
         <div style="display: flex; align-items: center; gap: var(--tb-space-16); margin-bottom: var(--tb-space-12);">
             <div class="tb-icon-container tb-icon-container--accent">
-                <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Style="color: var(--tb-accent); font-size: 1.5rem;" />
+                <TbIcon Icon="sparkles" Color="accent" Size="lg" Style="font-size: 1.5rem;" />
             </div>
             <div>
                 <div style="display: flex; align-items: center; gap: var(--tb-space-8); margin-bottom: var(--tb-space-4);">
                     <div class="tb-badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
-                        <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Small" />
+                        <TbIcon Icon="flask" Size="sm" />
                         Experimental
                     </div>
                 </div>
-                <MudText Typo="Typo.h4" Style="font-weight:700; margin: 0;">Multi-Agent Formulation</MudText>
+                <TbText Typo="h4" Style="font-weight:700; margin: 0;">Multi-Agent Formulation</TbText>
             </div>
         </div>
-        <MudText Typo="Typo.body1" Class="tb-muted">
+        <TbText Typo="body1" Class="tb-muted">
             Powered by specialized AI agents working together to create your perfect blend.
-        </MudText>
+        </TbText>
         <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); margin-top: var(--tb-space-12);">
             <span class="tb-chip">
-                <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" />
+                <TbIcon Icon="brain" Size="sm" />
                 Intelligent Analysis
             </span>
             <span class="tb-chip">
-                <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Small" />
+                <TbIcon Icon="flask" Size="sm" />
                 Evidence-Based
             </span>
             <span class="tb-chip">
-                <MudIcon Icon="@Icons.Material.Filled.VerifiedUser" Size="Size.Small" />
+                <TbIcon Icon="shield-check" Size="sm" />
                 Safety Checked
             </span>
         </div>
@@ -48,10 +48,10 @@
             <!-- Input Form -->
             <div class="tb-card" style="margin-bottom: 2rem;">
                 <div class="tb-card__header">
-                    <MudText Typo="Typo.h6">Patient Profile</MudText>
-                    <MudText Typo="Typo.caption" Class="tb-muted">
+                    <TbText Typo="h6">Patient Profile</TbText>
+                    <TbText Typo="caption" Class="tb-muted">
                         Enter health information to generate a personalized blend
-                    </MudText>
+                    </TbText>
                 </div>
 
                 <div class="tb-card__content">
@@ -167,7 +167,7 @@
                                 class="tb-button tb-button--primary"
                                 @onclick="GenerateBlend"
                                 disabled="@(string.IsNullOrWhiteSpace(request.HealthGoals))">
-                            <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" />
+                            <TbIcon Icon="wand-magic-sparkles" Size="md" Style="margin-right: 0.5rem;" />
                             <span>Generate Multi-Agent Formulation</span>
                         </button>
                     </div>
@@ -180,10 +180,10 @@
             <!-- Agent Progress Display -->
             <div class="tb-card">
                 <div class="tb-card__header">
-                    <MudText Typo="Typo.h6">Agent Workflow</MudText>
-                    <MudText Typo="Typo.caption" Class="tb-muted">
+                    <TbText Typo="h6">Agent Workflow</TbText>
+                    <TbText Typo="caption" Class="tb-muted">
                         Watching specialized agents work together...
-                    </MudText>
+                    </TbText>
                 </div>
 
                 <div class="tb-card__content">
@@ -194,25 +194,25 @@
                                 @if (step.StepType == "thinking")
                                 {
                                     <div class="tb-icon-container tb-icon-container--sm tb-icon-container--info">
-                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                                        <TbLoadingSpinner Size="sm" Variant="circular" Color="indigo" />
                                     </div>
                                 }
                                 else if (step.StepType == "result")
                                 {
                                     <div class="tb-icon-container tb-icon-container--sm tb-icon-container--accent">
-                                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                                        <TbIcon Icon="check-circle" Color="success" Size="md" />
                                     </div>
                                 }
                                 else if (step.StepType == "error")
                                 {
                                     <div class="tb-icon-container tb-icon-container--sm tb-icon-container--warning">
-                                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Warning" />
+                                        <TbIcon Icon="circle-exclamation" Color="warning" Size="md" />
                                     </div>
                                 }
 
                                 <div style="flex: 1;">
-                                    <MudText Typo="Typo.subtitle2" Style="font-weight:600;">@step.AgentName</MudText>
-                                    <MudText Typo="Typo.body2">@step.Content</MudText>
+                                    <TbText Typo="subtitle1" Style="font-weight:600;">@step.AgentName</TbText>
+                                    <TbText Typo="body2">@step.Content</TbText>
                                 </div>
                             </div>
                         </div>
@@ -226,14 +226,14 @@
             <!-- Final Results -->
             <div class="tb-card">
                 <div class="tb-card__header">
-                    <MudText Typo="Typo.h6">Formulation Complete!</MudText>
-                    <MudText Typo="Typo.caption" Class="tb-muted">
+                    <TbText Typo="h6">Formulation Complete!</TbText>
+                    <TbText Typo="caption" Class="tb-muted">
                         Your personalized blend has been created
-                    </MudText>
+                    </TbText>
                 </div>
 
                 <div class="tb-card__content">
-                    <div style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace; font-size: 0.875rem; background: var(--mud-palette-surface); padding: 1.5rem; border-radius: 8px;">
+                    <div style="white-space: pre-wrap; font-family: 'Roboto Mono', monospace; font-size: 0.875rem; background: var(--bg-surface); padding: 1.5rem; border-radius: 8px;">
                         @((MarkupString)finalResult)
                     </div>
 
@@ -241,7 +241,7 @@
                         <button type="button"
                                 class="tb-button tb-button--secondary"
                                 @onclick="Reset">
-                            <MudIcon Icon="@Icons.Material.Filled.Refresh" />
+                            <TbIcon Icon="rotate-right" Size="md" Style="margin-right: 0.5rem;" />
                             <span>Create Another Blend</span>
                         </button>
                     </div>
@@ -252,10 +252,10 @@
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <!-- Error Display -->
-            <div class="tb-card" style="background: rgba(var(--mud-palette-error-rgb), 0.1); border-left: 4px solid var(--mud-palette-error);">
+            <div class="tb-card" style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--tb-error, #ef4444);">
                 <div class="tb-card__content">
-                    <MudText Typo="Typo.subtitle2" Style="font-weight:600; color: var(--mud-palette-error);">Error</MudText>
-                    <MudText Typo="Typo.body2" Style="margin-top: 0.5rem;">@errorMessage</MudText>
+                    <TbText Typo="subtitle1" Style="font-weight:600; color: var(--tb-error, #ef4444);">Error</TbText>
+                    <TbText Typo="body2" Style="margin-top: 0.5rem;">@errorMessage</TbText>
                     <div style="margin-top: 1rem;">
                         <button type="button"
                                 class="tb-button tb-button--secondary"
@@ -273,21 +273,21 @@
     .agent-step {
         padding: 1rem;
         border-radius: 8px;
-        border-left: 4px solid var(--mud-palette-primary);
+        border-left: 4px solid var(--tb-indigo, #6366f1);
     }
 
     .agent-step.thinking {
-        background: rgba(var(--mud-palette-primary-rgb), 0.08);
+        background: rgba(99, 102, 241, 0.08);
     }
 
     .agent-step.result {
-        background: rgba(var(--mud-palette-success-rgb), 0.08);
-        border-left-color: var(--mud-palette-success);
+        background: rgba(34, 197, 94, 0.08);
+        border-left-color: var(--tb-success, #22c55e);
     }
 
     .agent-step.error {
-        background: rgba(var(--mud-palette-error-rgb), 0.08);
-        border-left-color: var(--mud-palette-error);
+        background: rgba(239, 68, 68, 0.08);
+        border-left-color: var(--tb-error, #ef4444);
     }
 </style>
 

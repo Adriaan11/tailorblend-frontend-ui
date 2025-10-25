@@ -1,0 +1,103 @@
+@inherits ComponentBase
+
+@* TbAlert: Alert/notification component with multiple severity levels *@
+<div class="@GetAlertClass()">
+    <div class="flex gap-3">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <TbIcon Icon="@Icon" Size="lg" Color="@IconColor" />
+        }
+        <div class="flex-1">
+            @if (!string.IsNullOrEmpty(Title))
+            {
+                <div class="font-medium text-text-primary">@Title</div>
+            }
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <div class="text-sm @(string.IsNullOrEmpty(Title) ? "" : "mt-1") text-text-secondary">
+                    @((MarkupString)Message)
+                </div>
+            }
+        </div>
+        @if (Closeable && !_isClosed)
+        {
+            <button type="button" class="tb-alert__close" @onclick="Close">
+                <TbIcon Icon="xmark" Size="sm" />
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>Alert severity: "success", "info", "warning", "error"</summary>
+    [Parameter]
+    public string Severity { get; set; } = "info";
+
+    /// <summary>Alert title</summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>Alert message (supports HTML)</summary>
+    [Parameter]
+    public string? Message { get; set; }
+
+    /// <summary>Icon to display (Font Awesome name)</summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>Can be closed by user</summary>
+    [Parameter]
+    public bool Closeable { get; set; }
+
+    /// <summary>Event when alert is closed</summary>
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    /// <summary>Additional CSS classes</summary>
+    [Parameter]
+    public string Class { get; set; } = string.Empty;
+
+    /// <summary>Inline styles</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>Alert content</summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Additional HTML attributes</summary>
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private bool _isClosed;
+
+    private string GetAlertClass()
+    {
+        var baseClass = "tb-alert";
+        var severityClass = Severity switch
+        {
+            "success" => "tb-alert--success",
+            "error" => "tb-alert--error",
+            "warning" => "tb-alert--warning",
+            "info" => "tb-alert--info",
+            _ => "tb-alert--info"
+        };
+
+        return $"{baseClass} {severityClass} {(_isClosed ? "hidden" : "")} {Class}";
+    }
+
+    private string IconColor => Severity switch
+    {
+        "success" => "success",
+        "error" => "error",
+        "warning" => "warning",
+        "info" => "info",
+        _ => "info"
+    };
+
+    private async Task Close()
+    {
+        _isClosed = true;
+        await OnClose.InvokeAsync();
+    }
+}

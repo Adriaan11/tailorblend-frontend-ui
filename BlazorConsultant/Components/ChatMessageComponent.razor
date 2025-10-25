@@ -9,7 +9,7 @@
             @if (Message.Role != "user")
             {
                 <div style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, var(--tb-accent), var(--tb-accent-strong)); display: flex; align-items: center; justify-content: center;">
-                    <MudIcon Icon="@Icons.Material.Filled.LocalFlorist" Size="Size.Small" Style="color: white; font-size: 14px;" />
+                    <TbIcon Icon="flower" Size="sm" Style="color: white; font-size: 14px;" />
                 </div>
             }
             <span style="font-weight: 600;">@(Message.Role == "user" ? "You" : "TailorBlend AI")</span>
@@ -40,12 +40,12 @@
     <!-- Message Actions -->
     <div class="tb-message__actions">
         <button class="tb-message__action" title="Copy message" aria-label="Copy message" @onclick="CopyMessage">
-            <MudIcon Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Style="color: var(--text-secondary);" />
+            <TbIcon Icon="copy" Size="sm" />
         </button>
         @if (Message.Role == "assistant")
         {
             <button class="tb-message__action" title="Regenerate response" aria-label="Regenerate response">
-                <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" Style="color: var(--text-secondary);" />
+                <TbIcon Icon="refresh" Size="sm" />
             </button>
         }
     </div>
