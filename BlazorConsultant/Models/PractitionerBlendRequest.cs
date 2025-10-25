@@ -48,6 +48,11 @@ public class PractitionerBlendRequest
     public string? ChronicConditions { get; set; }
 
     /// <summary>
+    /// Primary health objectives or areas of focus
+    /// </summary>
+    public string? PrimaryHealthGoals { get; set; }
+
+    /// <summary>
     /// Current medications with dosages (comma-separated or free text)
     /// </summary>
     public string? ChronicMedications { get; set; }
@@ -75,6 +80,7 @@ public class PractitionerBlendRequest
 - **Sex**: {Sex}
 - **Weight**: {Weight} kg
 - **Chronic Conditions**: {ChronicConditions ?? "None reported"}
+- **Primary Goals**: {PrimaryHealthGoals ?? "Not provided"}
 - **Current Medications**: {ChronicMedications ?? "None reported"}
 - **Additional Information**: {AdditionalInformation ?? "Not provided"}
 - **Attachments**: {(Attachments.Count > 0 ? string.Join(", ", Attachments.Select(a => a.FileName)) : "None")}

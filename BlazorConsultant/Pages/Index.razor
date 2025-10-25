@@ -6,159 +6,191 @@
 
 <!-- Hero Section -->
 <section class="tb-hero">
-    <div class="tb-badge" style="margin: 0 auto var(--tb-space-16);">
-        <TbIcon Icon="sparkles" Size="sm" />
-        Tailored AI Guidance
-    </div>
+    <div class="tb-hero__glow"></div>
+    <div class="tb-container">
+        <div class="tb-hero__grid">
+            <div class="tb-hero__content">
+                <div class="tb-hero__eyebrow">
+                    <TbIcon Icon="sparkles" Size="sm" />
+                    Tailored AI Guidance
+                </div>
 
-    <h1 class="tb-hero__title">
-        Design evidence-based supplement blends with a conversational expert.
-    </h1>
+                <h1 class="tb-hero__title">
+                    Design evidence-based supplement blends with a conversational expert.
+                </h1>
 
-    <p class="tb-hero__subtitle">
-        TailorBlend translates health goals, habits, and constraints into a precise formulation roadmap.
-        Collaborate with an AI consultant that speaks the language of functional wellness.
-    </p>
+                <p class="tb-hero__subtitle">
+                    TailorBlend translates health goals, habits, and constraints into a precise formulation roadmap.
+                    Collaborate with an AI consultant that speaks the language of functional wellness.
+                </p>
 
-    <!-- CTAs -->
-    <div style="display: flex; flex-direction: column; gap: var(--tb-space-12); max-width: 400px; margin: 0 auto var(--tb-space-24);">
-        <TbButton Variant="filled" Color="primary" @onclick="@(() => NavManager.NavigateTo("/chat"))" StartIcon="rocket" Style="width: 100%; padding: var(--tb-space-12) var(--tb-space-24);">
-            <span>Start Consultation</span>
-        </TbButton>
-        <TbButton Variant="outlined" Color="primary" @onclick="@(() => NavManager.NavigateTo("/configuration"))" StartIcon="sliders" Style="width: 100%; padding: var(--tb-space-12) var(--tb-space-24);">
-            <span>Configure Agent</span>
-        </TbButton>
-    </div>
+                <div class="tb-hero__cta">
+                    <TbButton Variant="filled" Color="primary" Class="tb-hero__cta-btn" StartIcon="rocket" @onclick="@(() => NavManager.NavigateTo("/chat"))">
+                        <span>Start Consultation</span>
+                    </TbButton>
+                    <TbButton Variant="outlined" Color="primary" Class="tb-hero__cta-btn" StartIcon="sliders" @onclick="@(() => NavManager.NavigateTo("/configuration"))">
+                        <span>Configure Agent</span>
+                    </TbButton>
+                </div>
 
-    <!-- Feature Chips -->
-    <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); justify-content: center; margin-bottom: var(--tb-space-32);">
-        <span class="tb-chip">Adaptive assessments</span>
-        <span class="tb-chip">Ingredient intelligence</span>
-        <span class="tb-chip">Evidence-backed outputs</span>
+                <div class="tb-hero__chips">
+                    <span class="tb-chip">Adaptive assessments</span>
+                    <span class="tb-chip">Ingredient intelligence</span>
+                    <span class="tb-chip">Evidence-backed outputs</span>
+                </div>
+            </div>
+
+            <aside class="tb-hero__panel">
+                <div class="tb-panel">
+                    <div class="tb-panel__header">
+                        <div>
+                            <p class="tb-text-caption">Live session snapshot</p>
+                            <h3 class="tb-panel__title">Confidence, clarity, speed</h3>
+                        </div>
+                        <div class="tb-panel__icon">
+                            <TbIcon Icon="bolt" Size="lg" />
+                        </div>
+                    </div>
+
+                    <div class="tb-panel__metrics">
+                        <div class="tb-metric">
+                            <span class="tb-metric__label">Avg. response time</span>
+                            <span class="tb-metric__value">2.4s</span>
+                        </div>
+                        <div class="tb-metric">
+                            <span class="tb-metric__label">Blends generated</span>
+                            <span class="tb-metric__value">12,482</span>
+                        </div>
+                        <div class="tb-metric">
+                            <span class="tb-metric__label">Practitioner CSAT</span>
+                            <span class="tb-metric__value">4.9/5</span>
+                        </div>
+                    </div>
+
+                    <div class="tb-panel__note">
+                        <p class="tb-panel__note-label">Next best step</p>
+                        <p class="tb-panel__note-text">
+                            Share your primary goal and current stack to instantly map nutrient priorities and constraints.
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </div>
     </div>
 </section>
 
-<!-- Stats Card -->
-<div class="tb-container" style="margin-bottom: var(--tb-space-48);">
-    <div class="tb-card" style="text-align: center;">
-        <p class="tb-text-caption">Live Session Snapshot</p>
-        <div class="tb-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: var(--tb-space-16);">
-            <div>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--tb-space-4);">Avg. response time</p>
-                <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary);">2.4s</p>
-            </div>
-            <div>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--tb-space-4);">Blends generated</p>
-                <p style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary);">12,482</p>
-            </div>
-        </div>
-        <div class="tb-divider"></div>
-        <div style="padding: var(--tb-space-16); background: var(--tb-accent-soft); border-radius: var(--tb-radius-lg); text-align: left;">
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--tb-space-4);">Next best step</p>
-            <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--text-primary);">
-                Share your primary goal and current stack.
-            </p>
-            <p style="font-size: 0.875rem; color: var(--text-secondary);">
-                TailorBlend maps the consultation journey and highlights nutrient gaps in minutes.
-            </p>
-        </div>
-    </div>
-</div>
-
-<!-- Feature Cards -->
-<div class="tb-container" style="margin-bottom: var(--tb-space-48);">
-    <div class="tb-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-        <div class="tb-card">
-            <div class="tb-icon-container tb-icon-container--accent">
-                <TbIcon Icon="comments" Color="success" Size="lg" Style="font-size: 1.5rem;" />
-            </div>
-            <h2 class="tb-heading-md">Conversational intake</h2>
-            <p style="color: var(--text-secondary); line-height: 1.6;">
-                Guided discovery captures context the way a practitioner would—no rigid forms, just fluid dialog.
+<!-- Feature Section -->
+<section class="tb-section">
+    <div class="tb-container">
+        <div class="tb-section__header">
+            <p class="tb-eyebrow">Why TailorBlend</p>
+            <h2 class="tb-section__title">An elegant workflow for modern practitioners</h2>
+            <p class="tb-section__subtitle">
+                Keep the brand palette, gain a contemporary interface—purpose-built for conversations that turn into precise formulations.
             </p>
         </div>
 
-        <div class="tb-card">
-            <div class="tb-icon-container tb-icon-container--info">
-                <TbIcon Icon="flask" Color="info" Size="lg" Style="font-size: 1.5rem;" />
-            </div>
-            <h2 class="tb-heading-md">Ingredient intelligence</h2>
-            <p style="color: var(--text-secondary); line-height: 1.6;">
-                Recommendations draw on curated research, safe dosing ranges, and compatibility checks built for clinicians.
-            </p>
-        </div>
+        <div class="tb-feature-grid">
+            <article class="tb-feature-card">
+                <div class="tb-feature-card__icon tb-feature-card__icon--accent">
+                    <TbIcon Icon="comments" Size="lg" />
+                </div>
+                <h3>Conversational intake</h3>
+                <p>
+                    Guided discovery captures context the way a practitioner would—no rigid forms, just fluid dialog.
+                </p>
+                <ul>
+                    <li>Adaptive follow-ups for clarity</li>
+                    <li>Structured notes ready for EMR</li>
+                </ul>
+            </article>
 
-        <div class="tb-card">
-            <div class="tb-icon-container tb-icon-container--warning">
-                <TbIcon Icon="lightbulb" Color="warning" Size="lg" Style="font-size: 1.5rem;" />
-            </div>
-            <h2 class="tb-heading-md">Transparent economics</h2>
-            <p style="color: var(--text-secondary); line-height: 1.6;">
-                Track tokens and cost in real time so every consult stays profitable without compromising care.
-            </p>
+            <article class="tb-feature-card">
+                <div class="tb-feature-card__icon tb-feature-card__icon--info">
+                    <TbIcon Icon="flask" Size="lg" />
+                </div>
+                <h3>Ingredient intelligence</h3>
+                <p>
+                    Recommendations draw on curated research, safe dosing ranges, and compatibility checks built for clinicians.
+                </p>
+                <ul>
+                    <li>Clinician-tuned guardrails</li>
+                    <li>Research citations baked in</li>
+                </ul>
+            </article>
+
+            <article class="tb-feature-card">
+                <div class="tb-feature-card__icon tb-feature-card__icon--warning">
+                    <TbIcon Icon="lightbulb" Size="lg" />
+                </div>
+                <h3>Transparent economics</h3>
+                <p>
+                    Track tokens and cost in real time so every consult stays profitable without compromising care.
+                </p>
+                <ul>
+                    <li>Live session telemetry</li>
+                    <li>Cost controls per workflow</li>
+                </ul>
+            </article>
         </div>
     </div>
-</div>
+</section>
 
-<!-- How It Works -->
-<div class="tb-container" style="margin-bottom: var(--tb-space-48);">
-    <div class="tb-card tb-card--flat" style="background: var(--tb-surface); padding: var(--tb-space-24);">
-        <p class="tb-text-caption">How it works</p>
+<!-- Process Section -->
+<section class="tb-section tb-section--muted">
+    <div class="tb-container">
+        <div class="tb-section__header">
+            <p class="tb-eyebrow">How it works</p>
+            <h2 class="tb-section__title">From consult to dosage-ready protocol</h2>
+        </div>
 
-        <div style="display: flex; flex-direction: column; gap: var(--tb-space-24);">
-            <!-- Step 1 -->
-            <div style="display: flex; gap: var(--tb-space-16); align-items: flex-start;">
-                <div class="tb-icon-container--sm tb-icon-container tb-icon-container--accent">
-                    <TbIcon Icon="comments" Color="success" Size="md" />
-                </div>
+        <div class="tb-process">
+            <div class="tb-process__step">
+                <div class="tb-step-number">01</div>
                 <div>
-                    <h4 style="font-weight: 600; margin-bottom: var(--tb-space-4); color: var(--text-primary);">Consult</h4>
-                    <p style="color: var(--text-secondary); line-height: 1.6;">
-                        Describe health objectives, training load, sleep patterns, stress, and dietary realities.
-                    </p>
+                    <h4>Consult</h4>
+                    <p>Describe your objectives, training load, habits, and dietary realities.</p>
                 </div>
             </div>
 
-            <!-- Step 2 -->
-            <div style="display: flex; gap: var(--tb-space-16); align-items: flex-start;">
-                <div class="tb-icon-container--sm tb-icon-container tb-icon-container--info">
-                    <TbIcon Icon="chart-line" Color="info" Size="md" />
-                </div>
+            <div class="tb-process__step">
+                <div class="tb-step-number">02</div>
                 <div>
-                    <h4 style="font-weight: 600; margin-bottom: var(--tb-space-4); color: var(--text-primary);">Analyze</h4>
-                    <p style="color: var(--text-secondary); line-height: 1.6;">
-                        TailorBlend synthesizes the conversation, checks constraints, and drafts a structured protocol.
-                    </p>
+                    <h4>Analyze</h4>
+                    <p>TailorBlend synthesizes the conversation, checks constraints, and drafts a structured protocol.</p>
                 </div>
             </div>
 
-            <!-- Step 3 -->
-            <div style="display: flex; gap: var(--tb-space-16); align-items: flex-start;">
-                <div class="tb-icon-container--sm tb-icon-container tb-icon-container--warning">
-                    <TbIcon Icon="check-circle" Color="warning" Size="md" />
-                </div>
+            <div class="tb-process__step">
+                <div class="tb-step-number">03</div>
                 <div>
-                    <h4 style="font-weight: 600; margin-bottom: var(--tb-space-4); color: var(--text-primary);">Deliver</h4>
-                    <p style="color: var(--text-secondary); line-height: 1.6;">
-                        Receive dosage-ready formulas, sourcing suggestions, and talking points for your clients.
-                    </p>
+                    <h4>Deliver</h4>
+                    <p>Receive dosage-ready formulas, sourcing suggestions, and client talking points.</p>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 
 <!-- Final CTA -->
-<div class="tb-container" style="margin-bottom: var(--tb-space-64);">
-    <div class="tb-card" style="text-align: center; padding: var(--tb-space-32) var(--tb-space-24);">
-        <h2 class="tb-heading-lg" style="text-align: center;">
-            Ready to craft a smarter supplement strategy?
-        </h2>
-        <p style="color: var(--text-secondary); line-height: 1.6; max-width: 520px; margin: 0 auto var(--tb-space-24);">
-            Join practitioners and patients already using TailorBlend for personalized, evidence-based supplement recommendations.
-        </p>
-        <TbButton Variant="filled" Color="primary" @onclick="@(() => NavManager.NavigateTo("/chat"))" StartIcon="bolt">
-            <span>Launch the consultant</span>
-        </TbButton>
+<section class="tb-section">
+    <div class="tb-container">
+        <div class="tb-cta-card">
+            <div>
+                <p class="tb-eyebrow">Get started</p>
+                <h2>Ready to craft a smarter supplement strategy?</h2>
+                <p>
+                    Join practitioners already using TailorBlend for personalized, evidence-based recommendations with a refreshed, elegant interface.
+                </p>
+            </div>
+            <div class="tb-cta-card__actions">
+                <TbButton Variant="filled" Color="primary" StartIcon="bolt" Class="tb-hero__cta-btn" @onclick="@(() => NavManager.NavigateTo("/chat"))">
+                    <span>Launch the consultant</span>
+                </TbButton>
+                <TbButton Variant="outlined" Color="primary" StartIcon="arrow-right" Class="tb-hero__cta-btn" @onclick="@(() => NavManager.NavigateTo("/configuration"))">
+                    <span>Review configuration</span>
+                </TbButton>
+            </div>
+        </div>
     </div>
-</div>
+</section>

@@ -12,270 +12,355 @@
 
 <PageTitle>Chat - TailorBlend AI Consultant</PageTitle>
 
-<!-- Backdrop for bottom sheet -->
-<div class="tb-backdrop @(_showSettings ? "active" : "")" @onclick="CloseSettings"></div>
+<!-- Consultation Overview -->
+<section class="tb-chat-stage">
+    <div class="tb-container">
+        <header class="tb-chat-header">
+            <div>
+                <p class="tb-eyebrow">Live consultation</p>
+                <h1>Collaborate with your TailorBlend expert</h1>
+                <p class="tb-chat-header__subtitle">
+                    Keep conversations fluid while TailorBlend translates every detail into a precise formulation roadmap.
+                </p>
+            </div>
+            <div class="tb-chat-header__actions">
+                @if (!string.IsNullOrEmpty(SessionService?.SessionId))
+                {
+                    <span class="tb-session-pill">@SessionLabel</span>
+                }
+                <TbButton Variant="outlined" Size="sm" Color="primary" StartIcon="sliders" Class="tb-chat-controls-btn" @onclick="ToggleSettings">
+                    Session controls
+                </TbButton>
+            </div>
+        </header>
 
-<!-- Main Chat Container -->
-<div class="tb-chat-container">
-    <!-- Messages Area -->
-    <div class="tb-chat-messages" id="messagesContainer" @ref="_messagesContainer">
-        <!-- Empty State -->
-        @if (ChatStateService.Messages.Count == 0 && !ChatStateService.IsLoading)
-        {
-            <div class="tb-empty-state">
-                <div class="tb-badge" style="margin: 0 auto var(--tb-space-12);">
-                    <TbIcon Icon="sparkles" Size="sm" />
-                    AI-Powered Consultation
+        <div class="tb-chat-meta">
+            <div class="tb-meta-chip">
+                <TbIcon Icon="cpu" Size="sm" />
+                <span>@(selectedModel?.ToUpperInvariant() ?? "MODEL")</span>
+            </div>
+            <div class="tb-meta-chip">
+                <TbIcon Icon="gauge" Size="sm" />
+                <span>@(reasoningEffort.ToUpperInvariant()) effort</span>
+            </div>
+            <div class="tb-meta-chip">
+                <TbIcon Icon="lines-leaning" Size="sm" />
+                <span>@(verbosity.ToUpperInvariant()) detail</span>
+            </div>
+            <div class="tb-meta-chip">
+                <TbIcon Icon="sparkles" Size="sm" />
+                <span>@(typewriterEnabled ? "Typewriter on" : "Instant responses")</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="tb-chat-live">
+    <div class="tb-container">
+        <div class="tb-chat-shell">
+            <!-- Backdrop for bottom sheet -->
+            <div class="tb-backdrop @(_showSettings ? "active" : "")" @onclick="CloseSettings"></div>
+
+            <!-- Main Chat Container -->
+            <div class="tb-chat-container">
+                <!-- Messages Area -->
+                <div class="tb-chat-messages" id="messagesContainer" @ref="_messagesContainer">
+                    <!-- Empty State -->
+                    @if (ChatStateService.Messages.Count == 0 && !ChatStateService.IsLoading)
+                    {
+                        <div class="tb-chat-onboarding">
+                            <div class="tb-chat-welcome">
+                                <div class="tb-chat-welcome__badge">
+                                    <TbIcon Icon="sparkles" Size="sm" />
+                                    AI-powered consultation
+                                </div>
+                                <div class="tb-chat-welcome__icon">
+                                    <div class="tb-icon-container tb-icon-container--accent">
+                                        <TbIcon Icon="flower" Color="success" Size="lg" />
+                                    </div>
+                                </div>
+                                <h2>Ready to create your perfect blend?</h2>
+                                <p>
+                                    Share your goals, lifestyle, and preferences. TailorBlend responds with focused guidance in real time and remembers every detail.
+                                </p>
+                                <div class="tb-chat-welcome__chips">
+                                    <span class="tb-chip">
+                                        <TbIcon Icon="dumbbell" Size="sm" />
+                                        Fitness & Performance
+                                    </span>
+                                    <span class="tb-chip">
+                                        <TbIcon Icon="meditation" Size="sm" />
+                                        Stress & Sleep
+                                    </span>
+                                    <span class="tb-chip">
+                                        <TbIcon Icon="utensils" Size="sm" />
+                                        Nutrition Gaps
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="tb-quick-actions tb-quick-actions--grid">
+                                @foreach (var example in examplePrompts)
+                                {
+                                    <button type="button" class="tb-quick-action" @onclick="() => SendExampleMessage(example)">
+                                        <TbIcon Icon="arrow-up-right-dots" Size="sm" />
+                                        <span>@example</span>
+                                    </button>
+                                }
+                            </div>
+
+                            <div class="tb-chat-profile">
+                                <p class="tb-chat-profile__title">Context boosts precision</p>
+                                <UserProfileComponent Profile="@userProfile" OnProfileChanged="HandleProfileChanged" />
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Messages List -->
+                        @foreach (var msg in ChatStateService.Messages)
+                        {
+                            <ChatMessageComponent
+                                Message="@msg"
+                                TypewriterEnabled="@typewriterEnabled"
+                                @key="@($"{msg.Timestamp.Ticks}_{msg.Role}")" />
+                        }
+                    }
+
+                    <!-- Typing Indicator -->
+                    @if (ChatStateService.IsLoading)
+                    {
+                        <div class="tb-typing">
+                            <div class="tb-typing__avatar">
+                                <TbIcon Icon="flower" Size="sm" Style="color: white;" />
+                            </div>
+                            <div class="tb-typing__dots">
+                                <span class="tb-typing__dot"></span>
+                                <span class="tb-typing__dot"></span>
+                                <span class="tb-typing__dot"></span>
+                            </div>
+                        </div>
+                    }
                 </div>
-                <div class="tb-empty-state__icon">
-                    <div class="tb-icon-container tb-icon-container--accent" style="width: 64px; height: 64px; margin: 0 auto var(--tb-space-16);">
-                        <TbIcon Icon="flower" Color="success" Style="font-size: 1.75rem;" />
+
+                <!-- File Preview (if files selected) -->
+                @if (selectedFiles.Count > 0)
+                {
+                    <div class="tb-chat-attachments">
+                        <FilePreviewComponent Attachments="@selectedFiles"
+                                             ShowRemoveButton="true"
+                                             OnRemoveClick="@RemoveFile" />
+                    </div>
+                }
+
+                <!-- Chat Input Area -->
+                <div class="tb-chat-input-container">
+                    <div class="tb-chat-input-wrapper">
+                        <!-- File Upload (Hidden) -->
+                        <InputFile @ref="fileInputRef"
+                                   OnChange="@OnFilesChanged"
+                                   hidden="hidden"
+                                   multiple
+                                   accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx"
+                                   style="display: none;" />
+
+                        <!-- Attach Button -->
+                        <button type="button"
+                                class="tb-icon-btn"
+                                @onclick="OpenFilePicker"
+                                disabled="@ChatStateService.IsLoading"
+                                title="Attach files">
+                            <TbIcon Icon="paperclip" Size="md" />
+                        </button>
+
+                        <!-- Session Controls Shortcut -->
+                        <button type="button"
+                                class="tb-icon-btn tb-icon-btn--ghost"
+                                @onclick="ToggleSettings"
+                                disabled="@ChatStateService.IsLoading"
+                                title="Session controls">
+                            <TbIcon Icon="sliders" Size="md" />
+                        </button>
+
+                        <!-- Text Input -->
+                        <textarea class="tb-chat-input"
+                                  @bind="userInput"
+                                  @bind:event="oninput"
+                                  placeholder="Type your message..."
+                                  @onkeydown="HandleKeyPress"
+                                  disabled="@ChatStateService.IsLoading"
+                                  rows="1"></textarea>
+
+                        <!-- Send Button -->
+                        <button type="button"
+                                class="tb-chat-send-btn"
+                                @onclick="SendMessage"
+                                disabled="@ChatStateService.IsLoading">
+                            <TbIcon Icon="paper-plane" Size="md" />
+                        </button>
                     </div>
                 </div>
-                <h2 class="tb-empty-state__title">Ready to create your perfect blend?</h2>
-                <p class="tb-empty-state__text">
-                    Share your goals, lifestyle, and preferences. TailorBlend will respond with targeted guidance in real time.
-                </p>
-                <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); justify-content: center; margin-bottom: var(--tb-space-16);">
-                    <span class="tb-chip">
-                        <TbIcon Icon="dumbbell" Size="sm" />
-                        Fitness & Performance
-                    </span>
-                    <span class="tb-chip">
-                        <TbIcon Icon="meditation" Size="sm" />
-                        Stress & Sleep
-                    </span>
-                    <span class="tb-chip">
-                        <TbIcon Icon="utensils" Size="sm" />
-                        Nutrition Gaps
-                    </span>
-                </div>
             </div>
-
-            <!-- Quick Actions -->
-            <div class="tb-quick-actions">
-                @foreach (var example in examplePrompts)
-                {
-                    <button type="button" class="tb-quick-action" @onclick="() => SendExampleMessage(example)">
-                        @example
-                    </button>
-                }
-            </div>
-
-            <!-- User Profile Component -->
-            <UserProfileComponent Profile="@userProfile" OnProfileChanged="HandleProfileChanged" />
-        }
-        else
-        {
-            <!-- Messages List -->
-            @foreach (var msg in ChatStateService.Messages)
-            {
-                <ChatMessageComponent
-                    Message="@msg"
-                    TypewriterEnabled="@typewriterEnabled"
-                    @key="@($"{msg.Timestamp.Ticks}_{msg.Role}")" />
-            }
-        }
-
-        <!-- Typing Indicator -->
-        @if (ChatStateService.IsLoading)
-        {
-            <div class="tb-typing">
-                <div class="tb-typing__avatar">
-                    <TbIcon Icon="flower" Size="sm" Style="color: white;" />
-                </div>
-                <div class="tb-typing__dots">
-                    <span class="tb-typing__dot"></span>
-                    <span class="tb-typing__dot"></span>
-                    <span class="tb-typing__dot"></span>
-                </div>
-            </div>
-        }
-    </div>
-
-    <!-- File Preview (if files selected) -->
-    @if (selectedFiles.Count > 0)
-    {
-        <div style="border-top: 1px solid var(--tb-border); background: var(--tb-surface); padding: var(--tb-space-12) var(--tb-space-16);">
-            <FilePreviewComponent Attachments="@selectedFiles"
-                                 ShowRemoveButton="true"
-                                 OnRemoveClick="@RemoveFile" />
-        </div>
-    }
-
-    <!-- Chat Input Area -->
-    <div class="tb-chat-input-container">
-        <div class="tb-chat-input-wrapper">
-            <!-- File Upload (Hidden) -->
-            <InputFile @ref="fileInputRef"
-                       OnChange="@OnFilesChanged"
-                       hidden="hidden"
-                       multiple
-                       accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx"
-                       style="display: none;" />
-
-            <!-- Attach Button -->
-            <button type="button"
-                    class="tb-icon-btn"
-                    @onclick="OpenFilePicker"
-                    disabled="@ChatStateService.IsLoading"
-                    title="Attach files">
-                <TbIcon Icon="paperclip" Size="md" />
-            </button>
-
-            <!-- Text Input -->
-            <textarea class="tb-chat-input"
-                      @bind="userInput"
-                      @bind:event="oninput"
-                      placeholder="Type your message..."
-                      @onkeydown="HandleKeyPress"
-                      disabled="@ChatStateService.IsLoading"
-                      rows="1"></textarea>
-
-            <!-- Send Button -->
-            <button type="button"
-                    class="tb-chat-send-btn"
-                    @onclick="SendMessage"
-                    disabled="@ChatStateService.IsLoading">
-                <TbIcon Icon="paper-plane" Size="md" />
-            </button>
         </div>
     </div>
-</div>
-
-<!-- Floating Action Button (Settings) -->
-<button class="tb-fab" @onclick="ToggleSettings" title="Settings & Stats">
-    <TbIcon Icon="@(_showSettings ? "xmark" : "sliders")" Size="md" />
-</button>
+</section>
 
 <!-- Bottom Sheet (Settings & Stats) -->
 <div class="tb-bottom-sheet @(_showSettings ? "active" : "")">
-    <div class="tb-bottom-sheet__handle"></div>
-    <div class="tb-bottom-sheet__content">
-        <!-- Model Selection -->
-        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16); background: var(--tb-indigo-soft); border-left: 3px solid var(--tb-indigo);">
-            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
-                <div class="tb-icon-container tb-icon-container--info tb-icon-container--sm">
-                    <TbIcon Icon="brain" Size="sm" Color="info" />
-                </div>
-                <h3 class="tb-heading-sm" style="margin: 0;">AI Model</h3>
+    <div class="tb-bottom-sheet__panel">
+        <div class="tb-bottom-sheet__handle"></div>
+        <div class="tb-bottom-sheet__header">
+            <div>
+                <p class="tb-eyebrow">Session controls</p>
+                <h3>Fine-tune the consultant</h3>
             </div>
-            <TbSelect Value="@selectedModel"
-                      ValueChanged="@OnModelChanged"
-                      Options="@(availableModels.Select(m => m.ModelId).ToList())"
-                      Label="Select Model" />
+            <button type="button" class="tb-sheet-close" title="Close" @onclick="CloseSettings">
+                <TbIcon Icon="xmark" Size="sm" />
+            </button>
         </div>
 
-        <!-- Display Options -->
-        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
-            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
-                <div class="tb-icon-container tb-icon-container--accent tb-icon-container--sm">
-                    <TbIcon Icon="paintbrush" Size="sm" Color="accent" />
+        <div class="tb-bottom-sheet__grid">
+            <!-- Model Selection -->
+            <div class="tb-sheet-card tb-sheet-card--accent">
+                <div class="tb-sheet-card__header">
+                    <div class="tb-sheet-card__icon tb-sheet-card__icon--info">
+                        <TbIcon Icon="brain" Size="sm" />
+                    </div>
+                    <div>
+                        <p class="tb-sheet-card__label">AI model</p>
+                        <h4>Choose the engine</h4>
+                    </div>
                 </div>
-                <h3 class="tb-heading-sm" style="margin: 0;">Display Options</h3>
+                <TbSelect Value="@selectedModel"
+                          ValueChanged="@OnModelChanged"
+                          Options="@(availableModels.Select(m => m.ModelId).ToList())"
+                          Label="Select Model" />
             </div>
-            <TbCheckbox @bind-Checked="typewriterEnabled"
-                        Label="Typewriter effect" />
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--tb-space-4);">
-                Gradually reveal AI responses
-            </p>
-        </div>
 
-        <!-- GPT-5 Settings -->
-        @if (isGpt5Selected)
-        {
-            <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
-                <h3 class="tb-heading-sm">GPT-5 Settings</h3>
-
-                <div style="margin-bottom: var(--tb-space-16);">
-                    <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--text-primary);">Reasoning Effort</p>
-                    <TbRadioGroup Value="@reasoningEffort"
-                                  ValueChanged="@((string val) => reasoningEffort = val)"
-                                  Options="@(new List<string> { "minimal", "low", "medium", "high" })"
-                                  OptionLabels="@(new List<string> { "Minimal (fastest)", "Low", "Medium (balanced)", "High (thorough)" })" />
+            <!-- Display Options -->
+            <div class="tb-sheet-card">
+                <div class="tb-sheet-card__header">
+                    <div class="tb-sheet-card__icon tb-sheet-card__icon--accent">
+                        <TbIcon Icon="paintbrush" Size="sm" />
+                    </div>
+                    <div>
+                        <p class="tb-sheet-card__label">Display</p>
+                        <h4>Visual preferences</h4>
+                    </div>
                 </div>
-
-                <div>
-                    <p style="font-weight: 600; margin-bottom: var(--tb-space-8); color: var(--text-primary);">Response Style</p>
-                    <TbSelect Value="@verbosity"
-                              ValueChanged="@((string val) => verbosity = val)"
-                              Options="@(new List<string> { "low", "medium", "high" })"
-                              Label="Select Response Style" />
-                </div>
+                <TbCheckbox @bind-Checked="typewriterEnabled"
+                            Label="Typewriter effect" />
+                <p class="tb-sheet-card__hint">
+                    Gradually reveal AI responses
+                </p>
             </div>
-        }
 
-        <!-- Session Stats -->
-        <div class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-16);">
-            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
-                <div class="tb-icon-container tb-icon-container--accent tb-icon-container--sm">
-                    <TbIcon Icon="chart-simple" Size="sm" Color="accent" />
+            <!-- GPT-5 Settings -->
+            @if (isGpt5Selected)
+            {
+                <div class="tb-sheet-card">
+                    <div class="tb-sheet-card__header">
+                        <div class="tb-sheet-card__icon tb-sheet-card__icon--warning">
+                            <TbIcon Icon="sliders" Size="sm" />
+                        </div>
+                        <div>
+                            <p class="tb-sheet-card__label">GPT-5</p>
+                            <h4>Advanced controls</h4>
+                        </div>
+                    </div>
+                    <div class="tb-sheet-card__group">
+                        <p class="tb-sheet-card__label">Reasoning effort</p>
+                        <TbRadioGroup Value="@reasoningEffort"
+                                      ValueChanged="@((string val) => reasoningEffort = val)"
+                                      Options="@(new List<string> { "minimal", "low", "medium", "high" })"
+                                      OptionLabels="@(new List<string> { "Minimal (fastest)", "Low", "Medium (balanced)", "High (thorough)" })" />
+                    </div>
+                    <div class="tb-sheet-card__group">
+                        <p class="tb-sheet-card__label">Response style</p>
+                        <TbSelect Value="@verbosity"
+                                  ValueChanged="@((string val) => verbosity = val)"
+                                  Options="@(new List<string> { "low", "medium", "high" })"
+                                  Label="Select Response Style" />
+                    </div>
                 </div>
-                <h3 class="tb-heading-sm" style="margin: 0;">Session Stats</h3>
-            </div>
-            <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
-        </div>
+            }
 
-        <!-- Actions -->
-        <div class="tb-card tb-card--flat">
-            <div style="display: flex; align-items: center; gap: var(--tb-space-12); margin-bottom: var(--tb-space-12);">
-                <div class="tb-icon-container tb-icon-container--warning tb-icon-container--sm">
-                    <TbIcon Icon="gear" Size="sm" Color="warning" />
+            <!-- Session Stats -->
+            <div class="tb-sheet-card">
+                <div class="tb-sheet-card__header">
+                    <div class="tb-sheet-card__icon tb-sheet-card__icon--accent">
+                        <TbIcon Icon="chart-simple" Size="sm" />
+                    </div>
+                    <div>
+                        <p class="tb-sheet-card__label">Session stats</p>
+                        <h4>Track performance</h4>
+                    </div>
                 </div>
-                <h3 class="tb-heading-sm" style="margin: 0;">Actions</h3>
+                <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
             </div>
-            <div style="display: flex; flex-direction: column; gap: var(--tb-space-12);">
-                <button type="button"
-                        class="tb-btn tb-btn--secondary"
-                        @onclick="RefreshStats"
-                        disabled="@isRefreshing">
-                    @if (isRefreshing)
-                    {
-                        <TbLoadingSpinner Size="sm" Variant="circular" />
-                        <span>Refreshing...</span>
-                    }
-                    else
-                    {
-                        <TbIcon Icon="refresh" Size="sm" />
-                        <span>Refresh Stats</span>
-                    }
-                </button>
 
-                <button type="button"
-                        class="tb-btn tb-btn--primary"
-                        @onclick="ResetConversation"
-                        disabled="@isResetting">
-                    @if (isResetting)
-                    {
-                        <TbLoadingSpinner Size="sm" Variant="circular" />
-                        <span>Resetting...</span>
-                    }
-                    else
-                    {
-                        <TbIcon Icon="rotate-left" Size="sm" />
-                        <span>Reset Session</span>
-                    }
-                </button>
-
-                <div class="tb-divider"></div>
-
-                <div style="display: flex; gap: var(--tb-space-8);">
+            <!-- Actions -->
+            <div class="tb-sheet-card">
+                <div class="tb-sheet-card__header">
+                    <div class="tb-sheet-card__icon tb-sheet-card__icon--warning">
+                        <TbIcon Icon="gear" Size="sm" />
+                    </div>
+                    <div>
+                        <p class="tb-sheet-card__label">Actions</p>
+                        <h4>Manage session</h4>
+                    </div>
+                </div>
+                <div class="tb-sheet-card__actions">
                     <button type="button"
-                            class="tb-btn tb-btn--ghost"
-                            @onclick="ExportAsMarkdown"
-                            disabled="@(ChatStateService.Messages.Count == 0)"
-                            style="flex: 1;">
-                        <TbIcon Icon="file-text" Size="sm" />
-                        <span>MD</span>
+                            class="tb-btn tb-btn--secondary tb-btn--full"
+                            @onclick="RefreshStats"
+                            disabled="@isRefreshing">
+                        @if (isRefreshing)
+                        {
+                            <TbLoadingSpinner Size="sm" Variant="circular" />
+                            <span>Refreshing...</span>
+                        }
+                        else
+                        {
+                            <TbIcon Icon="refresh" Size="sm" />
+                            <span>Refresh Stats</span>
+                        }
                     </button>
+
                     <button type="button"
-                            class="tb-btn tb-btn--ghost"
-                            @onclick="ExportAsJson"
-                            disabled="@(ChatStateService.Messages.Count == 0)"
-                            style="flex: 1;">
-                        <TbIcon Icon="code" Size="sm" />
-                        <span>JSON</span>
+                            class="tb-btn tb-btn--primary tb-btn--full"
+                            @onclick="ResetConversation"
+                            disabled="@isResetting">
+                        @if (isResetting)
+                        {
+                            <TbLoadingSpinner Size="sm" Variant="circular" />
+                            <span>Resetting...</span>
+                        }
+                        else
+                        {
+                            <TbIcon Icon="rotate-left" Size="sm" />
+                            <span>Reset Session</span>
+                        }
                     </button>
+
+                    <div class="tb-divider"></div>
+
+                    <div class="tb-sheet-card__export">
+                        <button type="button"
+                                class="tb-btn tb-btn--ghost tb-btn--full"
+                                @onclick="ExportAsMarkdown"
+                                disabled="@(ChatStateService.Messages.Count == 0)">
+                            <TbIcon Icon="file-text" Size="sm" />
+                            <span>Export MD</span>
+                        </button>
+                        <button type="button"
+                                class="tb-btn tb-btn--ghost tb-btn--full"
+                                @onclick="ExportAsJson"
+                                disabled="@(ChatStateService.Messages.Count == 0)">
+                            <TbIcon Icon="code" Size="sm" />
+                            <span>Export JSON</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -291,6 +376,7 @@
     private ElementReference _messagesContainer;
     private string selectedModel = "gpt-5-mini";
     private bool _showSettings = false;
+    private string SessionLabel => BuildSessionLabel();
 
     // Async tracking
     private readonly CancellationTokenSource _componentCts = new();
@@ -362,6 +448,19 @@
     protected override void OnInitialized()
     {
         ChatStateService.OnStateChanged += HandleStateChanged;
+    }
+
+    private string BuildSessionLabel()
+    {
+        var sessionId = SessionService?.SessionId;
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            return "Session pending";
+        }
+
+        var segmentLength = Math.Min(6, sessionId.Length);
+        var suffix = sessionId.Substring(sessionId.Length - segmentLength, segmentLength).ToUpperInvariant();
+        return $"Session #{suffix}";
     }
 
     private void HandleStateChanged(object? sender, EventArgs e)

@@ -1,6 +1,7 @@
 @page "/practitioner-blend"
 @using BlazorConsultant.Models
 @using BlazorConsultant.Services
+@using BlazorConsultant.Components
 @using Microsoft.AspNetCore.Components.Forms
 @inject IChatService ChatService
 @inject IChatStateService ChatStateService
@@ -9,243 +10,336 @@
 
 <PageTitle>Practitioner Blend Creator - TailorBlend AI</PageTitle>
 
-<div class="tb-conversation">
-    <section class="tb-conversation__messages" id="blendMessagesContainer" @ref="_messagesContainer">
-        <header class="tb-stack" style="gap: var(--tb-space-sm);">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div style="display: flex; align-items: center; gap: var(--tb-space-16);">
-                    <div class="tb-icon-container tb-icon-container--accent">
-                        <TbIcon Icon="flask" Color="accent" Size="lg" Style="font-size: 1.5rem;" />
+<!-- Practitioner Hero -->
+<section class="tb-practitioner-hero">
+    <div class="tb-container">
+        <div class="tb-practitioner-hero__grid">
+            <div class="tb-practitioner-hero__content">
+                <p class="tb-eyebrow">Practitioner workspace</p>
+                <h1>Design evidence-backed blends with clinical guardrails.</h1>
+                <p class="tb-practitioner-hero__subtitle">
+                    Capture the exact patient context, layer automated interaction checks, and ship transparent formulations in minutes.
+                </p>
+
+                <div class="tb-practitioner-meta">
+                    <span class="tb-meta-chip">
+                        <TbIcon Icon="dna" Size="sm" />
+                        Clinical-grade intake
+                    </span>
+                    <span class="tb-meta-chip">
+                        <TbIcon Icon="shield-heart" Size="sm" />
+                        Safety guardrails
+                    </span>
+                    <span class="tb-meta-chip">
+                        <TbIcon Icon="book" Size="sm" />
+                        Research-backed outputs
+                    </span>
+                </div>
+            </div>
+
+            <div class="tb-practitioner-hero__card">
+                <div class="tb-practitioner-hero__card-head">
+                    <p class="tb-text-caption">Session readiness</p>
+                    <span class="tb-session-pill">@SessionLabel</span>
+                </div>
+                <div class="tb-practitioner-hero__metrics">
+                    <div>
+                        <p class="tb-practitioner-hero__metric-label">Interaction screen</p>
+                        <p class="tb-practitioner-hero__metric-value">Auto</p>
                     </div>
                     <div>
-                        <div style="display: flex; align-items: center; gap: var(--tb-space-8); margin-bottom: var(--tb-space-4);">
-                            <div class="tb-badge" style="background: var(--tb-indigo-soft); color: var(--tb-indigo);">
+                        <p class="tb-practitioner-hero__metric-label">Research depth</p>
+                        <p class="tb-practitioner-hero__metric-value">Evidence+</p>
+                    </div>
+                    <div>
+                        <p class="tb-practitioner-hero__metric-label">Blend formats</p>
+                        <p class="tb-practitioner-hero__metric-value">Caps + Powders</p>
+                    </div>
+                </div>
+                <div class="tb-practitioner-hero__note">
+                    <TbIcon Icon="sparkles" Size="sm" />
+                    <span>Upload labs or DNA reports to enrich the formulation context.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Practitioner Workspace -->
+<section class="tb-practitioner-workspace">
+    <div class="tb-container">
+        <div class="tb-practitioner-layout">
+            <div class="tb-practitioner-main" id="blendMessagesContainer" @ref="_messagesContainer">
+                <header class="tb-practitioner-heading">
+                    <div class="tb-practitioner-heading__title">
+                        <div class="tb-practitioner-heading__icon">
+                            <TbIcon Icon="flask" Size="lg" />
+                        </div>
+                        <div>
+                            <p class="tb-badge tb-badge--subtle">
                                 <TbIcon Icon="shield-heart" Size="sm" />
                                 Practitioner Mode
+                            </p>
+                            <h2>Evidence-based supplement formulation</h2>
+                            <p>Create personalized protocols with dosage guidance, interaction checks, and sourcing prompts.</p>
+                        </div>
+                    </div>
+                    <div class="tb-practitioner-heading__actions">
+                        @if (blendGenerated)
+                        {
+                            <TbButton Variant="outlined" Color="primary" StartIcon="plus" Size="sm" @onclick="ResetForm">
+                                New patient
+                            </TbButton>
+                        }
+                    </div>
+                </header>
+
+                @if (!blendGenerated)
+                {
+                    <div class="tb-practitioner-panel">
+                        <div class="tb-practitioner-panel__header">
+                            <div>
+                                <p class="tb-eyebrow">Patient intake</p>
+                                <h3>Capture the essentials</h3>
+                            </div>
+                            <p>Structured inputs help TailorBlend deliver safe, specific recommendations.</p>
+                        </div>
+
+                        <div class="tb-form-grid">
+                            <div class="tb-form-col-6">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Patient Name *</label>
+                                    <input type="text"
+                                           class="tb-form-input"
+                                           @bind="request.PatientName"
+                                           placeholder="Enter patient name" />
+                                </div>
+                            </div>
+                            <div class="tb-form-col-6">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Your Email (Practitioner) *</label>
+                                    <input type="email"
+                                           class="tb-form-input"
+                                           @bind="request.PractitionerEmail"
+                                           placeholder="practitioner@example.com" />
+                                </div>
+                            </div>
+
+                            <div class="tb-form-col-4">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Age (years) *</label>
+                                    <input type="number"
+                                           class="tb-form-input"
+                                           @bind="request.Age"
+                                           min="1"
+                                           max="120"
+                                           placeholder="Age" />
+                                </div>
+                            </div>
+                            <div class="tb-form-col-4">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Sex *</label>
+                                    <select class="tb-form-select" @bind="request.Sex">
+                                        <option value="">Select...</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other / Prefer not to say</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="tb-form-col-4">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Weight (kg) *</label>
+                                    <input type="number"
+                                           class="tb-form-input"
+                                           @bind="request.Weight"
+                                           min="30"
+                                           max="250"
+                                           placeholder="e.g., 72" />
+                                </div>
+                            </div>
+
+                            <div class="tb-form-col-6">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Primary Health Goals *</label>
+                                    <textarea class="tb-form-textarea"
+                                              @bind="request.PrimaryHealthGoals"
+                                              placeholder="e.g., Improve glucose stability, support thyroid function"
+                                              rows="3"></textarea>
+                                    <div class="tb-form-helper">Provide clear objectives to guide formulation.</div>
+                                </div>
+                            </div>
+                            <div class="tb-form-col-6">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Chronic Conditions</label>
+                                    <textarea class="tb-form-textarea"
+                                              @bind="request.ChronicConditions"
+                                              placeholder="e.g., Hashimoto's, PCOS, IBS"
+                                              rows="3"></textarea>
+                                    <div class="tb-form-helper">List all chronic conditions (optional).</div>
+                                </div>
+                            </div>
+                            <div class="tb-form-col-6">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Current Medications</label>
+                                    <textarea class="tb-form-textarea"
+                                              @bind="request.ChronicMedications"
+                                              placeholder="e.g., Metformin 500mg BD, Levothyroxine 75mcg OD"
+                                              rows="3"></textarea>
+                                    <div class="tb-form-helper">Include dosages if known (optional).</div>
+                                </div>
+                            </div>
+
+                            <div class="tb-form-col-12">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Additional Information & Health Goals</label>
+                                    <textarea class="tb-form-textarea"
+                                              @bind="request.AdditionalInformation"
+                                              placeholder="Health goals, lifestyle, diet, allergies, sleep, stress, activity level, specific concerns..."
+                                              rows="5"></textarea>
+                                    <div class="tb-form-helper">The more context you provide, the more precise the protocol.</div>
+                                </div>
+                            </div>
+
+                            <div class="tb-form-col-12">
+                                <div class="tb-form-group">
+                                    <label class="tb-form-label">Attachments (Optional)</label>
+                                    <InputFile @ref="fileInputRef"
+                                               OnChange="@OnFilesChanged"
+                                               hidden="hidden"
+                                               multiple
+                                               accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.xlsx,.docx"
+                                               style="display: none;" />
+                                    <TbButton Variant="filled" Color="secondary" @onclick="OpenFilePicker">
+                                        <TbIcon Icon="paperclip" Size="md" />
+                                        <span>Attach lab results / DNA reports / files</span>
+                                    </TbButton>
+                                </div>
+                            </div>
+
+                            @if (selectedFiles.Count > 0)
+                            {
+                                <div class="tb-form-col-12">
+                                    <FilePreviewComponent Attachments="@selectedFiles"
+                                                         ShowRemoveButton="true"
+                                                         OnRemoveClick="@RemoveFile" />
+                                </div>
+                            }
+
+                            <div class="tb-form-col-12">
+                                <div class="tb-practitioner-panel__cta">
+                                    <TbButton Variant="filled" Color="primary" @onclick="GenerateBlend" Disabled="@isGenerating">
+                                        @if (isGenerating)
+                                        {
+                                            <TbLoadingSpinner Size="sm" Variant="circular" />
+                                            <span>Analyzing & Formulating...</span>
+                                        }
+                                        else
+                                        {
+                                            <TbIcon Icon="flask" Size="md" />
+                                            <span>Generate evidence-based blend</span>
+                                        }
+                                    </TbButton>
+                                </div>
                             </div>
                         </div>
-                        <TbText Typo="h5" Style="font-weight:700;">Evidence-based supplement formulation</TbText>
                     </div>
-                </div>
-                @if (blendGenerated)
-                {
-                    <TbButton Variant="text" Color="primary" @onclick="ResetForm" StartIcon="plus">
-                        New Patient
-                    </TbButton>
                 }
-            </div>
-            <TbText Typo="body2" Class="tb-muted">
-                Create personalized supplement protocols with comprehensive clinical rationale and drug interaction analysis.
-            </TbText>
-            <div style="display: flex; flex-wrap: wrap; gap: var(--tb-space-8); justify-content: flex-start; margin-top: var(--tb-space-12);">
-                <span class="tb-chip">
-                    <TbIcon Icon="dna" Size="sm" />
-                    Clinical Grade
-                </span>
-                <span class="tb-chip">
-                    <TbIcon Icon="hospital" Size="sm" />
-                    Drug Interactions
-                </span>
-                <span class="tb-chip">
-                    <TbIcon Icon="book" Size="sm" />
-                    Research-Backed
-                </span>
-            </div>
-        </header>
-
-        @if (!blendGenerated)
-        {
-            <div class="tb-card tb-card--flat tb-empty-state">
-                <div class="tb-icon-container tb-icon-container--info" style="margin: 0 auto var(--tb-space-16);">
-                    <TbIcon Icon="user-plus" Color="info" Size="lg" Style="font-size: 1.5rem;" />
-                </div>
-                <TbText Typo="h6" Style="margin-bottom: 1.5rem; font-weight: 600;">Patient Information</TbText>
-
-                <div class="tb-form-grid">
-                    <!-- Row 1: Basic Info -->
-                    <div class="tb-form-col-6">
-                        <div class="tb-form-group">
-                            <label class="tb-form-label">Patient Name *</label>
-                            <input type="text"
-                                   class="tb-form-input"
-                                   @bind="request.PatientName"
-                                   placeholder="Enter patient name" />
-                        </div>
+                else
+                {
+                    <div class="tb-practitioner-thread">
+                        @foreach (var msg in messages)
+                        {
+                            <ChatMessageComponent Message="@msg" />
+                        }
                     </div>
-                    <div class="tb-form-col-6">
-                        <div class="tb-form-group">
-                            <label class="tb-form-label">Your Email (Practitioner) *</label>
-                            <input type="email"
-                                   class="tb-form-input"
-                                   @bind="request.PractitionerEmail"
-                                   placeholder="practitioner@example.com" />
-                        </div>
+                }
+
+                <div class="tb-practitioner-composer">
+                    <div class="tb-practitioner-composer__input-wrap">
+                        <textarea class="tb-practitioner-composer__input"
+                                  @bind="refinementMessage"
+                                  @bind:event="oninput"
+                                  placeholder="@GetInputPlaceholder()"
+                                  @onkeydown="HandleKeyDown"
+                                  disabled="@GetInputDisabled()"
+                                  rows="1"></textarea>
+
+                        <button type="button"
+                                class="tb-practitioner-composer__send"
+                                @onclick="@GetSendAction()"
+                                disabled="@GetSendButtonDisabled()">
+                            <TbIcon Icon="paper-plane" Size="md" />
+                        </button>
                     </div>
 
-                    <!-- Row 2: Demographics -->
-                    <div class="tb-form-col-4">
-                        <div class="tb-form-group">
-                            <label class="tb-form-label">Age (years) *</label>
-                            <input type="number"
-                                   class="tb-form-input"
-                                   @bind="request.Age"
-                                   min="1"
-                                   max="120"
-                                   placeholder="Age" />
-                        </div>
-                    </div>
-                    <div class="tb-form-col-4">
-                        <div class="tb-form-group">
-                            <label class="tb-form-label">Sex *</label>
-                            <select class="tb-form-select" @bind="request.Sex">
-                                <option value="">Select...</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="tb-form-col-4">
-                        <div class="tb-form-group">
-                            <label class="tb-form-label">Weight (kg) *</label>
-                            <input type="number"
-                                   class="tb-form-input"
-                                   @bind="request.Weight"
-                                   min="1"
-                                   max="300"
-                                   step="0.1"
-                                   placeholder="Weight" />
-                        </div>
-                    </div>
-
-                    <!-- Row 3: Medical History -->
-                    <div class="tb-form-col-6">
-                        <div class="tb-form-group">
-                            <label class="tb-form-label">Chronic Conditions</label>
-                            <textarea class="tb-form-textarea"
-                                      @bind="request.ChronicConditions"
-                                      placeholder="e.g., Type 2 Diabetes, Hypertension, Hypothyroidism"
-                                      rows="3"></textarea>
-                            <div class="tb-form-helper">List all chronic conditions (optional)</div>
-                        </div>
-                    </div>
-                    <div class="tb-form-col-6">
-                        <div class="tb-form-group">
-                            <label class="tb-form-label">Current Medications</label>
-                            <textarea class="tb-form-textarea"
-                                      @bind="request.ChronicMedications"
-                                      placeholder="e.g., Metformin 500mg BD, Levothyroxine 75mcg OD"
-                                      rows="3"></textarea>
-                            <div class="tb-form-helper">Include dosages if known (optional)</div>
-                        </div>
-                    </div>
-
-                    <!-- Row 4: Additional Context -->
-                    <div class="tb-form-col-12">
-                        <div class="tb-form-group">
-                            <label class="tb-form-label">Additional Information & Health Goals</label>
-                            <textarea class="tb-form-textarea"
-                                      @bind="request.AdditionalInformation"
-                                      placeholder="Health goals, lifestyle, diet, allergies, sleep patterns, stress levels, activity level, specific concerns..."
-                                      rows="5"></textarea>
-                            <div class="tb-form-helper">Provide context about patient's goals, lifestyle, diet, allergies, etc. The more detail, the better the formulation.</div>
-                        </div>
-                    </div>
-
-                    <!-- Row 5: File Attachments -->
-                    <div class="tb-form-col-12">
-                        <div class="tb-form-group">
-                            <label class="tb-form-label">Attachments (Optional)</label>
-                            <InputFile @ref="fileInputRef"
-                                       OnChange="@OnFilesChanged"
-                                       hidden="hidden"
-                                       multiple
-                                       accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.xlsx,.docx"
-                                       style="display: none;" />
-                            <TbButton Variant="filled" Color="secondary" @onclick="OpenFilePicker">
-                                <TbIcon Icon="paperclip" Size="md" />
-                                <span>Attach Lab Results / DNA Reports / Files</span>
-                            </TbButton>
-                        </div>
-                    </div>
-
-                    <!-- File Preview -->
-                    @if (selectedFiles.Count > 0)
+                    @if (isGenerating)
                     {
-                        <div class="tb-form-col-12">
-                            <FilePreviewComponent Attachments="@selectedFiles"
-                                                 ShowRemoveButton="true"
-                                                 OnRemoveClick="@RemoveFile" />
+                        <div class="tb-typing">
+                            <div class="tb-typing__avatar">
+                                <TbIcon Icon="flower" Size="sm" Style="color: white;" />
+                            </div>
+                            <div class="tb-typing__dots">
+                                <span class="tb-typing__dot"></span>
+                                <span class="tb-typing__dot"></span>
+                                <span class="tb-typing__dot"></span>
+                            </div>
                         </div>
                     }
-
-                    <!-- Generate Button -->
-                    <div class="tb-form-col-12" style="display: flex; justify-content: center; margin-top: var(--tb-space);">
-                        <TbButton Variant="filled" Color="primary" @onclick="GenerateBlend" Disabled="@isGenerating" Style="padding: 1rem 3rem;">
-                            @if (isGenerating)
-                            {
-                                <span class="tb-spinner"></span>
-                                <span>Analyzing & Formulating...</span>
-                            }
-                            else
-                            {
-                                <TbIcon Icon="flask" Size="md" />
-                                <span>Generate Evidence-Based Blend</span>
-                            }
-                        </TbButton>
-                    </div>
-                </div>
-            </div>
-        }
-        else
-        {
-            <div class="tb-stack" style="gap: var(--tb-space);">
-                @foreach (var msg in messages)
-                {
-                    <ChatMessageComponent Message="@msg" />
-                }
-            </div>
-        }
-
-        <div class="tb-input-bar">
-            <div style="position: relative; display: flex; align-items: flex-end; gap: 0.5rem;">
-                <div style="position: relative; flex: 1;">
-                    <textarea class="tb-input"
-                              @bind="refinementMessage"
-                              @bind:event="oninput"
-                              placeholder="@GetInputPlaceholder()"
-                              @onkeydown="HandleKeyDown"
-                              disabled="@GetInputDisabled()"
-                              rows="1"></textarea>
-
-                    <button type="button"
-                            class="tb-send-btn"
-                            @onclick="@GetSendAction()"
-                            disabled="@GetSendButtonDisabled()">
-                        <TbIcon Icon="paper-plane" Size="md" />
-                    </button>
                 </div>
             </div>
 
-            @if (isGenerating)
-            {
-                <div class="tb-typing-indicator" style="margin-top: 12px;">
-                    <div class="tb-typing-avatar">
-                        <TbIcon Icon="flower" Size="sm" />
-                    </div>
-                    <div class="tb-typing-content">
-                        <div class="tb-typing-text">TailorBlend is formulating...</div>
-                        <div class="tb-typing-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
+            <aside class="tb-practitioner-aside">
+                <div class="tb-practitioner-aside-card">
+                    <p class="tb-eyebrow">Clinical guardrails</p>
+                    <h4>What TailorBlend monitors</h4>
+                    <ul>
+                        <li>
+                            <TbIcon Icon="stethoscope" Size="sm" />
+                            Dose ranges calibrated to age, weight, and contraindications.
+                        </li>
+                        <li>
+                            <TbIcon Icon="triangle-exclamation" Size="sm" />
+                            Cross-checks against medications and chronic conditions.
+                        </li>
+                        <li>
+                            <TbIcon Icon="scroll" Size="sm" />
+                            Generates rationale, sourcing tips, and patient guidance.
+                        </li>
+                    </ul>
                 </div>
-            }
+
+                <div class="tb-practitioner-aside-card">
+                    <p class="tb-eyebrow">Blend playbook</p>
+                    <h4>Tips for sharper outputs</h4>
+                    <ul>
+                        <li>
+                            <TbIcon Icon="list-check" Size="sm" />
+                            Provide current stack + tolerance notes for safer layering.
+                        </li>
+                        <li>
+                            <TbIcon Icon="chart-simple" Size="sm" />
+                            Include objective markers (labs, wearables) for precision.
+                        </li>
+                        <li>
+                            <TbIcon Icon="clock" Size="sm" />
+                            Add timing or adherence constraints to shape routines.
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="tb-practitioner-aside-card">
+                    <p class="tb-eyebrow">Attachments</p>
+                    <h4>Need richer context?</h4>
+                    <p>Upload labs, DNA, or practitioner notes to let TailorBlend auto-reference key findings.</p>
+                    <TbButton Variant="outlined" Color="primary" Size="sm" StartIcon="upload" @onclick="OpenFilePicker">
+                        Upload documents
+                    </TbButton>
+                </div>
+            </aside>
         </div>
-    </section>
-</div>
+    </div>
+</section>
 
 @code {
     private ElementReference _messagesContainer;
@@ -256,6 +350,7 @@
     private string refinementMessage = string.Empty;
     private bool isGenerating;
     private bool blendGenerated;
+    private string SessionLabel => BuildSessionLabel();
 
     private const int MaxFileSizeMB = 10;
     private const int MaxFiles = 5;
@@ -289,6 +384,19 @@
     private Func<Task> GetSendAction()
     {
         return blendGenerated ? SendRefinement : GenerateBlend;
+    }
+
+    private string BuildSessionLabel()
+    {
+        var sessionId = SessionService?.SessionId;
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            return "Session pending";
+        }
+
+        var tailLength = Math.Min(6, sessionId.Length);
+        var suffix = sessionId.Substring(sessionId.Length - tailLength, tailLength).ToUpperInvariant();
+        return $"Session #{suffix}";
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
