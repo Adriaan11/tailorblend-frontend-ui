@@ -53,15 +53,32 @@
 <body>
     <component type="typeof(App)" render-mode="Server" />
 
-    <div id="blazor-error-ui">
-        <environment include="Staging,Production">
-            An error has occurred. This application may no longer respond until reloaded.
-        </environment>
-        <environment include="Development">
-            An unhandled exception has occurred. See browser dev tools for details.
-        </environment>
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
+    <div id="blazor-error-ui" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 1rem 1.5rem; box-shadow: 0 -4px 12px rgba(0,0,0,0.3); z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+            <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem;">⚠️ Unhandled Exception</div>
+                <environment include="Staging,Production">
+                    <div style="font-size: 0.875rem; opacity: 0.95;">An error has occurred. This application may no longer respond until reloaded.</div>
+                </environment>
+                <environment include="Development">
+                    <div style="font-size: 0.875rem; opacity: 0.95;">
+                        An unhandled exception occurred.
+                        <strong style="text-decoration: underline; cursor: pointer;" onclick="console.log('Open browser DevTools (F12) and check the Console tab for error details')">
+                            Open DevTools Console (F12)
+                        </strong>
+                        for full stack trace and error details.
+                    </div>
+                </environment>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <a href="" class="reload" style="background: rgba(255,255,255,0.2); color: white; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.875rem; border: 1px solid rgba(255,255,255,0.3); transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    Reload Page
+                </a>
+                <a class="dismiss" style="background: rgba(255,255,255,0.1); color: white; padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 1.25rem; border: 1px solid rgba(255,255,255,0.2); line-height: 1; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+                    🗙
+                </a>
+            </div>
+        </div>
     </div>
 
     <!-- Blazor framework -->

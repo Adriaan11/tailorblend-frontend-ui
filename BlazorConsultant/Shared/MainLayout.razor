@@ -106,19 +106,64 @@
                     @Body
                 </main>
             </ChildContent>
-            <ErrorContent>
-                <div style="padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
-                    <h2 style="color: var(--text-primary); margin-bottom: 0.5rem;">Something went wrong</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 1.5rem; max-width: 400px;">
-                        We encountered an unexpected error. Please try refreshing the page or navigating to a different section.
-                    </p>
+            <ErrorContent Context="errorContext">
+                <div style="padding: 2rem; display: flex; flex-direction: column; max-width: 1200px; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                        <h2 style="color: var(--text-primary); margin-bottom: 0.5rem;">Unhandled Exception</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                            An error occurred while rendering this component.
+                        </p>
+                    </div>
+
+                    <!-- Exception Details -->
+                    <div style="background: var(--bg-surface); border: 1px solid var(--tb-border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <h3 style="color: var(--tb-error, #ef4444); margin: 0 0 1rem 0; font-size: 1rem; font-weight: 600;">
+                            @errorContext.GetType().Name
+                        </h3>
+                        <p style="color: var(--text-primary); margin: 0 0 1rem 0; font-family: var(--tb-font-mono); font-size: 0.875rem;">
+                            @errorContext.Message
+                        </p>
+
+                        @if (!string.IsNullOrEmpty(errorContext.StackTrace))
+                        {
+                            <details style="margin-top: 1rem;">
+                                <summary style="cursor: pointer; color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem;">
+                                    Stack Trace
+                                </summary>
+                                <pre style="background: var(--tb-gray-900); color: #f8f8f2; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.75rem; line-height: 1.5; margin: 0;">@errorContext.StackTrace</pre>
+                            </details>
+                        }
+
+                        @if (errorContext.InnerException != null)
+                        {
+                            <details style="margin-top: 1rem;">
+                                <summary style="cursor: pointer; color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem;">
+                                    Inner Exception
+                                </summary>
+                                <div style="background: var(--tb-gray-50); padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                                    <p style="color: var(--tb-error, #ef4444); font-weight: 600; margin: 0 0 0.5rem 0;">
+                                        @errorContext.InnerException.GetType().Name
+                                    </p>
+                                    <p style="color: var(--text-primary); margin: 0; font-family: var(--tb-font-mono); font-size: 0.875rem;">
+                                        @errorContext.InnerException.Message
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(errorContext.InnerException.StackTrace))
+                                    {
+                                        <pre style="background: var(--tb-gray-900); color: #f8f8f2; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.75rem; line-height: 1.5; margin: 0.5rem 0 0 0;">@errorContext.InnerException.StackTrace</pre>
+                                    }
+                                </div>
+                            </details>
+                        }
+                    </div>
+
+                    <!-- Action Buttons -->
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
-                        <TbButton Variant="filled" Color="primary" @onclick="() => NavManager.NavigateTo('/')">
+                        <TbButton Variant="filled" Color="primary" @onclick="@(() => NavManager.NavigateTo("/"))">
                             <TbIcon Icon="home" />
                             <span>Go Home</span>
                         </TbButton>
-                        <TbButton Variant="outlined" Color="primary" @onclick="() => NavManager.NavigateTo(NavManager.Uri, true)">
+                        <TbButton Variant="outlined" Color="primary" @onclick="@(() => NavManager.NavigateTo(NavManager.Uri, true))">
                             <TbIcon Icon="refresh" />
                             <span>Refresh Page</span>
                         </TbButton>

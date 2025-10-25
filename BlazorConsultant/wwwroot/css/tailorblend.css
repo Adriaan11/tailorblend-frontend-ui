@@ -1084,6 +1084,22 @@ body {
     }
 }
 
+/* Install Banner Mobile Styles ------------------------------------------------- */
+@media (max-width: 640px) {
+    .tb-install-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tb-install-banner__content {
+        width: 100%;
+    }
+
+    .tb-install-banner__actions {
+        justify-content: flex-end;
+    }
+}
+
 /* Print Styles ------------------------------------------------------------- */
 @media print {
     .tb-bottom-nav,

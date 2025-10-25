@@ -61,21 +61,6 @@
         background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0.06) 100%);
         border-bottom-color: rgba(99, 102, 241, 0.3);
     }
-
-    @media (max-width: 640px) {
-        .tb-install-banner {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .tb-install-banner__content {
-            width: 100%;
-        }
-
-        .tb-install-banner__actions {
-            justify-content: flex-end;
-        }
-    }
 </style>
 
 @code {
@@ -88,35 +73,45 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Check if user has dismissed the banner before
-        var isDismissed = await JS.InvokeAsync<bool>("localStorage.getItem", "tb_installBannerDismissed") != null;
-        if (isDismissed)
+        try
         {
-            Logger.LogInformation("[InstallBanner] User previously dismissed the banner");
-            return;
+            // Check if user has dismissed the banner before
+            var dismissedDate = await JS.InvokeAsync<string?>("localStorage.getItem", "tb_installBannerDismissed");
+            var isDismissed = dismissedDate != null;
+            if (isDismissed)
+            {
+                Logger.LogInformation("[InstallBanner] User previously dismissed the banner");
+                return;
+            }
+
+            // Check if running standalone (already installed)
+            var isStandalone = await JS.InvokeAsync<bool>("eval", "(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)");
+            if (isStandalone)
+            {
+                Logger.LogInformation("[InstallBanner] App is already running in standalone mode");
+                return;
+            }
+
+            // Check if installable (PWA mode on Chrome/Edge)
+            var installableResult = await JS.InvokeAsync<bool>("pwaInstall.isInstallable");
+            isInstallable = installableResult;
+
+            // Check if iOS
+            var iosResult = await JS.InvokeAsync<bool>("pwaInstall.isIOS");
+            isIOS = iosResult;
+
+            // Show banner if either iOS or installable
+            if (isIOS || isInstallable)
+            {
+                Logger.LogInformation("[InstallBanner] Showing install banner - iOS: {IsIOS}, Installable: {IsInstallable}", isIOS, isInstallable);
+                isVisible = true;
+            }
         }
-
-        // Check if running standalone (already installed)
-        var isStandalone = await JS.InvokeAsync<bool>("eval", "(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)");
-        if (isStandalone)
+        catch (Exception ex)
         {
-            Logger.LogInformation("[InstallBanner] App is already running in standalone mode");
-            return;
-        }
-
-        // Check if installable (PWA mode on Chrome/Edge)
-        var installableResult = await JS.InvokeAsync<bool>("pwaInstall.isInstallable");
-        isInstallable = installableResult;
-
-        // Check if iOS
-        var iosResult = await JS.InvokeAsync<bool>("pwaInstall.isIOS");
-        isIOS = iosResult;
-
-        // Show banner if either iOS or installable
-        if (isIOS || isInstallable)
-        {
-            Logger.LogInformation("[InstallBanner] Showing install banner - iOS: {IsIOS}, Installable: {IsInstallable}", isIOS, isInstallable);
-            isVisible = true;
+            // Silently fail - PWA banner is optional functionality
+            Logger.LogWarning(ex, "[InstallBanner] Failed to initialize PWA install banner. Banner will not be shown.");
+            isVisible = false;
         }
     }
 
@@ -131,7 +126,7 @@
             if (result != null && result.TryGetValue("success", out var successObj) && successObj is bool success && success)
             {
                 Logger.LogInformation("[InstallBanner] Installation initiated successfully");
-                DismissBanner(); // Hide banner after showing prompt
+                await DismissBanner(); // Hide banner after showing prompt
                 OnInstallClicked?.Invoke();
             }
         }
