@@ -1,5 +1,6 @@
 using BlazorConsultant.Services;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,6 +63,38 @@ var app = builder.Build();
 // Use forwarded headers FIRST (required for fly.io proxy)
 app.UseForwardedHeaders();
 
+// Security headers middleware
+app.Use(async (context, next) =>
+{
+    // Clickjacking protection
+    context.Response.Headers.Append("X-Frame-Options", "SAMEORIGIN");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+
+    // HSTS (only in production, fly.io handles HTTPS)
+    if (!app.Environment.IsDevelopment())
+    {
+        context.Response.Headers.Append(
+            "Strict-Transport-Security",
+            "max-age=31536000; includeSubDomains");
+    }
+
+    // CSP - Blazor Server requires unsafe-inline and unsafe-eval for SignalR
+    context.Response.Headers.Append(
+        "Content-Security-Policy",
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data:; " +
+        "font-src 'self' data:; " +
+        "connect-src 'self' ws: wss:; " +
+        "frame-ancestors 'self'");
+
+    // Cross-Origin isolation for better security
+    context.Response.Headers.Append("Cross-Origin-Opener-Policy", "same-origin");
+
+    await next();
+});
+
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
@@ -70,7 +103,25 @@ if (!app.Environment.IsDevelopment())
     // Don't use HTTPS redirection - fly.io handles this
 }
 
-app.UseStaticFiles();
+// Static files with cache headers
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Cache assets with version query string for 1 year
+        if (ctx.Context.Request.Query.ContainsKey("v"))
+        {
+            ctx.Context.Response.Headers.Append(
+                "Cache-Control", "public,max-age=31536000,immutable");
+        }
+        else
+        {
+            // Default: allow caching but revalidate
+            ctx.Context.Response.Headers.Append(
+                "Cache-Control", "public,max-age=3600");
+        }
+    }
+});
 
 app.UseRouting();
 

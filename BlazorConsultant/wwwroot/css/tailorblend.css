@@ -5,10 +5,10 @@
 
 /* CSS Variables - Design Tokens -------------------------------------------- */
 :root {
-    /* Brand Colors - TailorBlend Teal */
-    --tb-accent: #70d1c7;
-    --tb-accent-strong: #5bbfb5;
-    --tb-accent-soft: rgba(112, 209, 199, 0.12);
+    /* Brand Colors - TailorBlend Teal (darker for WCAG AA contrast with white text) */
+    --tb-accent: #4db8ad;
+    --tb-accent-strong: #3a9d93;
+    --tb-accent-soft: rgba(77, 184, 173, 0.12);
 
     /* Secondary Colors */
     --tb-indigo: #6366f1;
@@ -98,9 +98,9 @@
     --bg-app: var(--tb-app-bg);              /* App background */
 
     /* Accent & Interactive - Theme-aware shadows */
-    --shadow-accent-sm: 0 4px 12px rgba(112, 209, 199, 0.3);
-    --shadow-accent-md: 0 4px 16px rgba(112, 209, 199, 0.3);
-    --shadow-accent-lg: 0 8px 24px rgba(112, 209, 199, 0.4);
+    --shadow-accent-sm: 0 4px 12px rgba(77, 184, 173, 0.3);
+    --shadow-accent-md: 0 4px 16px rgba(77, 184, 173, 0.3);
+    --shadow-accent-lg: 0 8px 24px rgba(77, 184, 173, 0.4);
 }
 
 /* Dark Mode Tokens --------------------------------------------------------- */
