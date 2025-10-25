@@ -205,6 +205,8 @@
                                 <div class="tb-form-group">
                                     <label class="tb-form-label">Attachments (Optional)</label>
                                     <InputFile @ref="fileInputRef"
+                                               id="practitioner-file-input"
+                                               data-tb-file-input="true"
                                                OnChange="@OnFilesChanged"
                                                hidden="hidden"
                                                multiple

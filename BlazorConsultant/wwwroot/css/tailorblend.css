@@ -219,6 +219,13 @@ body {
     color: white;
 }
 
+.tb-app-icon {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    display: block;
+}
+
 .tb-mobile-nav__actions {
     display: flex;
     align-items: center;

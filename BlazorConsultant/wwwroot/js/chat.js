@@ -51,7 +51,7 @@ window.copyToClipboard = async function (text) {
  * Called when user clicks "Attach files" button.
  */
 window.triggerFileInput = function () {
-    const fileInput = document.getElementById('file-input');
+    const fileInput = document.querySelector('input[type="file"][data-tb-file-input="true"]');
     if (fileInput) {
         fileInput.click();
     } else {

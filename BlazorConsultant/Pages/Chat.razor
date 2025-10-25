@@ -157,11 +157,13 @@
                 <div class="tb-chat-input-container">
                     <div class="tb-chat-input-wrapper">
                         <!-- File Upload (Hidden) -->
-                        <InputFile @ref="fileInputRef"
-                                   OnChange="@OnFilesChanged"
-                                   hidden="hidden"
-                                   multiple
-                                   accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx"
+            <InputFile @ref="fileInputRef"
+                       id="chat-file-input"
+                       data-tb-file-input="true"
+                       OnChange="@OnFilesChanged"
+                       hidden="hidden"
+                       multiple
+                       accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx"
                                    style="display: none;" />
 
                         <!-- Attach Button -->
