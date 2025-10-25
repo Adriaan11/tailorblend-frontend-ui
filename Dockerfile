@@ -9,6 +9,9 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 WORKDIR /src
 
+# Install Node.js and npm (required for Tailwind CSS build)
+RUN apt-get update && apt-get install -y nodejs npm && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Copy project file
 COPY BlazorConsultant/BlazorConsultant.csproj ./BlazorConsultant/
 RUN dotnet restore BlazorConsultant/BlazorConsultant.csproj
