@@ -1,3 +1,4 @@
+using BlazorConsultant.Data;
 using BlazorConsultant.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.StaticFiles;
@@ -46,6 +47,11 @@ builder.Services.AddHttpClient("PythonAPI", client =>
     EnableMultipleHttp2Connections = false                // Disable HTTP/2 multiplexing for simpler streaming
 });
 
+// Add database services for prompt management
+builder.Services.AddScoped<ISystemPromptRepository, SystemPromptRepository>();
+builder.Services.AddScoped<IPromptManagementService, PromptManagementService>();
+builder.Services.AddSingleton<DatabaseSetupService>();
+
 // Add scoped services
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
@@ -59,6 +65,27 @@ builder.Services.AddScoped<IMultiAgentService, MultiAgentService>();
 // ============================================================================
 
 var app = builder.Build();
+
+// ============================================================================
+// Database Setup (Auto-Migration)
+// ============================================================================
+
+// Ensure database schema exists on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbSetup = scope.ServiceProvider.GetRequiredService<DatabaseSetupService>();
+    try
+    {
+        await dbSetup.EnsureDatabaseSetupAsync();
+        Console.WriteLine("✅ [DATABASE] Schema verification completed");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ [DATABASE] Setup failed: {ex.Message}");
+        Console.WriteLine($"   Connection string check: {builder.Configuration.GetConnectionString("DefaultConnection") != null}");
+        // Don't exit - app can still function without database features
+    }
+}
 
 // Use forwarded headers FIRST (required for fly.io proxy)
 app.UseForwardedHeaders();

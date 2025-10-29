@@ -1,0 +1,165 @@
+@inject IPromptManagementService PromptService
+
+@* PromptSelector: Dropdown component for selecting a system prompt *@
+<div class="tb-form-group">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="tb-form-label">@Label</label>
+    }
+
+    @if (_isLoading)
+    {
+        <div class="flex items-center gap-2 text-sm text-text-secondary">
+            <TbLoadingSpinner Size="sm" />
+            <span>Loading prompts...</span>
+        </div>
+    }
+    else if (_prompts.Any())
+    {
+        <select
+            class="tb-form-input"
+            value="@SelectedPromptId"
+            @onchange="OnPromptChanged">
+            <option value="">@Placeholder</option>
+            @foreach (var prompt in _prompts)
+            {
+                <option value="@prompt.Id">
+                    @prompt.Name@(prompt.IsDefault ? " (Default)" : "")
+                </option>
+            }
+        </select>
+
+        @if (!string.IsNullOrEmpty(HelperText))
+        {
+            <div class="tb-form-helper">@HelperText</div>
+        }
+
+        @if (SelectedPromptId.HasValue && _selectedPrompt != null)
+        {
+            <div class="mt-2 p-3 bg-background-secondary rounded-lg">
+                @if (!string.IsNullOrEmpty(_selectedPrompt.Description))
+                {
+                    <p class="text-sm text-text-secondary mb-2">@_selectedPrompt.Description</p>
+                }
+                <details class="text-xs">
+                    <summary class="cursor-pointer text-text-tertiary hover:text-text-secondary">
+                        View full content
+                    </summary>
+                    <pre class="mt-2 p-2 bg-background-tertiary rounded text-xs overflow-x-auto">@_selectedPrompt.Content</pre>
+                </details>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="tb-form-helper text-warning-500">
+            No prompts available. <a href="/prompts" class="underline">Create one</a> to get started.
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Label text for the selector</summary>
+    [Parameter]
+    public string? Label { get; set; } = "System Prompt";
+
+    /// <summary>Placeholder text when no prompt is selected</summary>
+    [Parameter]
+    public string Placeholder { get; set; } = "Select a system prompt...";
+
+    /// <summary>Helper text below the selector</summary>
+    [Parameter]
+    public string? HelperText { get; set; }
+
+    /// <summary>Selected prompt ID (two-way binding)</summary>
+    [Parameter]
+    public int? SelectedPromptId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> SelectedPromptIdChanged { get; set; }
+
+    /// <summary>Selected prompt content (two-way binding)</summary>
+    [Parameter]
+    public string? SelectedPromptContent { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> SelectedPromptContentChanged { get; set; }
+
+    /// <summary>Include inactive prompts in the list</summary>
+    [Parameter]
+    public bool IncludeInactive { get; set; } = false;
+
+    private List<SystemPromptDto> _prompts = new();
+    private SystemPromptDto? _selectedPrompt;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPrompts();
+
+        // Auto-select default prompt if none selected
+        if (!SelectedPromptId.HasValue)
+        {
+            var defaultPrompt = _prompts.FirstOrDefault(p => p.IsDefault);
+            if (defaultPrompt != null)
+            {
+                await SelectPrompt(defaultPrompt.Id);
+            }
+        }
+    }
+
+    private async Task LoadPrompts()
+    {
+        _isLoading = true;
+
+        try
+        {
+            _prompts = await PromptService.GetAllPromptsAsync(activeOnly: !IncludeInactive);
+
+            // Sort: default first, then by name
+            _prompts = _prompts
+                .OrderByDescending(p => p.IsDefault)
+                .ThenBy(p => p.Name)
+                .ToList();
+
+            // Update selected prompt reference if ID is set
+            if (SelectedPromptId.HasValue)
+            {
+                _selectedPrompt = _prompts.FirstOrDefault(p => p.Id == SelectedPromptId.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load prompts: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OnPromptChanged(ChangeEventArgs e)
+    {
+        if (e.Value is string valueStr && int.TryParse(valueStr, out int promptId))
+        {
+            await SelectPrompt(promptId);
+        }
+        else
+        {
+            await SelectPrompt(null);
+        }
+    }
+
+    private async Task SelectPrompt(int? promptId)
+    {
+        SelectedPromptId = promptId;
+        _selectedPrompt = promptId.HasValue
+            ? _prompts.FirstOrDefault(p => p.Id == promptId.Value)
+            : null;
+
+        SelectedPromptContent = _selectedPrompt?.Content;
+
+        await SelectedPromptIdChanged.InvokeAsync(SelectedPromptId);
+        await SelectedPromptContentChanged.InvokeAsync(SelectedPromptContent);
+    }
+}

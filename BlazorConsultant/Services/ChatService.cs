@@ -52,6 +52,16 @@ public class ChatService : IChatService
             verbosity = verbosity ?? "medium"
         };
 
+        if (!string.IsNullOrEmpty(customInstructions))
+        {
+            _logger.LogInformation("🎯 Using CUSTOM PROMPT (length: {Length} chars) - NOT instructions.txt",
+                customInstructions.Length);
+        }
+        else
+        {
+            _logger.LogInformation("📄 Using DEFAULT instructions.txt from backend");
+        }
+
         _logger.LogInformation("Sending chat request for session {SessionId} with {AttachmentCount} attachments",
             _sessionService.SessionId, attachments?.Count ?? 0);
 

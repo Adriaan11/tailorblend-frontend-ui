@@ -36,6 +36,7 @@ public class ChatStateService : IChatStateService
     public async Task SendMessageAsync(
         string message,
         List<FileAttachment>? attachments = null,
+        string? customInstructions = null,
         string? reasoningEffort = null,
         string? verbosity = null,
         CancellationToken cancellationToken = default)
@@ -60,9 +61,15 @@ public class ChatStateService : IChatStateService
         {
             _logger.LogInformation("Sending chat message with {AttachmentCount} attachments", attachments?.Count ?? 0);
 
+            if (!string.IsNullOrEmpty(customInstructions))
+            {
+                _logger.LogInformation("✅ ChatStateService: Passing custom instructions to ChatService (length: {Length})",
+                    customInstructions.Length);
+            }
+
             var response = await _chatService.SendChatAsync(
                 message,
-                customInstructions: null,
+                customInstructions: customInstructions,
                 model: _sessionService.CurrentModel,
                 attachments: attachments,
                 practitionerMode: false,

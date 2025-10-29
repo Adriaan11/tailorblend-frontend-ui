@@ -6,8 +6,10 @@
 @inject IChatService ChatService
 @inject IChatStateService ChatStateService
 @inject ISessionService SessionService
+@inject IPromptManagementService PromptService
 @inject IJSRuntime JS
 @inject ILogger<Chat> Logger
+@inject NavigationManager NavManager
 @implements IAsyncDisposable
 
 <PageTitle>Chat - TailorBlend AI Consultant</PageTitle>
@@ -239,6 +241,29 @@
                           Label="Select Model" />
             </div>
 
+            <!-- System Prompt Selection -->
+            <div class="tb-sheet-card">
+                <div class="tb-sheet-card__header">
+                    <div class="tb-sheet-card__icon tb-sheet-card__icon--info">
+                        <TbIcon Icon="file-lines" Size="sm" />
+                    </div>
+                    <div>
+                        <p class="tb-sheet-card__label">System Instructions</p>
+                        <h4>Select prompt template</h4>
+                    </div>
+                </div>
+                <PromptSelector
+                    @bind-SelectedPromptId="_selectedPromptId"
+                    @bind-SelectedPromptContent="_selectedPromptContent"
+                    HelperText="Choose the AI's personality and behavior" />
+                <div class="mt-2">
+                    <TbButton Variant="outlined" Size="sm" Color="default" StartIcon="pen"
+                              @onclick="@(() => NavManager.NavigateTo("/prompts"))">
+                        Manage Prompts
+                    </TbButton>
+                </div>
+            </div>
+
             <!-- Display Options -->
             <div class="tb-sheet-card">
                 <div class="tb-sheet-card__header">
@@ -415,6 +440,10 @@
     private bool isGpt5Selected => selectedModel?.StartsWith("gpt-5") ?? false;
     private const int MaxFiles = 5;
 
+    // System prompt selection
+    private int? _selectedPromptId;
+    private string? _selectedPromptContent;
+
     private readonly string[] examplePrompts = new[]
     {
         "Help me build a daily blend for focus and sustained energy.",
@@ -507,9 +536,20 @@
             message.Substring(0, Math.Min(50, message.Length)),
             attachments?.Count ?? 0);
 
+        if (!string.IsNullOrEmpty(_selectedPromptContent))
+        {
+            Logger.LogInformation("✅ Chat.razor: Using custom prompt (Prompt ID: {PromptId}, Length: {Length} chars)",
+                _selectedPromptId, _selectedPromptContent.Length);
+        }
+        else
+        {
+            Logger.LogWarning("⚠️ Chat.razor: No custom prompt selected - backend will use instructions.txt");
+        }
+
         await ChatStateService.SendMessageAsync(
             message,
             attachments,
+            customInstructions: _selectedPromptContent,
             reasoningEffort: isGpt5Selected ? reasoningEffort : null,
             verbosity: isGpt5Selected ? verbosity : null
         );

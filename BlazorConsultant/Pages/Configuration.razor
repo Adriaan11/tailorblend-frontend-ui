@@ -1,413 +1,416 @@
 @page "/configuration"
-@using BlazorConsultant.Models
-@inject IInstructionService InstructionService
-@inject IJSRuntime JSRuntime
-@inject ILogger<Configuration> Logger
+@page "/prompts"
+@inject IPromptManagementService PromptService
+@inject NavigationManager NavManager
 
-<PageTitle>Configuration - TailorBlend AI Consultant</PageTitle>
+<PageTitle>System Prompts – TailorBlend</PageTitle>
 
-<section class="tb-card tb-card--flat" style="margin-bottom: var(--tb-space-lg);">
-    <div class="tb-stack" style="gap: var(--tb-space);">
-        <div style="display: flex; align-items: center; gap: var(--tb-space-16); margin-bottom: var(--tb-space-12);">
-            <div class="tb-icon-container tb-icon-container--accent">
-                <TbIcon Icon="gear" Size="lg" Color="accent" Style="font-size: 1.5rem;" />
-            </div>
-            <div>
-                <div style="display: flex; align-items: center; gap: var(--tb-space-8); margin-bottom: var(--tb-space-4);">
-                    <div class="tb-badge">
-                        <TbIcon Icon="sliders" Size="sm" />
-                        Configuration
-                    </div>
+<section class="tb-section">
+    <div class="tb-container">
+        <!-- Header -->
+        <div class="tb-section__header">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <p class="tb-eyebrow">Prompt Management</p>
+                    <h1 class="tb-section__title">System Prompts</h1>
+                    <p class="tb-section__subtitle">
+                        Create and manage different system prompts to test various AI behaviors.
+                    </p>
                 </div>
-                <TbText Typo="overline" Class="tb-muted">Agent configuration</TbText>
+                <TbButton Variant="filled" Color="primary" StartIcon="plus" @onclick="ShowCreateDialog">
+                    New Prompt
+                </TbButton>
             </div>
         </div>
-        <TbText Typo="h5" Style="font-weight:700;">Fine-tune how TailorBlend consults</TbText>
-        <TbText Typo="body2" Class="tb-muted">
-            Update the system instructions that guide tone, safety checks, and recommendation frameworks. Changes apply to the very next conversation.
-        </TbText>
 
-        <div class="tb-divider" style="margin: var(--tb-space-sm) 0;"></div>
+        <!-- Alert Messages -->
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <TbAlert Severity="error" Title="Error" Message="@_errorMessage" Closeable="true" Icon="circle-xmark" />
+        }
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <TbAlert Severity="success" Title="Success" Message="@_successMessage" Closeable="true" Icon="circle-check" />
+        }
 
-        <div class="tb-stack" style="gap: var(--tb-space-sm);">
-            <div style="display: flex; align-items: center; gap: var(--tb-space-8);">
-                <TbIcon Icon="pen" Size="sm" />
-                <TbText Typo="subtitle2" Style="font-weight:600;">Editing Mode</TbText>
+        <!-- Loading State -->
+        @if (_isLoading)
+        {
+            <div class="flex justify-center items-center py-12">
+                <TbLoadingSpinner Size="lg" />
             </div>
-            <TbRadioGroup Value="@editMode"
-                          ValueChanged="@OnModeChanged"
-                          Options="@(new List<string> { "granular", "raw" })"
-                          OptionLabels="@(new List<string> { "Granular Sections - Edit structured sections separately", "Raw Instructions - Paste your own complete system prompt" })" />
-        </div>
+        }
+        else
+        {
+            <!-- Prompts List -->
+            <div class="space-y-4">
+                @if (_prompts.Any())
+                {
+                    @foreach (var prompt in _prompts)
+                    {
+                        <div class="@GetPromptCardClass(prompt)">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <h3 class="text-lg font-semibold text-text-primary">@prompt.Name</h3>
+                                        @if (prompt.IsDefault)
+                                        {
+                                            <span class="tb-chip tb-chip--primary">
+                                                <TbIcon Icon="star" Size="sm" />
+                                                Default
+                                            </span>
+                                        }
+                                        @if (!prompt.IsActive)
+                                        {
+                                            <span class="tb-chip tb-chip--muted">Inactive</span>
+                                        }
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(prompt.Description))
+                                    {
+                                        <p class="text-sm text-text-secondary mb-3">@prompt.Description</p>
+                                    }
+
+                                    <div class="tb-form-helper">
+                                        @prompt.ContentPreview
+                                    </div>
+
+                                    <div class="flex items-center gap-4 mt-3 text-xs text-text-tertiary">
+                                        <span>Created: @prompt.FormattedCreatedAt</span>
+                                        <span>Modified: @prompt.FormattedUpdatedAt</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-2 ml-4">
+                                    @if (!prompt.IsDefault && prompt.IsActive)
+                                    {
+                                        <TbButton Variant="outlined" Color="default" Size="sm" StartIcon="star" @onclick="() => SetDefaultPrompt(prompt.Id)">
+                                            Set Default
+                                        </TbButton>
+                                    }
+                                    <TbButton Variant="outlined" Color="default" Size="sm" StartIcon="pen" @onclick="() => ShowEditDialog(prompt)">
+                                        Edit
+                                    </TbButton>
+                                    @if (!prompt.IsDefault)
+                                    {
+                                        <TbButton Variant="outlined" Color="error" Size="sm" StartIcon="trash" @onclick="() => DeletePrompt(prompt.Id)">
+                                            Delete
+                                        </TbButton>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="tb-panel text-center py-12">
+                        <TbIcon Icon="file-lines" Size="xl" Color="muted" />
+                        <h3 class="text-lg font-medium mt-4 mb-2">No prompts found</h3>
+                        <p class="text-sm text-text-secondary mb-6">Create your first system prompt to get started.</p>
+                        <TbButton Variant="filled" Color="primary" StartIcon="plus" @onclick="ShowCreateDialog">
+                            Create Prompt
+                        </TbButton>
+                    </div>
+                }
+            </div>
+        }
     </div>
 </section>
 
-@if (isLoading)
+<!-- Create/Edit Dialog -->
+@if (_showDialog)
 {
-    <div class="tb-stack" style="align-items:center; gap: var(--tb-space); padding: var(--tb-space-lg);">
-        <TbLoadingSpinner Size="lg" Variant="circular" Color="success" />
-        <TbText Typo="body1" Class="tb-muted">Loading instruction sections...</TbText>
-    </div>
-}
-else if (sections.Count == 0)
-{
-    <div class="tb-empty-state">
-        <div class="tb-icon-container tb-icon-container--warning" style="margin: 0 auto var(--tb-space-16);">
-            <TbIcon Icon="exclamation-triangle" Size="lg" Color="warning" Style="font-size: 1.5rem;" />
-        </div>
-        <TbText Typo="subtitle1" Style="font-weight:600;">No instruction sections available</TbText>
-        <TbText Typo="body2" Class="tb-muted">Refresh the page or reset to defaults to restore the standard TailorBlend playbook.</TbText>
-        <TbButton Variant="filled" Color="primary" @onclick="ResetToDefaults">Restore defaults</TbButton>
-    </div>
-}
-else
-{
-    if (!string.IsNullOrEmpty(statusMessage))
-    {
-        <TbAlert Severity="@(statusClass == "success" ? "success" : "error")"
-                 Message="@statusMessage"
-                 Closeable="true" />
-    }
+    <div class="tb-dialog-overlay" @onclick="CloseDialog">
+        <div class="tb-dialog" @onclick:stopPropagation="true">
+            <div class="tb-dialog__header">
+                <h2 class="tb-dialog__title">@(_isEditing ? "Edit Prompt" : "Create New Prompt")</h2>
+                <button type="button" class="tb-dialog__close" @onclick="CloseDialog">
+                    <TbIcon Icon="xmark" Size="sm" />
+                </button>
+            </div>
 
-    @if (editMode == "raw")
-    {
-        <!-- Raw Instructions Mode -->
-        <div class="tb-card tb-card--flat">
-            <div class="tb-stack" style="gap: var(--tb-space);">
-                <div class="tb-stack" style="gap: var(--tb-space-sm);">
-                    <TbText Typo="subtitle1" Style="font-weight:600;">Raw System Instructions</TbText>
-                    <TbText Typo="caption" Class="tb-muted">
-                        Paste your complete system prompt here. This will replace all granular sections.
-                    </TbText>
-                </div>
+            <div class="tb-dialog__content">
+                <div class="space-y-4">
+                    <div class="tb-form-group">
+                        <label class="tb-form-label">Name</label>
+                        <input type="text"
+                               class="tb-form-input"
+                               @bind="_formName"
+                               @bind:event="oninput"
+                               placeholder="e.g., Clinical Mode, Friendly Assistant" />
+                        <div class="tb-form-helper">A descriptive name for this prompt (max 100 characters)</div>
+                    </div>
 
-                <textarea class="tb-textarea"
-                          @bind="rawInstructions"
-                          @bind:event="oninput"
-                          placeholder="Paste your complete system instructions here..."
-                          style="min-height: 500px; font-family: var(--tb-font-mono); font-size: 0.9rem;"></textarea>
+                    <div class="tb-form-group">
+                        <label class="tb-form-label">Description (Optional)</label>
+                        <textarea class="tb-form-input"
+                                  rows="2"
+                                  @bind="_formDescription"
+                                  @bind:event="oninput"
+                                  placeholder="Brief description of what this prompt does..."></textarea>
+                        <div class="tb-form-helper">Optional description (max 500 characters)</div>
+                    </div>
 
-                <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
-                    <TbText Typo="caption" Class="tb-muted">Character count: @(rawInstructions?.Length.ToString("N0") ?? "0")</TbText>
-                    <TbText Typo="caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</TbText>
-                </div>
+                    <div class="tb-form-group">
+                        <label class="tb-form-label">System Instructions</label>
+                        <textarea class="tb-form-input"
+                                  rows="12"
+                                  @bind="_formContent"
+                                  @bind:event="oninput"
+                                  placeholder="Enter the system instructions here..."></textarea>
+                        <div class="tb-form-helper">The actual prompt content (10-100,000 characters)</div>
+                    </div>
 
-                <div class="tb-divider"></div>
+                    <div class="flex items-center gap-4">
+                        <TbCheckbox
+                            Label="Active"
+                            @bind-Checked="_formIsActive" />
 
-                <div class="tb-stack tb-stack--row" style="justify-content:flex-end;">
-                    <TbButton Variant="outlined"
-                              Color="secondary"
-                              @onclick="ResetToDefaults"
-                              Disabled="@isSaving"
-                              StartIcon="rotate-left">
-                        Reset to defaults
-                    </TbButton>
-                    <TbButton Variant="filled"
-                              Color="primary"
-                              @onclick="ApplyRawChanges"
-                              Disabled="@isSaving"
-                              StartIcon="@(isSaving ? null : "check-circle")">
-                        @if (isSaving)
+                        @if (!_isEditing || !_editingPrompt.IsDefault)
                         {
-                            <TbLoadingSpinner Size="sm" Variant="circular" />
-                            <span>Saving</span>
+                            <TbCheckbox
+                                Label="Set as default"
+                                @bind-Checked="_formIsDefault" />
                         }
-                        else
-                        {
-                            <span>Apply changes</span>
-                        }
-                    </TbButton>
+                    </div>
                 </div>
             </div>
-        </div>
-    }
-    else
-    {
-        <!-- Granular Sections Mode -->
-        <div class="tb-editor-shell">
-        <nav class="tb-editor-nav">
-            @foreach (var section in sections)
-            {
-                var isActive = activeSection == section;
-                <TbButton Variant="@(isActive ? "filled" : "text")"
-                          Color="primary"
-                          @onclick="() => SelectSection(section)"
-                          Style="width: 100%; justify-content: flex-start;">
-                    <TbText Typo="subtitle2" Style="font-weight:600;">@(section.Name)</TbText>
-                    <TbText Typo="caption" Class="tb-muted">@(section.LineCount) lines</TbText>
+
+            <div class="tb-dialog__footer">
+                <TbButton Variant="outlined" Color="default" @onclick="CloseDialog">
+                    Cancel
                 </TbButton>
-            }
-        </nav>
-
-        <div class="tb-editor-panel">
-            <div class="tb-stack" style="gap: var(--tb-space-sm);">
-                <TbText Typo="subtitle1" Style="font-weight:600;">@activeSection?.Name</TbText>
-                <TbText Typo="caption" Class="tb-muted">
-                    Edit instructions to steer the AI's approach for this step of the consultation.
-                </TbText>
-            </div>
-
-            <textarea class="tb-textarea"
-                      @bind="activeSection!.Content"
-                      @bind:event="oninput"
-                      placeholder="Compose refined instructions that reflect your operating procedures."></textarea>
-
-            <div class="tb-stack tb-stack--row" style="justify-content: space-between;">
-                <TbText Typo="caption" Class="tb-muted">Character count: @((activeSection?.Content?.Length ?? 0).ToString("N0"))</TbText>
-                <TbText Typo="caption" Class="tb-muted">Last updated: @DateTime.Now.ToString("HH:mm")</TbText>
-            </div>
-
-            <div class="tb-divider"></div>
-
-            <div class="tb-stack tb-stack--row" style="justify-content:flex-end;">
-                <TbButton Variant="outlined"
-                          Color="secondary"
-                          @onclick="ResetToDefaults"
-                          Disabled="@isSaving"
-                          StartIcon="rotate-left">
-                    Reset to defaults
-                </TbButton>
-                <TbButton Variant="filled"
-                          Color="primary"
-                          @onclick="ApplyChanges"
-                          Disabled="@isSaving"
-                          StartIcon="@(isSaving ? null : "check-circle")">
-                    @if (isSaving)
+                <TbButton Variant="filled" Color="primary" @onclick="SavePrompt" Disabled="_isSaving">
+                    @if (_isSaving)
                     {
-                        <TbLoadingSpinner Size="sm" Variant="circular" />
-                        <span>Saving</span>
+                        <span>Saving...</span>
                     }
                     else
                     {
-                        <span>Apply changes</span>
+                        <span>@(_isEditing ? "Update" : "Create")</span>
                     }
                 </TbButton>
             </div>
         </div>
-        </div>
-    }
+    </div>
 }
 
 @code {
-    private List<InstructionSection> sections = new();
-    private InstructionSection? activeSection;
-    private bool isLoading = true;
-    private bool isSaving;
-    private string statusMessage = string.Empty;
-    private string statusClass = string.Empty;
-    private string editMode = "granular"; // "granular" or "raw"
-    private string rawInstructions = string.Empty;
+    private List<SystemPromptDto> _prompts = new();
+    private bool _isLoading = true;
+    private bool _showDialog = false;
+    private bool _isEditing = false;
+    private bool _isSaving = false;
+    private SystemPromptDto _editingPrompt = new();
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    // Form fields (separate from _editingPrompt to ensure proper binding)
+    private string _formName = string.Empty;
+    private string? _formDescription;
+    private string _formContent = string.Empty;
+    private bool _formIsActive = true;
+    private bool _formIsDefault = false;
 
     protected override async Task OnInitializedAsync()
     {
-        // Load saved editing mode from localStorage
-        try
-        {
-            var savedMode = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "tb_editMode");
-            if (!string.IsNullOrEmpty(savedMode) && (savedMode == "granular" || savedMode == "raw"))
-            {
-                editMode = savedMode;
-                Logger.LogInformation("Loaded editing mode from localStorage: {Mode}", editMode);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to load editing mode from localStorage");
-        }
-
-        await LoadSections();
-
-        // Load raw instructions if in raw mode
-        if (editMode == "raw")
-        {
-            try
-            {
-                rawInstructions = await InstructionService.GetFullTextAsync().ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Failed to load raw instructions");
-            }
-        }
+        await LoadPrompts();
     }
 
-    private async Task OnModeChanged(string newMode)
+    private async Task LoadPrompts()
     {
-        editMode = newMode;
+        _isLoading = true;
+        _errorMessage = null;
 
-        // Save to localStorage
         try
         {
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "tb_editMode", newMode);
-            Logger.LogInformation("Saved editing mode to localStorage: {Mode}", newMode);
+            _prompts = await PromptService.GetAllPromptsAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Failed to save editing mode to localStorage");
-        }
-
-        // Convert between modes
-        if (newMode == "raw")
-        {
-            if (sections.Any())
-            {
-                // Convert sections to raw text
-                rawInstructions = string.Join("\n\n", sections.Select(s => $"{s.Name}\n{s.Content}"));
-            }
-            else if (string.IsNullOrEmpty(rawInstructions))
-            {
-                // Load from API if we don't have anything yet
-                try
-                {
-                    rawInstructions = await InstructionService.GetFullTextAsync().ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "Failed to load raw instructions");
-                }
-            }
-        }
-        else if (newMode == "granular" && !string.IsNullOrEmpty(rawInstructions))
-        {
-            // User switched back to granular - keep existing sections
-            // (they can always reset to defaults if needed)
-        }
-
-        // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task LoadSections()
-    {
-        isLoading = true;
-        try
-        {
-            sections = await InstructionService.GetSectionsAsync().ConfigureAwait(false);
-            activeSection = sections.FirstOrDefault();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to load instruction sections");
-            statusMessage = "Failed to load instructions";
-            statusClass = "error";
+            _errorMessage = $"Failed to load prompts: {ex.Message}";
         }
         finally
         {
-            isLoading = false;
-            // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
-            await InvokeAsync(StateHasChanged);
+            _isLoading = false;
         }
     }
 
-    private void SelectSection(InstructionSection section)
+    private void ShowCreateDialog()
     {
-        activeSection = section;
+        _isEditing = false;
+        _editingPrompt = new SystemPromptDto
+        {
+            IsActive = true,
+            IsDefault = false
+        };
+
+        // Reset form fields
+        _formName = string.Empty;
+        _formDescription = null;
+        _formContent = string.Empty;
+        _formIsActive = true;
+        _formIsDefault = false;
+
+        _showDialog = true;
+        _errorMessage = null;
+        _successMessage = null;
     }
 
-    private async Task ApplyChanges()
+    private void ShowEditDialog(SystemPromptDto prompt)
     {
-        if (isSaving)
-            return;
+        _isEditing = true;
+        _editingPrompt = new SystemPromptDto
+        {
+            Id = prompt.Id,
+            Name = prompt.Name,
+            Description = prompt.Description,
+            Content = prompt.Content,
+            IsActive = prompt.IsActive,
+            IsDefault = prompt.IsDefault
+        };
 
-        isSaving = true;
-        statusMessage = string.Empty;
+        // Populate form fields
+        _formName = prompt.Name;
+        _formDescription = prompt.Description;
+        _formContent = prompt.Content;
+        _formIsActive = prompt.IsActive;
+        _formIsDefault = prompt.IsDefault;
+
+        _showDialog = true;
+        _errorMessage = null;
+        _successMessage = null;
+    }
+
+    private void CloseDialog()
+    {
+        _showDialog = false;
+        _editingPrompt = new();
+    }
+
+    private async Task SavePrompt()
+    {
+        _isSaving = true;
+        _errorMessage = null;
+        _successMessage = null;
 
         try
         {
-            var success = await InstructionService.UpdateSectionsAsync(sections).ConfigureAwait(false);
-            if (success)
+            // Copy form fields to the DTO
+            _editingPrompt.Name = _formName;
+            _editingPrompt.Description = _formDescription;
+            _editingPrompt.Content = _formContent;
+            _editingPrompt.IsActive = _formIsActive;
+            _editingPrompt.IsDefault = _formIsDefault;
+
+            if (_isEditing)
             {
-                statusMessage = "Changes applied. The next chat will follow your updated playbook.";
-                statusClass = "success";
+                var (success, error) = await PromptService.UpdatePromptAsync(_editingPrompt);
+                if (success)
+                {
+                    _successMessage = "Prompt updated successfully";
+                    CloseDialog();
+                    await LoadPrompts();
+                }
+                else
+                {
+                    _errorMessage = error ?? "Failed to update prompt";
+                }
             }
             else
             {
-                statusMessage = "Failed to apply changes. Please try again.";
-                statusClass = "error";
+                var (success, promptId, error) = await PromptService.CreatePromptAsync(_editingPrompt);
+                if (success)
+                {
+                    _successMessage = "Prompt created successfully";
+                    CloseDialog();
+                    await LoadPrompts();
+                }
+                else
+                {
+                    _errorMessage = error ?? "Failed to create prompt";
+                }
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to update instruction sections");
-            statusMessage = $"Error: {ex.Message}";
-            statusClass = "error";
+            _errorMessage = $"An error occurred: {ex.Message}";
         }
         finally
         {
-            isSaving = false;
-            // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
-            await InvokeAsync(StateHasChanged);
+            _isSaving = false;
         }
     }
 
-    private async Task ApplyRawChanges()
+    private async Task SetDefaultPrompt(int promptId)
     {
-        if (isSaving)
-            return;
-
-        isSaving = true;
-        statusMessage = string.Empty;
+        _errorMessage = null;
+        _successMessage = null;
 
         try
         {
-            // For raw mode, we send the entire instructions as-is
-            // The backend will use this as custom_instructions parameter
-            var success = await InstructionService.UpdateRawInstructionsAsync(rawInstructions).ConfigureAwait(false);
+            var (success, error) = await PromptService.SetDefaultPromptAsync(promptId);
             if (success)
             {
-                statusMessage = "Raw instructions applied. The next chat will use your custom prompt.";
-                statusClass = "success";
+                _successMessage = "Default prompt updated";
+                await LoadPrompts();
             }
             else
             {
-                statusMessage = "Failed to apply changes. Please try again.";
-                statusClass = "error";
+                _errorMessage = error ?? "Failed to set default prompt";
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to update raw instructions");
-            statusMessage = $"Error: {ex.Message}";
-            statusClass = "error";
-        }
-        finally
-        {
-            isSaving = false;
-            // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
-            await InvokeAsync(StateHasChanged);
+            _errorMessage = $"Failed to set default: {ex.Message}";
         }
     }
 
-    private async Task ResetToDefaults()
+    private async Task DeletePrompt(int promptId)
     {
-        if (isSaving)
+        if (!await ConfirmDelete())
             return;
 
-        isSaving = true;
-        statusMessage = string.Empty;
+        _errorMessage = null;
+        _successMessage = null;
 
         try
         {
-            sections = await InstructionService.GetDefaultSectionsAsync().ConfigureAwait(false);
-            activeSection = sections.FirstOrDefault();
-
-            // Also reset raw instructions to default
-            rawInstructions = string.Join("\n\n", sections.Select(s => $"{s.Name}\n{s.Content}"));
-
-            statusMessage = "Reset to TailorBlend defaults.";
-            statusClass = "success";
+            var (success, error) = await PromptService.DeletePromptAsync(promptId);
+            if (success)
+            {
+                _successMessage = "Prompt deleted successfully";
+                await LoadPrompts();
+            }
+            else
+            {
+                _errorMessage = error ?? "Failed to delete prompt";
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to reset instruction sections to defaults");
-            statusMessage = $"Error: {ex.Message}";
-            statusClass = "error";
+            _errorMessage = $"Failed to delete prompt: {ex.Message}";
         }
-        finally
+    }
+
+    private Task<bool> ConfirmDelete()
+    {
+        // Simple confirmation for now - could be enhanced with a proper dialog
+        return Task.FromResult(true);
+    }
+
+    private string GetPromptCardClass(SystemPromptDto prompt)
+    {
+        var baseClass = "tb-panel p-4";
+        if (prompt.IsDefault)
         {
-            isSaving = false;
-            // Use InvokeAsync to marshal StateHasChanged back to the Dispatcher thread
-            await InvokeAsync(StateHasChanged);
+            baseClass += " border-l-4 border-primary-500";
         }
+        if (!prompt.IsActive)
+        {
+            baseClass += " opacity-60";
+        }
+        return baseClass;
     }
 }
