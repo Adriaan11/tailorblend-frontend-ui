@@ -2371,3 +2371,451 @@ body {
         display: none !important;
     }
 }
+
+/* ============================================================================
+   MOBILE-SPECIFIC ENHANCEMENTS
+   ============================================================================ */
+
+/* Keyboard Visible State --------------------------------------------------- */
+body.tb-keyboard-visible {
+    /* Prevent body scroll when keyboard is visible */
+    overflow: hidden;
+}
+
+body.tb-keyboard-visible .tb-chat-container {
+    /* Adjust chat container when keyboard appears */
+    height: 100vh;
+    height: -webkit-fill-available;
+}
+
+/* Input Focus State (Mobile) ----------------------------------------------- */
+.tb-input-focused {
+    /* Enhanced focus state for mobile inputs */
+    border-color: var(--tb-accent) !important;
+    box-shadow: 0 0 0 4px var(--tb-accent-soft) !important;
+    position: relative;
+    z-index: 10;
+}
+
+/* Pull-to-Refresh Indicator ------------------------------------------------ */
+.tb-pull-refresh-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--tb-space-16);
+}
+
+/* Auto-Resize Textarea Enhancement ----------------------------------------- */
+.tb-chat-input {
+    transition: height 0.2s ease;
+    overflow-y: hidden;
+}
+
+.tb-chat-input:focus {
+    overflow-y: auto;
+}
+
+/* Mobile Dialog/Modal Optimization (Bottom Sheet on Mobile) ---------------- */
+@media (max-width: 768px) {
+    .tb-dialog-overlay {
+        align-items: flex-end !important;
+    }
+
+    .tb-dialog {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        border-radius: var(--tb-radius-xl) var(--tb-radius-xl) 0 0 !important;
+        max-height: 90vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tb-dialog__content {
+        max-height: calc(90vh - 120px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Full-width inputs on mobile */
+    .tb-form-input,
+    .tb-chat-input,
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    textarea,
+    select {
+        font-size: 16px !important; /* Prevent zoom on iOS */
+        width: 100%;
+    }
+
+    /* Larger touch targets on mobile */
+    .tb-dialog__close,
+    .tb-btn,
+    button {
+        min-height: 48px;
+        min-width: 48px;
+    }
+}
+
+/* Dialog Overlay & Modal Base Styles --------------------------------------- */
+.tb-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--tb-space-16);
+    backdrop-filter: blur(4px);
+}
+
+.tb-dialog {
+    background: var(--bg-surface);
+    border-radius: var(--tb-radius-xl);
+    box-shadow: var(--tb-shadow-xl);
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: dialogSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes dialogSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.tb-dialog__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--tb-space-20) var(--tb-space-24);
+    border-bottom: 1px solid var(--tb-border);
+    flex-shrink: 0;
+}
+
+.tb-dialog__title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.tb-dialog__close {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--tb-radius);
+    border: 1px solid var(--tb-border);
+    background: transparent;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tb-dialog__close:hover {
+    background: var(--tb-gray-75);
+}
+
+.tb-dialog__close:active {
+    transform: scale(0.95);
+}
+
+.tb-dialog__content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--tb-space-24);
+    -webkit-overflow-scrolling: touch;
+}
+
+.tb-dialog__footer {
+    display: flex;
+    gap: var(--tb-space-12);
+    padding: var(--tb-space-20) var(--tb-space-24);
+    border-top: 1px solid var(--tb-border);
+    flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+    .tb-dialog__footer {
+        flex-direction: column;
+    }
+
+    .tb-dialog__footer .tb-btn {
+        width: 100%;
+    }
+}
+
+/* Form Styles (Mobile-Optimized) ------------------------------------------- */
+.tb-form-group {
+    margin-bottom: var(--tb-space-20);
+}
+
+.tb-form-label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--tb-space-8);
+    font-size: 0.9375rem;
+}
+
+.tb-form-input {
+    width: 100%;
+    min-height: 48px;
+    padding: var(--tb-space-12) var(--tb-space-16);
+    border: 1px solid var(--tb-border);
+    border-radius: var(--tb-radius);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 16px; /* Prevent iOS zoom */
+    font-family: var(--tb-font-sans);
+    transition: all 0.2s ease;
+}
+
+.tb-form-input:focus {
+    outline: none;
+    border-color: var(--tb-accent);
+    box-shadow: 0 0 0 3px var(--tb-accent-soft);
+}
+
+.tb-form-input::placeholder {
+    color: var(--text-muted);
+}
+
+.tb-form-helper {
+    margin-top: var(--tb-space-8);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+textarea.tb-form-input {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Enhanced Touch Targets --------------------------------------------------- */
+@media (hover: none) and (pointer: coarse) {
+    /* Target touch-only devices */
+    .tb-btn,
+    .tb-icon-btn,
+    .tb-quick-action,
+    .tb-bottom-nav__item,
+    button {
+        min-height: 48px;
+        padding: var(--tb-space-12) var(--tb-space-16);
+    }
+
+    .tb-icon-btn {
+        min-width: 48px;
+        min-height: 48px;
+    }
+}
+
+/* Improved File Upload Button (Mobile) ------------------------------------- */
+.tb-chat-input-wrapper .tb-icon-btn[title="Attach files"] {
+    position: relative;
+}
+
+.tb-chat-input-wrapper .tb-icon-btn[title="Attach files"]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+/* Camera Capture Support Hint */
+@media (max-width: 768px) {
+    input[type="file"][capture] + label,
+    input[type="file"][capture] ~ button {
+        position: relative;
+    }
+
+    input[type="file"][capture] + label::after,
+    input[type="file"][capture] ~ button::after {
+        content: '📷';
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 20px;
+        height: 20px;
+        background: var(--tb-accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.625rem;
+        box-shadow: var(--tb-shadow-sm);
+    }
+}
+
+/* Bottom Sheet Enhancements (Better Swipe Indicator) ----------------------- */
+.tb-bottom-sheet__handle {
+    cursor: grab;
+}
+
+.tb-bottom-sheet__handle:active {
+    cursor: grabbing;
+}
+
+[data-theme="dark"] .tb-bottom-sheet__handle {
+    background: var(--tb-gray-600);
+}
+
+/* Landscape Mode Optimization ---------------------------------------------- */
+@media (max-height: 500px) and (orientation: landscape) {
+    /* Optimize for landscape mode on phones */
+    .tb-mobile-nav {
+        height: 48px;
+    }
+
+    .tb-bottom-nav {
+        height: 56px;
+        padding-bottom: 0;
+    }
+
+    .tb-bottom-nav__item {
+        min-height: 48px;
+        padding: var(--tb-space-4) var(--tb-space-8);
+        font-size: 0.625rem;
+    }
+
+    .tb-bottom-nav__item span {
+        display: none; /* Hide labels in landscape */
+    }
+
+    .tb-chat-header {
+        padding: var(--tb-space-12) 0;
+    }
+
+    .tb-chat-header__subtitle {
+        display: none;
+    }
+}
+
+/* Dark Mode Mobile Enhancements -------------------------------------------- */
+[data-theme="dark"] .tb-dialog {
+    background: var(--tb-surface);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .tb-dialog-overlay {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .tb-form-input {
+    background: rgba(17, 24, 39, 0.6);
+    border-color: var(--tb-border-strong);
+}
+
+/* Loading State for Long Operations ---------------------------------------- */
+.tb-btn--loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.tb-btn--loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Accessibility: Reduced Motion -------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .tb-typing__dot {
+        animation: none;
+    }
+
+    .tb-spinner {
+        animation: none;
+        border-color: var(--tb-accent);
+    }
+}
+
+/* iOS Safari Specific Fixes ------------------------------------------------ */
+@supports (-webkit-touch-callout: none) {
+    /* iOS-specific styles */
+    body {
+        /* Prevent bounce scroll */
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .tb-mobile-content,
+    .tb-chat-messages,
+    .tb-bottom-sheet {
+        /* Enable momentum scrolling on scrollable containers */
+        -webkit-overflow-scrolling: touch;
+        overflow-y: scroll;
+    }
+
+    .tb-chat-input,
+    .tb-form-input {
+        /* Prevent iOS zoom */
+        font-size: 16px !important;
+    }
+}
+
+/* Small Screen Optimizations (< 375px) ------------------------------------- */
+@media (max-width: 374px) {
+    :root {
+        /* Reduce spacing on very small screens */
+        --tb-space-16: 0.75rem;
+        --tb-space-20: 1rem;
+        --tb-space-24: 1.25rem;
+    }
+
+    .tb-container {
+        padding: 0 var(--tb-space-12);
+    }
+
+    .tb-bottom-nav__item {
+        min-width: 56px;
+        font-size: 0.625rem;
+        padding: var(--tb-space-4) var(--tb-space-4);
+    }
+
+    .tb-chat-header h1 {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* High-Resolution Screens (Retina) ----------------------------------------- */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Sharper borders on retina displays */
+    .tb-border,
+    .tb-card,
+    .tb-panel,
+    .tb-dialog {
+        border-width: 0.5px;
+    }
+}

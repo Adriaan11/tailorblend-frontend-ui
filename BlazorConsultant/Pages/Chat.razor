@@ -165,7 +165,8 @@
                        OnChange="@OnFilesChanged"
                        hidden="hidden"
                        multiple
-                       accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx"
+                       capture="environment"
+                       accept="image/*,video/*,.pdf,.txt,.csv,.xlsx,.docx"
                                    style="display: none;" />
 
                         <!-- Attach Button -->
@@ -188,8 +189,10 @@
 
                         <!-- Text Input -->
                         <textarea class="tb-chat-input"
+                                  @ref="_chatInputRef"
                                   @bind="userInput"
                                   @bind:event="oninput"
+                                  @oninput="HandleInputChange"
                                   placeholder="Type your message..."
                                   @onkeydown="HandleKeyPress"
                                   disabled="@ChatStateService.IsLoading"
@@ -401,6 +404,7 @@
     private bool isResetting;
     private SessionStatsComponent? sessionStatsRef;
     private ElementReference _messagesContainer;
+    private ElementReference _chatInputRef;
     private string selectedModel = "gpt-5-mini";
     private bool _showSettings = false;
     private string SessionLabel => BuildSessionLabel();
@@ -652,6 +656,21 @@
         if (e.Key == "Enter" && !e.ShiftKey)
         {
             await SendMessage();
+        }
+    }
+
+    private async Task HandleInputChange(ChangeEventArgs e)
+    {
+        userInput = e.Value?.ToString() ?? string.Empty;
+
+        // Auto-resize textarea
+        try
+        {
+            await JS.InvokeVoidAsync("tbMobile.autoResizeTextarea", _chatInputRef);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to auto-resize textarea");
         }
     }
 
