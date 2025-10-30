@@ -1,0 +1,78 @@
+name: Claude Mention Handler
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  claude-handler:
+    # Only run if Claude is mentioned and user is repo owner/collaborator
+    if: |
+      contains(github.event.comment.body, '@claude') &&
+      (github.event.comment.user.login == github.repository_owner ||
+       github.event.issue.author_association == 'OWNER' ||
+       github.event.issue.author_association == 'COLLABORATOR' ||
+       github.event.issue.author_association == 'MEMBER')
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract Claude request
+        id: extract
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          # Extract text after @claude mention
+          REQUEST=$(echo "$COMMENT_BODY" | sed 's/.*@claude[[:space:]]*//g')
+          echo "request<<EOF" >> $GITHUB_OUTPUT
+          echo "$REQUEST" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "is_pr=${{ github.event.issue.pull_request != '' }}" >> $GITHUB_OUTPUT
+          echo "issue_number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+
+      - name: Handle Claude Request
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            CONTEXT:
+            Repository: ${{ github.repository }}
+            Issue/PR: #${{ steps.extract.outputs.issue_number }}
+            Is Pull Request: ${{ steps.extract.outputs.is_pr }}
+            User Request: ${{ steps.extract.outputs.request }}
+
+            The user has mentioned you in a GitHub comment with a request. Your task is to:
+
+            1. Address the request specifically (fix issues, respond to comments, etc.)
+            2. Make code changes if needed to fix bugs or address concerns
+            3. Use `gh pr comment` or `gh issue comment` to respond back with a summary
+
+            Important:
+            - Use the repository's CLAUDE.md for guidance on conventions and style
+            - Be concise and direct in your GitHub comments
+            - Reference the specific issue/PR number in responses
+            - Use code blocks for any code snippets in comments
+
+          claude_args: '--allowed-tools "Bash(gh issue:*),Bash(gh pr:*),Bash(gh search:*)"'
+
+      - name: Post acknowledgment if request unclear
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '👋 I encountered an issue processing your request. Could you provide more details about what you\'d like me to do?'
+            })
