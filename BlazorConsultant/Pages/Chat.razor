@@ -192,11 +192,11 @@
                                   @ref="_chatInputRef"
                                   @bind="userInput"
                                   @bind:event="oninput"
-                                  @oninput="HandleInputChange"
                                   placeholder="Type your message..."
                                   @onkeydown="HandleKeyPress"
                                   disabled="@ChatStateService.IsLoading"
-                                  rows="1"></textarea>
+                                  rows="1"
+                                  @onchange="HandleInputChange"></textarea>
 
                         <!-- Send Button -->
                         <button type="button"
@@ -326,7 +326,7 @@
                         <h4>Track performance</h4>
                     </div>
                 </div>
-                <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
+                <SessionStatsComponent @ref="sessionStatsRef" SessionId="@(SessionService?.SessionId ?? string.Empty)" />
             </div>
 
             <!-- Actions -->
@@ -412,7 +412,6 @@
     // Async tracking
     private readonly CancellationTokenSource _componentCts = new();
     private readonly DisposalGuard _disposalGuard = new();
-    private Task? _statsRefreshTask;
 
     // Typewriter
     private bool typewriterEnabled
@@ -623,7 +622,7 @@
         }
     }
 
-    private async Task RemoveFile(FileAttachment file)
+    private void RemoveFile(FileAttachment file)
     {
         selectedFiles.Remove(file);
         Logger.LogInformation("Removed file: {FileName}", file.FileName);
@@ -861,18 +860,6 @@
         Logger.LogInformation("Disposing Chat component");
 
         _componentCts.Cancel();
-
-        if (_statsRefreshTask != null && !_statsRefreshTask.IsCompleted)
-        {
-            try
-            {
-                await Task.WhenAny(_statsRefreshTask, Task.Delay(1000));
-            }
-            catch
-            {
-                // Ignore exceptions during cleanup
-            }
-        }
 
         ChatStateService.OnStateChanged -= HandleStateChanged;
 
