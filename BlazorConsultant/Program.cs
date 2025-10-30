@@ -58,6 +58,7 @@ builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IInstructionService, InstructionService>();
 builder.Services.AddScoped<IChatStateService, ChatStateService>();
 builder.Services.AddScoped<IMultiAgentService, MultiAgentService>();
+builder.Services.AddScoped<IVectorStoreService, VectorStoreService>();
 // SseStreamManager removed - now using client-side StreamSimulator for fake streaming
 
 // ============================================================================

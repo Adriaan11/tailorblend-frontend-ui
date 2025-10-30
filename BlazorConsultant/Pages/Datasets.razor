@@ -1,0 +1,724 @@
+@page "/datasets"
+@using BlazorConsultant.Models
+@using BlazorConsultant.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject IVectorStoreService VectorStoreService
+@inject ISessionService SessionService
+@inject ILogger<Datasets> Logger
+@inject NavigationManager NavManager
+@implements IAsyncDisposable
+
+<PageTitle>Manage Datasets - TailorBlend AI Consultant</PageTitle>
+
+<section class="tb-datasets-stage">
+    <div class="tb-container">
+        <header class="tb-page-header">
+            <div>
+                <p class="tb-eyebrow">Knowledge Base Management</p>
+                <h1>Manage Embedding Datasets</h1>
+                <p class="tb-page-header__subtitle">
+                    Upload custom ingredient datasets and switch between different knowledge bases for consultation.
+                </p>
+            </div>
+            <div class="tb-page-header__actions">
+                <TbButton Variant="contained" Size="md" Color="primary" StartIcon="plus" @onclick="OpenUploadDialog">
+                    Upload New Dataset
+                </TbButton>
+            </div>
+        </header>
+    </div>
+</section>
+
+<section class="tb-datasets-content">
+    <div class="tb-container">
+        <!-- Loading State -->
+        @if (IsLoading)
+        {
+            <div class="tb-loading-container">
+                <div class="tb-spinner"></div>
+                <p>Loading datasets...</p>
+            </div>
+        }
+
+        <!-- Error State -->
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="tb-alert tb-alert--error">
+                <TbIcon Icon="alert-circle" />
+                <div>
+                    <h4>Error</h4>
+                    <p>@ErrorMessage</p>
+                </div>
+                <button class="tb-alert-close" @onclick="ClearError">×</button>
+            </div>
+        }
+
+        <!-- Success Message -->
+        @if (!string.IsNullOrEmpty(SuccessMessage))
+        {
+            <div class="tb-alert tb-alert--success">
+                <TbIcon Icon="check-circle" />
+                <p>@SuccessMessage</p>
+                <button class="tb-alert-close" @onclick="ClearSuccess">×</button>
+            </div>
+        }
+
+        <!-- Datasets List -->
+        @if (!IsLoading && AvailableDatasets.Count > 0)
+        {
+            <div class="tb-datasets-grid">
+                @foreach (var dataset in AvailableDatasets)
+                {
+                    <div class="tb-dataset-card">
+                        <div class="tb-dataset-card__header">
+                            <h3>@dataset.Name</h3>
+                            @if (ActiveDatasetId == dataset.VectorStoreId)
+                            {
+                                <span class="tb-badge tb-badge--success">
+                                    <TbIcon Icon="check" Size="sm" />
+                                    Active
+                                </span>
+                            }
+                        </div>
+
+                        <div class="tb-dataset-card__body">
+                            <div class="tb-dataset-info">
+                                <div class="tb-dataset-info__item">
+                                    <span class="tb-label">Items:</span>
+                                    <span class="tb-value">@dataset.ItemCount.ToString("N0")</span>
+                                </div>
+                                <div class="tb-dataset-info__item">
+                                    <span class="tb-label">Source:</span>
+                                    <span class="tb-value">@dataset.SourceFile</span>
+                                </div>
+                                <div class="tb-dataset-info__item">
+                                    <span class="tb-label">Created:</span>
+                                    <span class="tb-value">@dataset.CreatedAt?.ToString("MMM dd, yyyy")</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tb-dataset-card__footer">
+                            @if (ActiveDatasetId != dataset.VectorStoreId)
+                            {
+                                <TbButton
+                                    Variant="contained"
+                                    Size="sm"
+                                    Color="primary"
+                                    StartIcon="target"
+                                    Disabled="IsSwitching"
+                                    @onclick="@(() => ActivateDataset(dataset))">
+                                    @(IsSwitching ? "Switching..." : "Use This Dataset")
+                                </TbButton>
+                            }
+                            else
+                            {
+                                <div class="tb-button-placeholder">Active</div>
+                            }
+
+                            @if (dataset.Id != "default")
+                            {
+                                <TbButton
+                                    Variant="outlined"
+                                    Size="sm"
+                                    Color="danger"
+                                    StartIcon="trash2"
+                                    Disabled="IsDeleting"
+                                    @onclick="@(() => ConfirmDelete(dataset))">
+                                    @(IsDeleting ? "Deleting..." : "Delete")
+                                </TbButton>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Empty State -->
+        @if (!IsLoading && AvailableDatasets.Count == 0)
+        {
+            <div class="tb-empty-state">
+                <div class="tb-empty-state__icon">
+                    <TbIcon Icon="inbox" Size="lg" Color="disabled" />
+                </div>
+                <h3>No datasets found</h3>
+                <p>Upload your first dataset to get started.</p>
+                <TbButton Variant="contained" Color="primary" @onclick="OpenUploadDialog">
+                    Upload Dataset
+                </TbButton>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- Upload Dialog -->
+<div class="tb-dialog-overlay @(ShowUploadDialog ? "active" : "")" @onclick="CloseUploadDialog"></div>
+<div class="tb-dialog @(ShowUploadDialog ? "active" : "")">
+    <div class="tb-dialog__content">
+        <div class="tb-dialog__header">
+            <h2>Upload Dataset</h2>
+            <button class="tb-dialog-close" @onclick="CloseUploadDialog">×</button>
+        </div>
+
+        <div class="tb-dialog__body">
+            <form @onsubmit="SubmitUpload">
+                <div class="tb-form-group">
+                    <label for="datasetName">Dataset Name</label>
+                    <input
+                        type="text"
+                        id="datasetName"
+                        class="tb-input"
+                        @bind="UploadName"
+                        placeholder="e.g., Vegan Athletes, Sleep Focus, etc."
+                        disabled="@IsUploading" />
+                </div>
+
+                <div class="tb-form-group">
+                    <label for="jsonFile">JSON File (array of objects)</label>
+                    <InputFile
+                        id="jsonFile"
+                        @ref="_fileInput"
+                        OnChange="@HandleFileSelected"
+                        accept=".json"
+                        disabled="@IsUploading" />
+                    @if (SelectedFile != null)
+                    {
+                        <p class="tb-text-small">
+                            <TbIcon Icon="check" Size="sm" Color="success" />
+                            Selected: @SelectedFile.Name (@(SelectedFile.Size / 1024)KB)
+                        </p>
+                    }
+                </div>
+
+                <div class="tb-form-group">
+                    @if (IsUploading)
+                    {
+                        <div class="tb-progress-bar">
+                            <div class="tb-progress-bar__fill" style="width: 100%;"></div>
+                        </div>
+                        <p class="tb-text-small">Uploading and indexing...</p>
+                    }
+                </div>
+
+                <div class="tb-dialog__footer">
+                    <TbButton
+                        Variant="outlined"
+                        @onclick="CloseUploadDialog"
+                        Disabled="@IsUploading">
+                        Cancel
+                    </TbButton>
+                    <TbButton
+                        Type="submit"
+                        Variant="contained"
+                        Color="primary"
+                        Disabled="@(IsUploading || SelectedFile == null || string.IsNullOrWhiteSpace(UploadName))">
+                        @(IsUploading ? "Uploading..." : "Upload Dataset")
+                    </TbButton>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Dialog -->
+<div class="tb-dialog-overlay @(ShowDeleteConfirm ? "active" : "")" @onclick="CloseDeleteConfirm"></div>
+<div class="tb-dialog tb-dialog--small @(ShowDeleteConfirm ? "active" : "")">
+    <div class="tb-dialog__content">
+        <div class="tb-dialog__header">
+            <h2>Delete Dataset?</h2>
+        </div>
+
+        <div class="tb-dialog__body">
+            <p>Are you sure you want to delete <strong>@DeleteConfirmDataset?.Name</strong>?</p>
+            <p class="tb-text-small" style="color: var(--color-error);">This action cannot be undone.</p>
+        </div>
+
+        <div class="tb-dialog__footer">
+            <TbButton
+                Variant="outlined"
+                @onclick="CloseDeleteConfirm"
+                Disabled="@IsDeleting">
+                Cancel
+            </TbButton>
+            <TbButton
+                Variant="contained"
+                Color="danger"
+                Disabled="@IsDeleting"
+                @onclick="ConfirmDeleteAction">
+                @(IsDeleting ? "Deleting..." : "Delete")
+            </TbButton>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<VectorStoreMetadata> AvailableDatasets = new();
+    private bool IsLoading = true;
+    private bool IsUploading = false;
+    private bool IsDeleting = false;
+    private bool IsSwitching = false;
+    private string? ErrorMessage;
+    private string? SuccessMessage;
+    private string? ActiveDatasetId;
+
+    private bool ShowUploadDialog = false;
+    private bool ShowDeleteConfirm = false;
+    private string UploadName = "";
+    private IBrowserFile? SelectedFile;
+    private InputFile? _fileInput;
+    private VectorStoreMetadata? DeleteConfirmDataset;
+
+    private CancellationTokenSource? _disposalCts;
+    private bool _disposed = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _disposalCts = new CancellationTokenSource();
+        await LoadDatasets();
+    }
+
+    private async Task LoadDatasets()
+    {
+        try
+        {
+            IsLoading = true;
+            AvailableDatasets = await VectorStoreService.ListVectorStoresAsync(_disposalCts?.Token ?? CancellationToken.None);
+
+            // Try to get active dataset
+            try
+            {
+                var active = await VectorStoreService.GetActiveVectorStoreAsync(_disposalCts?.Token ?? CancellationToken.None);
+                ActiveDatasetId = active?.VectorStoreId;
+            }
+            catch
+            {
+                // No active dataset yet - use first one
+                ActiveDatasetId = AvailableDatasets.FirstOrDefault()?.VectorStoreId;
+            }
+
+            ClearError();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load datasets");
+            ErrorMessage = "Failed to load datasets. Please try again.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void OpenUploadDialog()
+    {
+        ShowUploadDialog = true;
+        UploadName = "";
+        SelectedFile = null;
+    }
+
+    private void CloseUploadDialog()
+    {
+        ShowUploadDialog = false;
+        UploadName = "";
+        SelectedFile = null;
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        SelectedFile = e.File;
+    }
+
+    private async Task SubmitUpload()
+    {
+        if (SelectedFile == null || string.IsNullOrWhiteSpace(UploadName))
+            return;
+
+        try
+        {
+            IsUploading = true;
+            ClearError();
+
+            using var stream = SelectedFile.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024); // 5MB max
+            await VectorStoreService.UploadVectorStoreAsync(stream, SelectedFile.Name, UploadName, _disposalCts?.Token ?? CancellationToken.None);
+
+            SuccessMessage = $"Dataset '{UploadName}' uploaded successfully!";
+            CloseUploadDialog();
+            await LoadDatasets();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to upload dataset");
+            ErrorMessage = $"Failed to upload dataset: {ex.Message}";
+        }
+        finally
+        {
+            IsUploading = false;
+        }
+    }
+
+    private async Task ActivateDataset(VectorStoreMetadata dataset)
+    {
+        try
+        {
+            IsSwitching = true;
+            ClearError();
+
+            await VectorStoreService.ActivateVectorStoreAsync(dataset.Id!, _disposalCts?.Token ?? CancellationToken.None);
+
+            ActiveDatasetId = dataset.VectorStoreId;
+            SuccessMessage = $"Switched to '{dataset.Name}'. Chat history cleared.";
+
+            // Navigate to chat after a short delay
+            await Task.Delay(1000);
+            NavManager.NavigateTo("/chat");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to activate dataset");
+            ErrorMessage = $"Failed to switch dataset: {ex.Message}";
+        }
+        finally
+        {
+            IsSwitching = false;
+        }
+    }
+
+    private void ConfirmDelete(VectorStoreMetadata dataset)
+    {
+        DeleteConfirmDataset = dataset;
+        ShowDeleteConfirm = true;
+    }
+
+    private void CloseDeleteConfirm()
+    {
+        ShowDeleteConfirm = false;
+        DeleteConfirmDataset = null;
+    }
+
+    private async Task ConfirmDeleteAction()
+    {
+        if (DeleteConfirmDataset?.Id == null)
+            return;
+
+        try
+        {
+            IsDeleting = true;
+            ClearError();
+
+            await VectorStoreService.DeleteVectorStoreAsync(DeleteConfirmDataset.Id, _disposalCts?.Token ?? CancellationToken.None);
+
+            SuccessMessage = $"Dataset '{DeleteConfirmDataset.Name}' deleted successfully.";
+            CloseDeleteConfirm();
+            await LoadDatasets();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to delete dataset");
+            ErrorMessage = $"Failed to delete dataset: {ex.Message}";
+        }
+        finally
+        {
+            IsDeleting = false;
+        }
+    }
+
+    private void ClearError()
+    {
+        ErrorMessage = null;
+    }
+
+    private void ClearSuccess()
+    {
+        SuccessMessage = null;
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        _disposalCts?.Cancel();
+        _disposalCts?.Dispose();
+
+        await Task.CompletedTask;
+    }
+}
+
+<style>
+    .tb-datasets-stage {
+        padding: 4rem 0;
+        background: var(--color-bg-elevated);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .tb-datasets-content {
+        padding: 3rem 0;
+    }
+
+    .tb-datasets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .tb-dataset-card {
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        padding: 1.5rem;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .tb-dataset-card__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .tb-dataset-card__header h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    .tb-dataset-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .tb-dataset-info__item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tb-dataset-info__item .tb-label {
+        font-size: 0.875rem;
+        color: var(--color-text-secondary);
+        font-weight: 500;
+    }
+
+    .tb-dataset-info__item .tb-value {
+        font-size: 0.875rem;
+        color: var(--color-text-primary);
+    }
+
+    .tb-dataset-card__footer {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: auto;
+    }
+
+    .tb-button-placeholder {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        text-align: center;
+        color: var(--color-text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .tb-loading-container {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .tb-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--color-border);
+        border-top-color: var(--color-primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .tb-empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .tb-empty-state__icon {
+        margin-bottom: 1.5rem;
+    }
+
+    .tb-empty-state h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .tb-dialog-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+
+    .tb-dialog-overlay.active {
+        display: block;
+    }
+
+    .tb-dialog {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        width: 90%;
+        max-width: 500px;
+    }
+
+    .tb-dialog.active {
+        display: block;
+    }
+
+    .tb-dialog--small {
+        max-width: 400px;
+    }
+
+    .tb-dialog__content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tb-dialog__header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tb-dialog__header h2 {
+        margin: 0;
+    }
+
+    .tb-dialog-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--color-text-secondary);
+    }
+
+    .tb-dialog__body {
+        padding: 1.5rem;
+        flex: 1;
+    }
+
+    .tb-dialog__footer {
+        padding: 1.5rem;
+        border-top: 1px solid var(--color-border);
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+
+    .tb-form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .tb-form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .tb-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    .tb-progress-bar {
+        width: 100%;
+        height: 4px;
+        background: var(--color-border);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .tb-progress-bar__fill {
+        height: 100%;
+        background: var(--color-primary);
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .tb-text-small {
+        font-size: 0.875rem;
+        color: var(--color-text-secondary);
+        margin: 0;
+    }
+
+    .tb-alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .tb-alert--error {
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #7f1d1d;
+    }
+
+    .tb-alert--success {
+        background: #dcfce7;
+        border: 1px solid #86efac;
+        color: #15803d;
+    }
+
+    .tb-alert-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-left: auto;
+    }
+
+    .tb-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .tb-badge--success {
+        background: #dcfce7;
+        color: #15803d;
+    }
+</style>
