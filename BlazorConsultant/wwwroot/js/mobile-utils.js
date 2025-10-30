@@ -357,13 +357,28 @@
     };
 
     /**
+     * Trigger file input dialog with camera support
+     * Standalone implementation (doesn't depend on chat.js)
+     */
+    window.triggerFileInputWithCamera = function() {
+        const fileInput = document.querySelector('input[type="file"][data-tb-file-input="true"]');
+        if (fileInput) {
+            // Ensure camera capture is enabled
+            window.enableCameraCapture();
+            // Trigger file picker
+            fileInput.click();
+        } else {
+            console.warn('[Mobile Utils] File input element not found');
+        }
+    };
+
+    /**
      * Show action sheet for file upload options (Camera, Gallery, Files)
+     * This provides the same functionality as window.triggerFileInput from chat.js
+     * but is self-contained in mobile-utils.js
      */
     window.showFileUploadOptions = function() {
-        // This would ideally show a native action sheet
-        // For now, we'll just trigger the file input with camera support
-        window.enableCameraCapture();
-        window.triggerFileInput();
+        window.triggerFileInputWithCamera();
     };
 
     // ============================================================================
@@ -628,6 +643,7 @@
         autoResizeTextarea: window.autoResizeTextarea,
         vibrate: window.vibrate,
         enableCameraCapture: window.enableCameraCapture,
+        triggerFileInputWithCamera: window.triggerFileInputWithCamera,
         showFileUploadOptions: window.showFileUploadOptions
     };
 
