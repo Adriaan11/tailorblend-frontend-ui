@@ -731,14 +731,35 @@
         await Task.CompletedTask;
     }
 
-    private void ToggleSettings()
+    private async Task ToggleSettings()
     {
         _showSettings = !_showSettings;
+        await UpdateBodyScrollLock();
     }
 
-    private void CloseSettings()
+    private async Task CloseSettings()
     {
         _showSettings = false;
+        await UpdateBodyScrollLock();
+    }
+
+    private async Task UpdateBodyScrollLock()
+    {
+        try
+        {
+            if (_showSettings)
+            {
+                await JS.InvokeVoidAsync("eval", "document.body.classList.add('tb-sheet-open')");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("eval", "document.body.classList.remove('tb-sheet-open')");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to update body scroll lock");
+        }
     }
 
     private async Task OnModelChanged(string newModel)

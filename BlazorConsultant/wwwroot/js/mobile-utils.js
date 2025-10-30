@@ -19,8 +19,15 @@
         isKeyboardVisible: false,
         originalViewportHeight: window.visualViewport ? window.visualViewport.height : window.innerHeight,
         bottomNav: null,
+        initialized: false,
 
         init: function() {
+            // Guard against duplicate initialization
+            if (this.initialized) {
+                console.log('[KeyboardManager] Already initialized, skipping...');
+                return;
+            }
+
             this.bottomNav = document.querySelector('.tb-bottom-nav');
 
             if (window.visualViewport) {
@@ -35,6 +42,8 @@
             // Listen for focus on input fields
             document.addEventListener('focusin', (e) => this.handleInputFocus(e));
             document.addEventListener('focusout', (e) => this.handleInputBlur(e));
+
+            this.initialized = true;
         },
 
         handleViewportResize: function() {
@@ -155,13 +164,18 @@
 
     /**
      * Initialize auto-resize for all textareas with .tb-chat-input class
+     * Idempotent - checks for existing listeners before adding
      */
     function initAutoResizeTextareas() {
         const textareas = document.querySelectorAll('.tb-chat-input');
         textareas.forEach(textarea => {
-            textarea.addEventListener('input', function() {
-                window.autoResizeTextarea(this);
-            });
+            // Check if already initialized
+            if (!textarea.dataset.autoResizeInitialized) {
+                textarea.addEventListener('input', function() {
+                    window.autoResizeTextarea(this);
+                });
+                textarea.dataset.autoResizeInitialized = 'true';
+            }
         });
     }
 
@@ -215,8 +229,15 @@
         threshold: 80,
         container: null,
         refreshIndicator: null,
+        initialized: false,
 
         init: function() {
+            // Guard against duplicate initialization
+            if (this.initialized) {
+                console.log('[PullToRefresh] Already initialized, skipping...');
+                return;
+            }
+
             this.container = document.querySelector('.tb-chat-messages');
             if (!this.container) return;
 
@@ -227,6 +248,8 @@
             this.container.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: true });
             this.container.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
             this.container.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: true });
+
+            this.initialized = true;
         },
 
         createRefreshIndicator: function() {
@@ -353,11 +376,20 @@
     const LongPressDetector = {
         pressTimer: null,
         threshold: 500, // 500ms for long press
+        initialized: false,
 
         init: function() {
+            // Guard against duplicate initialization
+            if (this.initialized) {
+                console.log('[LongPressDetector] Already initialized, skipping...');
+                return;
+            }
+
             document.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: true });
             document.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: true });
             document.addEventListener('touchmove', (e) => this.handleTouchCancel(e), { passive: true });
+
+            this.initialized = true;
         },
 
         handleTouchStart: function(e) {
@@ -472,43 +504,121 @@
     // INITIALIZATION
     // ============================================================================
 
+    // Guard flags to prevent duplicate initialization
+    let globalInitsComplete = false;
+    let keyboardManagerInitialized = false;
+    let pullToRefreshInitialized = false;
+    let longPressInitialized = false;
+    let hapticFeedbackInitialized = false;
+    let orientationHandlerInitialized = false;
+
     /**
-     * Initialize all mobile utilities when DOM is ready
+     * One-time global initialization (runs only once per page load)
+     * Sets up event listeners and managers that should persist
      */
-    function initMobileUtils() {
-        // Check if we're on a mobile device
+    function initGlobalMobileFeatures() {
+        if (globalInitsComplete) {
+            console.log('[Mobile Utils] Global initialization already complete, skipping...');
+            return;
+        }
+
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-        if (isMobile || isTouchDevice) {
-            console.log('[Mobile Utils] Initializing mobile enhancements...');
-
-            KeyboardManager.init();
-            initAutoResizeTextareas();
-            initHapticFeedback();
-            PullToRefresh.init();
-            LongPressDetector.init();
-            initSmoothScrolling();
-            preventAutoZoom();
-            updateSafeAreaInsets();
-            handleOrientationChange();
-
-            // Enable camera capture for file inputs
-            window.enableCameraCapture();
-
-            console.log('[Mobile Utils] ✓ Mobile enhancements initialized');
+        if (!isMobile && !isTouchDevice) {
+            console.log('[Mobile Utils] Not a mobile device, skipping mobile enhancements');
+            return;
         }
+
+        console.log('[Mobile Utils] Initializing global mobile enhancements...');
+
+        // Initialize keyboard manager (once)
+        if (!keyboardManagerInitialized) {
+            KeyboardManager.init();
+            keyboardManagerInitialized = true;
+        }
+
+        // Initialize pull-to-refresh (once)
+        if (!pullToRefreshInitialized) {
+            PullToRefresh.init();
+            pullToRefreshInitialized = true;
+        }
+
+        // Initialize long-press detector (once)
+        if (!longPressInitialized) {
+            LongPressDetector.init();
+            longPressInitialized = true;
+        }
+
+        // Initialize haptic feedback (once)
+        if (!hapticFeedbackInitialized) {
+            initHapticFeedback();
+            hapticFeedbackInitialized = true;
+        }
+
+        // Initialize orientation change handler (once)
+        if (!orientationHandlerInitialized) {
+            handleOrientationChange();
+            orientationHandlerInitialized = true;
+        }
+
+        // One-time setups
+        updateSafeAreaInsets();
+
+        globalInitsComplete = true;
+        console.log('[Mobile Utils] ✓ Global mobile enhancements initialized');
+    }
+
+    /**
+     * Per-page initialization (runs on every navigation)
+     * Wires up page-specific elements that may have been recreated
+     */
+    function initPerPageMobileFeatures() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        if (!isMobile && !isTouchDevice) {
+            return;
+        }
+
+        console.log('[Mobile Utils] Initializing per-page mobile features...');
+
+        // Re-wire textareas (they may be new after navigation)
+        initAutoResizeTextareas();
+
+        // Re-apply smooth scrolling to new containers
+        initSmoothScrolling();
+
+        // Re-apply auto-zoom prevention to new inputs
+        preventAutoZoom();
+
+        // Enable camera capture for new file inputs
+        window.enableCameraCapture();
+
+        console.log('[Mobile Utils] ✓ Per-page features initialized');
+    }
+
+    /**
+     * Main initialization function
+     */
+    function initMobileUtils() {
+        // Always run global inits first (they're guarded internally)
+        initGlobalMobileFeatures();
+
+        // Then run per-page inits
+        initPerPageMobileFeatures();
     }
 
     // Initialize when DOM is fully loaded
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initMobileUtils);
+        document.addEventListener('DOMContentLoaded', initMobileUtils, { once: true });
     } else {
         initMobileUtils();
     }
 
-    // Re-initialize on page updates (Blazor navigation)
-    window.addEventListener('blazor:enhancednavigation', initMobileUtils);
+    // Re-initialize per-page features on Blazor navigation
+    // Global features are already initialized and won't re-run
+    window.addEventListener('blazor:enhancednavigation', initPerPageMobileFeatures);
 
     // Expose utilities globally
     window.tbMobile = {

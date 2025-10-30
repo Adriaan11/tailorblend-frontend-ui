@@ -2762,8 +2762,10 @@ textarea.tb-form-input {
 /* iOS Safari Specific Fixes ------------------------------------------------ */
 @supports (-webkit-touch-callout: none) {
     /* iOS-specific styles */
-    body {
-        /* Prevent bounce scroll */
+
+    /* Only lock body scroll when bottom sheet is open */
+    body.tb-sheet-open {
+        /* Prevent bounce scroll when modal/sheet is open */
         position: fixed;
         width: 100%;
         height: 100%;
