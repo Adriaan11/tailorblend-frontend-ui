@@ -598,6 +598,19 @@
 
         console.log('[Mobile Utils] Initializing per-page mobile features...');
 
+        // Re-bind pull-to-refresh when the chat list is recreated
+        const chatMessages = document.querySelector('.tb-chat-messages');
+        if (chatMessages) {
+            if (PullToRefresh.container !== chatMessages) {
+                // Chat container has changed (Blazor navigation created new DOM)
+                // Reset initialization and re-bind to the new element
+                console.log('[Mobile Utils] Chat container changed, re-initializing pull-to-refresh...');
+                PullToRefresh.initialized = false;
+                PullToRefresh.container = null;
+            }
+            PullToRefresh.init();
+        }
+
         // Re-wire textareas (they may be new after navigation)
         initAutoResizeTextareas();
 
