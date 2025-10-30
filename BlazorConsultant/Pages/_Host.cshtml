@@ -7,7 +7,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover, user-scalable=yes" />
     <base href="~/" />
     <title>TailorBlend AI Consultant</title>
     <meta name="description" content="TailorBlend AI Consultant - Design evidence-based supplement blends with conversational AI guidance. Get personalized formulation recommendations from our intelligent health consultant.">
@@ -17,12 +17,18 @@
 
     <!-- Theme Color - Managed dynamically by theme.js -->
     <meta name="theme-color" content="#70D1C7" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b1220" />
 
     <!-- iOS Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="TailorBlend" />
     <link rel="apple-touch-icon" href="~/icons/apple-touch-icon.png" />
+
+    <!-- Mobile-Specific Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="HandheldFriendly" content="true" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="~/icons/favicon-32.png" />
@@ -88,6 +94,7 @@
     <!-- Custom JavaScript - synchronous to prevent FOUC -->
     <script src="js/theme.js" asp-append-version="true"></script>
     <script src="js/chat.js" asp-append-version="true"></script>
+    <script src="js/mobile-utils.js" asp-append-version="true"></script>
 
     <!-- Deferred JavaScript - non-critical scripts -->
     <script src="js/file-utils.js" defer asp-append-version="true"></script>

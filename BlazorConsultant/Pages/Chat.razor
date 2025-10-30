@@ -165,7 +165,8 @@
                        OnChange="@OnFilesChanged"
                        hidden="hidden"
                        multiple
-                       accept=".pdf,.jpg,.jpeg,.png,.gif,.txt,.csv,.xlsx,.docx"
+                       capture="environment"
+                       accept="image/*,video/*,.pdf,.txt,.csv,.xlsx,.docx"
                                    style="display: none;" />
 
                         <!-- Attach Button -->
@@ -188,12 +189,14 @@
 
                         <!-- Text Input -->
                         <textarea class="tb-chat-input"
+                                  @ref="_chatInputRef"
                                   @bind="userInput"
                                   @bind:event="oninput"
                                   placeholder="Type your message..."
                                   @onkeydown="HandleKeyPress"
                                   disabled="@ChatStateService.IsLoading"
-                                  rows="1"></textarea>
+                                  rows="1"
+                                  @onchange="HandleInputChange"></textarea>
 
                         <!-- Send Button -->
                         <button type="button"
@@ -323,7 +326,7 @@
                         <h4>Track performance</h4>
                     </div>
                 </div>
-                <SessionStatsComponent @ref="sessionStatsRef" SessionId="@SessionService.SessionId" />
+                <SessionStatsComponent @ref="sessionStatsRef" SessionId="@(SessionService?.SessionId ?? string.Empty)" />
             </div>
 
             <!-- Actions -->
@@ -401,6 +404,7 @@
     private bool isResetting;
     private SessionStatsComponent? sessionStatsRef;
     private ElementReference _messagesContainer;
+    private ElementReference _chatInputRef;
     private string selectedModel = "gpt-5-mini";
     private bool _showSettings = false;
     private string SessionLabel => BuildSessionLabel();
@@ -408,7 +412,6 @@
     // Async tracking
     private readonly CancellationTokenSource _componentCts = new();
     private readonly DisposalGuard _disposalGuard = new();
-    private Task? _statsRefreshTask;
 
     // Typewriter
     private bool typewriterEnabled
@@ -619,7 +622,7 @@
         }
     }
 
-    private async Task RemoveFile(FileAttachment file)
+    private void RemoveFile(FileAttachment file)
     {
         selectedFiles.Remove(file);
         Logger.LogInformation("Removed file: {FileName}", file.FileName);
@@ -652,6 +655,21 @@
         if (e.Key == "Enter" && !e.ShiftKey)
         {
             await SendMessage();
+        }
+    }
+
+    private async Task HandleInputChange(ChangeEventArgs e)
+    {
+        userInput = e.Value?.ToString() ?? string.Empty;
+
+        // Auto-resize textarea
+        try
+        {
+            await JS.InvokeVoidAsync("tbMobile.autoResizeTextarea", _chatInputRef);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to auto-resize textarea");
         }
     }
 
@@ -712,14 +730,35 @@
         await Task.CompletedTask;
     }
 
-    private void ToggleSettings()
+    private async Task ToggleSettings()
     {
         _showSettings = !_showSettings;
+        await UpdateBodyScrollLock();
     }
 
-    private void CloseSettings()
+    private async Task CloseSettings()
     {
         _showSettings = false;
+        await UpdateBodyScrollLock();
+    }
+
+    private async Task UpdateBodyScrollLock()
+    {
+        try
+        {
+            if (_showSettings)
+            {
+                await JS.InvokeVoidAsync("eval", "document.body.classList.add('tb-sheet-open')");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("eval", "document.body.classList.remove('tb-sheet-open')");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to update body scroll lock");
+        }
     }
 
     private async Task OnModelChanged(string newModel)
@@ -821,18 +860,6 @@
         Logger.LogInformation("Disposing Chat component");
 
         _componentCts.Cancel();
-
-        if (_statsRefreshTask != null && !_statsRefreshTask.IsCompleted)
-        {
-            try
-            {
-                await Task.WhenAny(_statsRefreshTask, Task.Delay(1000));
-            }
-            catch
-            {
-                // Ignore exceptions during cleanup
-            }
-        }
 
         ChatStateService.OnStateChanged -= HandleStateChanged;
 
