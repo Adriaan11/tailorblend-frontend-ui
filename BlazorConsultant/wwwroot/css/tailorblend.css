@@ -2812,7 +2812,7 @@ textarea.tb-form-input {
 }
 
 /* High-Resolution Screens (Retina) ----------------------------------------- */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+@media (min-resolution: 192dpi) {
     /* Sharper borders on retina displays */
     .tb-border,
     .tb-card,

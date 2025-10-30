@@ -8,6 +8,19 @@
     'use strict';
 
     // ============================================================================
+    // HELPER: ACCESSIBILITY - RESPECT REDUCED MOTION PREFERENCE
+    // ============================================================================
+
+    /**
+     * Checks if user prefers reduced motion
+     * Returns the appropriate scroll behavior for scrollIntoView calls
+     */
+    function getScrollBehavior() {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        return prefersReducedMotion ? 'auto' : 'smooth';
+    }
+
+    // ============================================================================
     // 1. VIRTUAL KEYBOARD DETECTION & HANDLING
     // ============================================================================
 
@@ -66,7 +79,7 @@
                 const activeElement = document.activeElement;
                 if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
                     setTimeout(() => {
-                        activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        activeElement.scrollIntoView({ behavior: getScrollBehavior(), block: 'center' });
                     }, 100);
                 }
             }
@@ -93,7 +106,7 @@
                 // Scroll into view after a short delay (wait for keyboard animation)
                 setTimeout(() => {
                     if (document.activeElement === target) {
-                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        target.scrollIntoView({ behavior: getScrollBehavior(), block: 'center' });
                     }
                 }, 300);
             }
@@ -158,7 +171,7 @@
 
         // Scroll to keep textarea visible if it's growing
         setTimeout(() => {
-            element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            element.scrollIntoView({ behavior: getScrollBehavior(), block: 'nearest' });
         }, 50);
     };
 
@@ -451,12 +464,13 @@
 
     /**
      * Enhance scrolling on mobile with momentum and smooth behavior
+     * Note: Momentum scrolling is automatic in modern iOS (13+)
+     * CSS handles overflow scrolling via -webkit-overflow-scrolling in tailorblend.css
      */
     function initSmoothScrolling() {
-        const scrollContainers = document.querySelectorAll('.tb-chat-messages, .tb-mobile-content, .tb-bottom-sheet');
-        scrollContainers.forEach(container => {
-            container.style.webkitOverflowScrolling = 'touch'; // iOS momentum scrolling
-        });
+        // Modern browsers handle momentum scrolling automatically
+        // This function is kept for potential future enhancements
+        // CSS: .tb-mobile-content, .tb-chat-messages, .tb-bottom-sheet have -webkit-overflow-scrolling: touch
     }
 
     // ============================================================================
