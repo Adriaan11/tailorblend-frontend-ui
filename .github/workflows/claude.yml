@@ -1,3 +1,4 @@
+# .github/workflows/claude.yml
 name: Claude Code (mentions)
 
 on:
@@ -8,24 +9,17 @@ on:
 
 jobs:
   claude:
-    # Run only when someone actually tags @claude, and only from trusted folks
-    if: >
-      contains(github.event.comment.body, '@claude') &&
-      (github.event.comment.author_association == 'MEMBER' ||
-       github.event.comment.author_association == 'OWNER'  ||
-       github.event.comment.author_association == 'COLLABORATOR')
+    if: contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
       issues: write
+      id-token: write     
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@v1
         with:
-          # Choose ONE of these auth inputs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
