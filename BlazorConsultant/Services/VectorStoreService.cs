@@ -94,7 +94,7 @@ public class VectorStoreService : IVectorStoreService
 
             var fileContent = new StreamContent(fileStream);
             fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-            content.Add(fileContent, "file", fileName);
+            content.Add(fileContent, "files", fileName);  // Changed from "file" to "files" to match new endpoint
             content.Add(new StringContent(datasetName), "name");
 
             var response = await client.PostAsync("/api/vector-stores/upload", content, timeoutCts.Token);
