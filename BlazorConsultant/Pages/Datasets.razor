@@ -174,19 +174,28 @@
                 </div>
 
                 <div class="tb-form-group">
-                    <label for="jsonFile">JSON File (array of objects)</label>
+                    <label for="jsonFile">JSON Files (select one or more)</label>
                     <InputFile
                         id="jsonFile"
                         @ref="_fileInput"
-                        OnChange="@HandleFileSelected"
+                        OnChange="@HandleFilesSelected"
                         accept=".json"
+                        multiple
                         disabled="@IsUploading" />
-                    @if (SelectedFile != null)
+                    @if (SelectedFiles.Count > 0)
                     {
-                        <p class="tb-text-small">
-                            <TbIcon Icon="check" Size="sm" Color="success" />
-                            Selected: @SelectedFile.Name (@(SelectedFile.Size / 1024)KB)
-                        </p>
+                        <div class="tb-selected-files">
+                            @foreach (var file in SelectedFiles)
+                            {
+                                <p class="tb-text-small">
+                                    <TbIcon Icon="check" Size="sm" Color="success" />
+                                    @file.Name (@(file.Size / 1024)KB)
+                                </p>
+                            }
+                            <p class="tb-text-small" style="font-weight: 600; margin-top: 0.5rem;">
+                                Total: @SelectedFiles.Count file(s), @((SelectedFiles.Sum(f => f.Size) / 1024))KB
+                            </p>
+                        </div>
                     }
                 </div>
 
@@ -211,7 +220,7 @@
                         Type="submit"
                         Variant="contained"
                         Color="primary"
-                        Disabled="@(IsUploading || SelectedFile == null || string.IsNullOrWhiteSpace(UploadName))">
+                        Disabled="@(IsUploading || SelectedFiles.Count == 0 || string.IsNullOrWhiteSpace(UploadName))">
                         @(IsUploading ? "Uploading..." : "Upload Dataset")
                     </TbButton>
                 </div>
@@ -264,7 +273,7 @@
     private bool ShowUploadDialog = false;
     private bool ShowDeleteConfirm = false;
     private string UploadName = "";
-    private IBrowserFile? SelectedFile;
+    private List<IBrowserFile> SelectedFiles = new();
     private InputFile? _fileInput;
     private VectorStoreMetadata? DeleteConfirmDataset;
 
@@ -313,24 +322,25 @@
     {
         ShowUploadDialog = true;
         UploadName = "";
-        SelectedFile = null;
+        SelectedFiles.Clear();
     }
 
     private void CloseUploadDialog()
     {
         ShowUploadDialog = false;
         UploadName = "";
-        SelectedFile = null;
+        SelectedFiles.Clear();
     }
 
-    private void HandleFileSelected(InputFileChangeEventArgs e)
+    private void HandleFilesSelected(InputFileChangeEventArgs e)
     {
-        SelectedFile = e.File;
+        const int maxAllowedFiles = 20;  // Match backend limit
+        SelectedFiles = e.GetMultipleFiles(maxAllowedFiles).ToList();
     }
 
     private async Task SubmitUpload()
     {
-        if (SelectedFile == null || string.IsNullOrWhiteSpace(UploadName))
+        if (SelectedFiles.Count == 0 || string.IsNullOrWhiteSpace(UploadName))
             return;
 
         try
@@ -338,10 +348,45 @@
             IsUploading = true;
             ClearError();
 
-            using var stream = SelectedFile.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024); // 5MB max
-            await VectorStoreService.UploadVectorStoreAsync(stream, SelectedFile.Name, UploadName, _disposalCts?.Token ?? CancellationToken.None);
+            // Determine which service method to use
+            if (SelectedFiles.Count == 1)
+            {
+                // Single file: use existing method
+                var file = SelectedFiles[0];
+                using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB max per file
+                await VectorStoreService.UploadVectorStoreAsync(stream, file.Name, UploadName, _disposalCts?.Token ?? CancellationToken.None);
 
-            SuccessMessage = $"Dataset '{UploadName}' uploaded successfully!";
+                SuccessMessage = $"Dataset '{UploadName}' uploaded successfully!";
+            }
+            else
+            {
+                // Multiple files: use new batch upload method
+                var fileDataList = new List<(Stream stream, string fileName)>();
+
+                try
+                {
+                    // Open all file streams
+                    foreach (var file in SelectedFiles)
+                    {
+                        var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB max per file
+                        fileDataList.Add((stream, file.Name));
+                    }
+
+                    // Upload all files as batch
+                    await VectorStoreService.UploadMultipleFilesAsync(fileDataList, UploadName, _disposalCts?.Token ?? CancellationToken.None);
+
+                    SuccessMessage = $"Dataset '{UploadName}' with {SelectedFiles.Count} files uploaded successfully!";
+                }
+                finally
+                {
+                    // Dispose all streams
+                    foreach (var (stream, _) in fileDataList)
+                    {
+                        await stream.DisposeAsync();
+                    }
+                }
+            }
+
             CloseUploadDialog();
             await LoadDatasets();
         }

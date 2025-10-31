@@ -220,6 +220,73 @@ public class VectorStoreService : IVectorStoreService
     }
 
     /// <summary>
+    /// Upload multiple JSON files and create a single vector store using batch upload
+    /// </summary>
+    public async Task<VectorStoreMetadata> UploadMultipleFilesAsync(
+        List<(Stream stream, string fileName)> files,
+        string datasetName,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("📤 Uploading {Count} files for dataset: {DatasetName}",
+                files.Count, datasetName);
+
+            var client = _httpClientFactory.CreateClient("PythonAPI");
+
+            // Set timeout for upload (longer for multiple files)
+            using var timeoutCts = TimeoutPolicy.CreateTimeoutTokenSource(
+                TimeSpan.FromMinutes(10), // 10 minute timeout for batch uploads
+                cancellationToken);
+
+            // Build multipart form data
+            using var content = new MultipartFormDataContent();
+
+            // Add all files with field name "files" (FastAPI expects List[UploadFile] with this name)
+            foreach (var (stream, fileName) in files)
+            {
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType =
+                    new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                content.Add(fileContent, "files", fileName);  // Note: "files" (plural) matches FastAPI parameter
+            }
+
+            // Add dataset name
+            content.Add(new StringContent(datasetName), "name");
+
+            var response = await client.PostAsync("/api/vector-stores/upload",
+                content, timeoutCts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+                _logger.LogError("❌ Failed to upload vector store: {StatusCode} - {Content}",
+                    response.StatusCode, errorContent);
+                throw new HttpRequestException(
+                    $"Failed to upload vector store: {response.StatusCode} - {errorContent}");
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<VectorStoreMetadata>(
+                cancellationToken: timeoutCts.Token);
+
+            _logger.LogInformation("✅ Vector store uploaded successfully: {Id} ({Name}) with {Count} files",
+                result?.Id, result?.Name, files.Count);
+
+            return result ?? throw new InvalidOperationException("No response from upload");
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "❌ HTTP error uploading vector store");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Unexpected error uploading vector store");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Delete a vector store
     /// </summary>
     public async Task DeleteVectorStoreAsync(string storeId, CancellationToken cancellationToken = default)
@@ -267,6 +334,7 @@ public interface IVectorStoreService
 {
     Task<List<VectorStoreMetadata>> ListVectorStoresAsync(CancellationToken cancellationToken = default);
     Task<VectorStoreMetadata> UploadVectorStoreAsync(Stream fileStream, string fileName, string datasetName, CancellationToken cancellationToken = default);
+    Task<VectorStoreMetadata> UploadMultipleFilesAsync(List<(Stream stream, string fileName)> files, string datasetName, CancellationToken cancellationToken = default);
     Task<VectorStoreMetadata> ActivateVectorStoreAsync(string vectorStoreId, CancellationToken cancellationToken = default);
     Task<VectorStoreMetadata> GetActiveVectorStoreAsync(CancellationToken cancellationToken = default);
     Task DeleteVectorStoreAsync(string storeId, CancellationToken cancellationToken = default);
